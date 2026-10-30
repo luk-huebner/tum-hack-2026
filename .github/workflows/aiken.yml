@@ -29,6 +29,16 @@ jobs:
 
       - run: aiken --version
 
-      - name: aiken check (Airnode attestation spike)
+      - name: aiken check (Airnode attestation spike, engine, validator)
         working-directory: aiken/airnode_spike
         run: aiken check
+
+      - name: aiken build (compiled validator and blueprint)
+        working-directory: aiken/airnode_spike
+        run: aiken build
+
+      - name: Keep the blueprint
+        uses: actions/upload-artifact@v4
+        with:
+          name: pay-on-proof-blueprint
+          path: aiken/airnode_spike/plutus.json
