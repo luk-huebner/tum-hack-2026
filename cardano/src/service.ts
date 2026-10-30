@@ -16,7 +16,7 @@
  * The contract is the authority for both. This process only buys data, builds transactions and reports what the node's
  * script evaluation said. The operator wallet (SELLER_MNEMONIC) pays fees and collateral and never touches the funds.
  */
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import express, { type Request, type Response } from "express";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
@@ -27,6 +27,7 @@ import { startAutoRelease, type WatchStatus } from "./autorelease.js";
 import { type DemoParams, getRun, refusal, startDemoRun } from "./demo-run.js";
 import { ESCROW_LOVELACE, describeOffer, offerExtra, parseOffer, validatorAddressBech32 } from "./escrow.js";
 import { judgeRoutes, policySummary } from "./judge-routes.js";
+import { type Registration, makeMps, masumiRoutes } from "./masumi-agent.js";
 import { TEMPLATE_IDS, allSpecs, registeredSources } from "./templates.js";
 import {
   type Client,
@@ -228,6 +229,42 @@ app.post("/api/escrow", escrowGate, (req: Request, res: Response) => {
 // The judge bench and the live board (judge-routes.ts, shared with the public judge site)
 
 app.use(judgeRoutes(operator));
+
+// ---------------------------------------------------------------------------
+// The outcome keeper as a Masumi agent (MIP-003), only with MASUMI_ENABLED=1. See masumi-agent.ts and MASUMI.md.
+
+if (process.env.MASUMI_ENABLED === "1") {
+  const fromFile = process.env.MASUMI_REGISTRATION_FILE && existsSync(process.env.MASUMI_REGISTRATION_FILE) ? JSON.parse(readFileSync(process.env.MASUMI_REGISTRATION_FILE, "utf8")) : {};
+  const agentIdentifier = process.env.MASUMI_AGENT_IDENTIFIER ?? fromFile.agentIdentifier;
+  const sellerVKey = process.env.MASUMI_SELLER_VKEY ?? fromFile.sellerVkey ?? fromFile.sellerVKey;
+  const index = Number(process.env.MASUMI_PAYMENT_SOURCE_INDEX ?? fromFile.supportedPaymentSourceIndex ?? 0);
+  const registration: Registration | undefined = agentIdentifier && sellerVKey ? { agentIdentifier, sellerVKey, supportedPaymentSourceIndex: index } : undefined;
+  const mps = process.env.MPS_URL && process.env.MPS_RUNTIME_TOKEN ? makeMps(process.env.MPS_URL, process.env.MPS_RUNTIME_TOKEN) : undefined;
+  const served = new Set([paymentKeyHashHex(sellerAddressBech32()), ...(process.env.AUTO_RELEASE_PAYEES ?? "").split(",").map((a) => a.trim()).filter(Boolean).map((a) => paymentKeyHashHex(a))]);
+  const bench = new Set<string>((JSON.parse(readFileSync(new URL("../standing-policies.json", import.meta.url), "utf8")) as { ref: string }[]).map((x) => x.ref));
+  const agent = masumiRoutes({
+    ...(mps ? { mps } : {}),
+    ...(registration ? { registration } : {}),
+    storeFile: fileURLToPath(new URL("masumi-jobs.json", outDir)),
+    checkPolicy: async (ref) => {
+      if (bench.has(ref)) return { ok: false, reason: "That is a public test fixture, not an escrow to serve" };
+      const utxo = await findPolicyUtxo(operator(), ref);
+      if (!utxo) return { ok: false, reason: "No such open escrow at the validator" };
+      const policy = policyViewOf(utxo);
+      const spec = allSpecs().find((x) => loadVector(x.vectorName).requestHashHex === policy.requestHashHex);
+      if (!spec) return { ok: false, reason: "The keeper does not know this escrow's data request" };
+      if (!served.has(policy.beneficiaryHex)) return { ok: false, reason: "The keeper is not set up to pay this escrow's payee" };
+      return { ok: true, deadlineMs: policy.deadlineMs, rule: spec.describe(policy.threshold / 10 ** policy.scale) };
+    },
+    outcomeOf: async (ref) => {
+      const released = jobs.find((j) => j.ref === ref && j.outcome === "released" && typeof j.tx === "string");
+      if (released) return { state: "released", tx: String(released.tx) };
+      return (await findPolicyUtxo(operator(), ref)) ? { state: "open" } : { state: "gone" };
+    },
+  });
+  app.use("/masumi", agent.router);
+  console.log(`  masumi agent ON at /masumi: ${mps && registration ? "registered, payments through the Masumi payment service" : "NOT registered: start_job answers 503 until MPS_URL, MPS_RUNTIME_TOKEN and the registration are set"}`);
+}
 
 // ---------------------------------------------------------------------------
 // Information for the page
