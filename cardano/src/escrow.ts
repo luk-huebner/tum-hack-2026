@@ -18,7 +18,7 @@ import { TEMPLATE_IDS, type TemplateId, specFor } from "./templates.js";
 export const ESCROW_LOVELACE = 5_000_000n; // the price of the route, and the amount the policy pays out
 export const ESCROW_MAX_AGE_MS = 300_000; // a release must use a response signed in the last 5 minutes
 const MIN_LEAD_MS = 5 * 60_000; // the deadline must be at least this far away when the offer is made
-const MAX_LEAD_MS = 72 * 3_600_000;
+const MAX_LEAD_MS = 8 * 24 * 3_600_000; // long enough for a week of retention after a campaign
 const MIN_WINDOW_MS = 10 * 60_000; // a measurement window (measureAfter to deadline) shorter than this cannot be used
 
 /**
@@ -65,7 +65,7 @@ export const parseOffer = (body: unknown, nowMs: number): EscrowOffer => {
     throw new Error(`the threshold may have at most ${spec.scale} decimals`);
   }
   if (!Number.isSafeInteger(deadlineMs) || deadlineMs < nowMs + MIN_LEAD_MS || deadlineMs > nowMs + MAX_LEAD_MS) {
-    throw new Error("deadlineMs must be a unix time in milliseconds between 5 minutes and 72 hours from now");
+    throw new Error("deadlineMs must be a unix time in milliseconds between 5 minutes and 8 days from now");
   }
   let payee: string | undefined;
   if (b.payee !== undefined) {

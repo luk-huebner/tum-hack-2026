@@ -146,7 +146,7 @@ const main = async () => {
 
   const names = slotNamesOf(first.data, a.slots);
   const indices = spec.use.map((n) => names.indexOf(n));
-  if (indices.some((i) => i < 0)) fail(`"use" must name fields of the signed text. Available: ${names.join(", ")}`);
+  if (indices.some((i) => i < 0)) fail(`"use" must name fields of the signed text. Available: ${names.join(", ")}. (If these are slot0, slot1, ..., a text field probably contains something like :12, which is read as a number: leave that text out of the request.)`);
   const slotFrom = Math.min(...indices);
   const slotTo = Math.max(...indices) + 1;
   if (slotTo - slotFrom !== indices.length) fail(`the fields to sum must be next to each other in the signed text (order: ${names.join(", ")})`);

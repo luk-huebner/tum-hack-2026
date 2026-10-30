@@ -367,3 +367,12 @@ Built after a question about how a creator's post is identified and how bought l
 - **Payee**: an offer can name who is paid (a key-controlled address); the datum reads back with that beneficiary and not the seller. The keeper serves it only for addresses listed in `AUTO_RELEASE_PAYEES`. A dry x402 offer with a payee and a measurement time matched the buyer's own recomputation field by field; a measurement time within 10 minutes of the deadline and a payee that is not an address were refused.
 - The MCP tools and the escrow client take `payee` and the measurement time.
 - **Not done:** an on-chain run with a payee other than the seller and a measurement time (about 5 tADA locked and returned, about 0.04 aUSD); the intake on a real new post of a second account; edited posts.
+
+## Retention: tranches, a longer deadline and pinned post text (30 Oct 2026, about 18:45 to 19:10 UTC)
+
+Built after the question "what if the creator deletes the post after being paid" (`cardano/CREATOR_PAY.md`). **The planner and the offers were tested offline; nothing of the tranches was run on chain.**
+
+- **Deadlines up to 8 days** (was 72 hours): the offer limit is raised so that a week of retention fits.
+- **`cardano/src/creator-campaign.ts`** plans a campaign as several ordinary escrows on one post and one rule that differ only in the time from which a measurement counts: a campaign tranche and a retention tranche. Checked without paying: a booth-sized plan (campaign measured after 12 minutes, retention after 25, windows of 10 minutes) and a real one (24 hours, 7 days) were accepted, three plans were refused (a retention measurement before the campaign window ends, one beyond 8 days, an unknown source). `--lock` pays them one after the other and was not used.
+- **Pinned text:** the intake with `--pin-text` and `--register` on the team's own post bought three signed looks (0.03 aUSD), the two registration looks gave identical fixed text, and the signed text carried author id, creation time, post id, `isReply`, the counts and the exact text (431 bytes of fixed text). It refuses a text that contains something like `:12,`.
+- **Five contract tests with that real signed response** (`aiken/airnode_spike/lib/creator_post.test.ak`): it releases with the pinned author and text; one like required with none present is refused; a changed prefix (another author or an edited text) is rejected; a response signed before the measurement time does not count and one signed after it does.

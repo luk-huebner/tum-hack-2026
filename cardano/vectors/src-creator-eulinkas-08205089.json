@@ -1,0 +1,44 @@
+{
+  "airnode": "0x7B02Fd3324D2dC362f65a9c01e59EC5fDb4E1CCB",
+  "request": {
+    "operation": "tweetsByIds",
+    "parameters": {
+      "tweet_ids": "2116232087808205089"
+    },
+    "responseProjection": {
+      "id": "/tweets/0/id",
+      "authorId": "/tweets/0/author/id",
+      "createdAt": "/tweets/0/createdAt",
+      "isReply": "/tweets/0/isReply",
+      "likes": "/tweets/0/likeCount",
+      "replies": "/tweets/0/replyCount",
+      "retweets": "/tweets/0/retweetCount",
+      "views": "/tweets/0/viewCount",
+      "text": "/tweets/0/text"
+    }
+  },
+  "data": "{\"authorId\":\"1894726821226156032\",\"createdAt\":\"Fri Oct 30 18:13:42 +0000 2026\",\"id\":\"2116232087808205089\",\"isReply\":false,\"likes\":0,\"replies\":0,\"retweets\":0,\"text\":\"Cardano contract: pay the creator once this tweet gets enough likes. API3 Airnode: here is the signed like count, no \\\"trust me bro\\\" needed. Contract: ok, paying. Hackathon demo, testnet ADA only. Your like is literally the payment condition. #Cardano #API3\",\"views\":7}",
+  "timestamp": 1793386329,
+  "requestHashHex": "02d81eaa8173f00b7fe24612f9283c4cda13bbf7de7ddedc8b8ebbafbdf2e6a7",
+  "signatureHex": "6df83ad943405199d75be468b01d1f2fb58b34e45d42348f930d92f7051503b2300c87a894e2ba4c81bbf864864c0b86f8b8c98dbb1036936a3a908660737327",
+  "pubkeyHex": "0223dbf88146ba756ff33fc523e884c231d5d226a370ab654a70059bfc05193428",
+  "prefixHex": "7b22617574686f724964223a2231383934373236383231323236313536303332222c22637265617465644174223a22467269204f63742033302031383a31333a3432202b303030302032303236222c226964223a2232313136323332303837383038323035303839222c2269735265706c79223a66616c73652c226c696b6573223a",
+  "separatorsHex": [
+    "2c227265706c696573223a",
+    "2c227265747765657473223a",
+    "2c2274657874223a2243617264616e6f20636f6e74726163743a20706179207468652063726561746f72206f6e63652074686973207477656574206765747320656e6f756768206c696b65732e2041504933204169726e6f64653a206865726520697320746865207369676e6564206c696b6520636f756e742c206e6f205c227472757374206d652062726f5c22206e65656465642e20436f6e74726163743a206f6b2c20706179696e672e204861636b6174686f6e2064656d6f2c20746573746e657420414441206f6e6c792e20596f7572206c696b65206973206c69746572616c6c7920746865207061796d656e7420636f6e646974696f6e2e202343617264616e6f202341504933222c227669657773223a"
+  ],
+  "suffixHex": "7d",
+  "slotsText": [
+    "0",
+    "0",
+    "0",
+    "7"
+  ],
+  "slotsHex": [
+    "30",
+    "30",
+    "30",
+    "37"
+  ]
+}

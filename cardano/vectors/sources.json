@@ -63,5 +63,42 @@
     "costAusd": 0.01,
     "max": 2000000000,
     "registeredAt": "2026-10-30T18:19:46.556Z"
+  },
+  {
+    "id": "creator-eulinkas-08205089",
+    "label": "likes of @EuLinkas's post 2116232087808205089",
+    "slug": "twitterapi",
+    "request": {
+      "operation": "tweetsByIds",
+      "parameters": {
+        "tweet_ids": "2116232087808205089"
+      },
+      "responseProjection": {
+        "id": "/tweets/0/id",
+        "authorId": "/tweets/0/author/id",
+        "createdAt": "/tweets/0/createdAt",
+        "isReply": "/tweets/0/isReply",
+        "likes": "/tweets/0/likeCount",
+        "replies": "/tweets/0/replyCount",
+        "retweets": "/tweets/0/retweetCount",
+        "views": "/tweets/0/viewCount",
+        "text": "/tweets/0/text"
+      }
+    },
+    "vectorName": "src-creator-eulinkas-08205089",
+    "slotFrom": 0,
+    "slotTo": 1,
+    "slotNames": [
+      "likes",
+      "replies",
+      "retweets",
+      "views"
+    ],
+    "scale": 0,
+    "cmp": "AtLeast",
+    "kind": "counter",
+    "costAusd": 0.01,
+    "max": 2000000000,
+    "registeredAt": "2026-10-30T18:52:15.743Z"
   }
 ]

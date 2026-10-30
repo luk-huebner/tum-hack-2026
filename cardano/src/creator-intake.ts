@@ -1,7 +1,7 @@
 /**
  * Creator Pay intake: from the link to a creator's post to a source that is bound to that creator and that post.
  *
- *   tsx src/creator-intake.ts --tweet <link or id> --creator <handle or user id> [--target 500] [--no-disclosure] [--register]
+ *   tsx src/creator-intake.ts --tweet <link or id> --creator <handle or user id> [--target 500] [--no-disclosure] [--pin-text] [--register]
  *   tsx src/creator-intake.ts --tweet <link or id> --creator <handle> --from <saved response>      the same from a response already bought
  *
  * A link to a post is `https://x.com/<handle>/status/<ID>`: the number after /status/ is the tweet id. The contract only knows
@@ -11,6 +11,10 @@
  * spec in which the signed text includes the author's numeric id, the creation time, the id and "isReply": false, so the policy
  * only accepts responses for exactly that post by exactly that author. It pays nothing else: registering (--register) costs
  * two more fetches (0.02 aUSD), and locking the escrow is a separate command that is printed at the end.
+ *
+ * --pin-text also puts the post's exact text into the signed text, so an EDIT of the post (a removed disclosure tag, a changed
+ * claim) means the policy no longer matches and nothing is paid. Use it when the wording matters; the cost is a larger datum
+ * and a policy that breaks if the provider ever encodes the text differently (emoji and other non-ASCII characters are the risk).
  *
  * Counted likes are an absolute number. "--target 500" means "500 more than the baseline today", so the threshold printed is
  * baseline + 500; the baseline is read from this look at the post.
@@ -34,6 +38,7 @@ const { values } = parseArgs({
     "max-age-hours": { type: "string", default: "24" },
     disclosure: { type: "string", default: "#ad,#sponsored,#werbung,#anzeige,paid partnership,#paidpartnership" },
     "no-disclosure": { type: "boolean", default: false },
+    "pin-text": { type: "boolean", default: false },
     from: { type: "string" },
     register: { type: "boolean", default: false },
   },
@@ -120,6 +125,7 @@ const main = async () => {
         replies: "/tweets/0/replyCount",
         retweets: "/tweets/0/retweetCount",
         views: "/tweets/0/viewCount",
+        ...(values["pin-text"] ? { text: "/tweets/0/text" } : {}),
       },
     },
     use: ["likes"],
@@ -128,6 +134,13 @@ const main = async () => {
     scale: 0,
   };
 
+  if (values["pin-text"]) {
+    // A number that directly follows a colon and a comma inside the text would be read as a number slot, not as text
+    const risky = /:-?\d+(\.\d+)?[,}]/.test(JSON.stringify(text).slice(1, -1));
+    if (risky) problems.push("the text contains something like :12, which the contract would read as a number slot; do not pin this text (or reword the post)");
+    if (/[^ -~]/.test(text)) notes.push(`the text has ${[...text].filter((c) => /[^ -~]/.test(c)).length} non-ASCII character(s) (emoji or accents): the pinned text breaks if the provider ever encodes them differently. Run --register, which fetches twice and compares`);
+    notes.push(`the exact text (${text.length} characters) is pinned: any edit of the post means nothing is paid`);
+  }
   for (const n of notes) console.log(`  note       ${n}`);
   if (problems.length > 0) {
     for (const p of problems) console.log(`  PROBLEM    ${p}`);
@@ -139,7 +152,7 @@ const main = async () => {
   const specFile = join(cardanoDir, "specs", `${specId}.json`);
   mkdirSync(join(cardanoDir, "specs"), { recursive: true });
   writeFileSync(specFile, `${JSON.stringify(spec, null, 2)}\n`);
-  console.log(`\nspec written: specs/${specId}.json  (the signed text will include author id ${authorId}, the creation time, the id and isReply false)`);
+  console.log(`\nspec written: specs/${specId}.json  (the signed text will include author id ${authorId}, the creation time, the id and isReply false${values["pin-text"] ? ", and the exact text" : ""})`);
 
   const target = values.target === undefined ? undefined : Number(values.target);
   const atLeast = target === undefined ? "<likes>" : String(likes + target);

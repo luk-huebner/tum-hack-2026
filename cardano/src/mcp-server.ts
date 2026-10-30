@@ -59,7 +59,7 @@ const offerSchema = {
   tweetId: { type: "string", description: 'For template "tweet-likes": a registered tweet id.' },
   atLeast: { type: "number", description: 'The threshold for a rule "at least" (likes, views, a price).' },
   below: { type: "number", description: 'The threshold for a rule "below" (rainfall in mm).' },
-  minutes: { type: "number", description: "The deadline in minutes from now (5 to 4320). If the rule has not held by then, the buyer can take the money back." },
+  minutes: { type: "number", description: "The deadline in minutes from now (5 to 11520, that is 8 days). If the rule has not held by then, the buyer can take the money back." },
   refund: { type: "string", description: "The buyer's preprod address (addr_test1...) that gets the money back. Defaults to BUYER_ADDRESS in the environment." },
   payee: { type: "string", description: "Who is paid when the rule holds (a preprod address, for example the creator). Defaults to the seller." },
   measureAfterMinutes: { type: "number", description: "Count only data signed after this many minutes from now (for example the last hour of a campaign), so that a boost in the middle does not count. At least 10 minutes before the deadline." },

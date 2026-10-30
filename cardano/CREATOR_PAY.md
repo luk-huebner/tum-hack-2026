@@ -41,6 +41,22 @@ The contract proves what the data said, not that the likes are real. What the de
 
 Needs a new validator (not built): two sources that must agree, two measurements a set time apart, a buyer veto window, ratio rules, payment proportional to the count.
 
+## If the creator deletes the post, or edits it
+
+- **Deleted before the final measurement:** nothing is paid. A deleted post comes back as an empty record, which cannot match the pinned author, creation time and id, so the buyer is refunded after the deadline.
+- **Deleted after a payout:** money that has been released cannot be taken back. So pay in tranches:
+
+  ```bash
+  npx tsx src/creator-campaign.ts --source <id> --payee <creator addr_test1...> --at-least 5000 \
+      --campaign-minutes 1440 --hold-minutes 10080            # prints the plan, pays nothing
+  npx tsx src/creator-campaign.ts ... --lock                  # pays the escrows, one x402 payment after the other
+  ```
+
+  One third (one 5 tADA escrow) counts a measurement taken after the campaign ends; two thirds (two escrows) count only a measurement taken after the retention period, so a post deleted in between costs the creator that part, and the buyer gets it back after the deadline. Every tranche is an ordinary escrow on the same post and rule, and the shares are set by how many escrows go into each (`--after`, `--hold`). Offers may now run up to 8 days.
+- **A creator bond (not scripted, the contract allows it):** the creator pays the deposit, the payee is the creator and the refund party is the brand, so the deposit returns to the creator only if the post is still there at the end and goes to the brand otherwise.
+- **Edited post:** `--pin-text` in the intake puts the exact text into the signed text, so an edit (a removed `#ad`, a changed claim) means the policy no longer matches and nothing is paid. Tested on a real post: the registration fetched twice and the fixed text was identical (431 bytes); five contract tests with the real signed response pass in CI (`lib/creator_post.test.ak`). Risks: a larger datum and a policy that breaks if the provider ever encodes emoji or accents differently; a post whose text contains something like `:12,` cannot be pinned (the intake refuses).
+- **Proof stays on chain:** the release transaction carries the signed response, which shows that the post existed with its likes at that time, even if it is deleted later.
+
 ## What we learnt from PolyTrack
 
 PolyTrack is Polymarket's own creator-payment dashboard. It has no public documentation that we could find; what is known comes from press reports of a program that pays hundreds of X accounts to quote-post its esports accounts (an investigation by ReaderGrev, reported by Aftermath on 15 Oct 2026, and echoed elsewhere). Whether access is invite-only is not stated. Per those reports:
@@ -65,8 +81,10 @@ What we took from it, and from other public creator-payment documentation (per-v
 
 ## Limits
 
-- Not run end to end on chain with a payee other than the seller and a measurement time yet; the offer, datum and keeper rules were tested offline (`PROOFS.md`), and the contract refuses an early measurement in CI.
+- Not run end to end on chain with a payee other than the seller, a measurement time or several tranches yet; the offers, datum and keeper rules were tested offline (`PROOFS.md`), and the contract refuses an early measurement and a changed fixed text in CI.
+- A tranche is a whole 5 tADA escrow, so shares are multiples of one escrow, and each escrow is a separate x402 payment (about a minute each).
+- A retention period of up to about 8 days fits (the keeper must run all that time, and the money is locked all that time).
 - The disclosure check reads the text. X's own paid-partnership label is not part of the data we receive.
 - One tweet source is one post; a creator posting a thread needs a source per post.
-- Edited posts: how the data provider treats an edited post and its id was not tested.
+- Edited posts: without `--pin-text` an edit is not noticed. How the data provider treats an edited post's id (X gives edited posts a new id, we believe) was not tested.
 - No dispute process and no external audit.
