@@ -1,0 +1,33 @@
+name: aiken
+
+# Runs the Aiken tests on x86 Linux, because the ARM Windows laptop cannot execute them.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Aiken v1.1.24 (official release, checksum verified)
+        run: |
+          set -euo pipefail
+          base=https://github.com/aiken-lang/aiken/releases/download/v1.1.24
+          file=aiken-x86_64-unknown-linux-musl.tar.gz
+          curl -sSLO "$base/$file"
+          curl -sSLO "$base/$file.sha256"
+          sha256sum -c "$file.sha256"
+          mkdir aiken-bin
+          tar -xzf "$file" -C aiken-bin
+          echo "$(dirname "$(find aiken-bin -name aiken -type f | head -1)")" >> "$GITHUB_PATH"
+
+      - run: aiken --version
+
+      - name: aiken check (Airnode attestation spike)
+        working-directory: aiken/airnode_spike
+        run: aiken check

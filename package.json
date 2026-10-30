@@ -1,0 +1,16 @@
+{
+  "name": "tum-hackathon-2026-checks",
+  "private": true,
+  "type": "module",
+  "description": "Friday checks for the TUM Blockchain & AI Hackathon 2026. Created after 09:00 on 30 Oct 2026.",
+  "scripts": {
+    "check:prices": "node checks/00-prices.mjs",
+    "check:vector": "node checks/01-vector.mjs",
+    "check:paid": "node --env-file=.env checks/10-paid-call.ts"
+  },
+  "dependencies": {
+    "@x402/evm": "^2.28.0",
+    "@x402/fetch": "^2.28.0",
+    "viem": "^2.57.3"
+  }
+}
