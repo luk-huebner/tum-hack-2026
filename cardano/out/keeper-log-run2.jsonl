@@ -1,0 +1,5 @@
+{"at":"2026-10-30T12:20:17.582Z","event":"start","policy":"12b89bad3c69bdf1a52424e22aac689f66aa27eb545edda3bf6637876d99e042#0","source":"nodary:ETH/USD","rule":"AtLeast 2236.495","budgetAusd":0.05,"maxCycles":30,"baseIntervalS":20,"submit":true}
+{"at":"2026-10-30T12:20:19.182Z","cycle":1,"value":2239.835,"threshold":2236.495,"met":true,"ageS":3,"spentAusd":0}
+{"at":"2026-10-30T12:20:36.339Z","cycle":1,"event":"released","tx":"a1c04de9d5637e0d80e70c00300ba8d2ba08f13df37aabc93f6160d70616d944","responseAgeS":20}
+{"at":"2026-10-30T12:21:17.822Z","cycle":1,"event":"confirmed","tx":"a1c04de9d5637e0d80e70c00300ba8d2ba08f13df37aabc93f6160d70616d944"}
+{"at":"2026-10-30T12:21:17.823Z","event":"stop","outcome":"released a1c04de9d5637e0d80e70c00300ba8d2ba08f13df37aabc93f6160d70616d944","spentAusd":0}

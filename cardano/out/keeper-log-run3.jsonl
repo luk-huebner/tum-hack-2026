@@ -1,0 +1,24 @@
+{"at":"2026-10-30T12:22:59.817Z","event":"start","policy":"aca78b2bb163a745a7c1fd22f23f26bf4b177f2850f75b5eb02cb9fb6df2e530#0","source":"nodary:ETH/USD","rule":"AtLeast 2239.21","budgetAusd":0.05,"maxCycles":30,"baseIntervalS":20,"submit":true}
+{"at":"2026-10-30T12:23:01.178Z","cycle":1,"value":2236.115,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:23:29.629Z","cycle":2,"event":"fetch-failed","failures":1,"retryInS":40,"error":"fetch failed: \r | Node.js v24.14.0"}
+{"at":"2026-10-30T12:24:11.263Z","cycle":3,"value":2235.63,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:24:32.403Z","cycle":4,"value":2236.38,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:24:54.008Z","cycle":5,"value":2235.82,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:25:19.863Z","cycle":6,"event":"fetch-failed","failures":1,"retryInS":40,"error":"fetch failed: \r | Node.js v24.14.0"}
+{"at":"2026-10-30T12:26:10.910Z","cycle":7,"event":"fetch-failed","failures":2,"retryInS":80,"error":"fetch failed: \r | Node.js v24.14.0"}
+{"at":"2026-10-30T12:27:32.319Z","cycle":8,"value":2237.17,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:27:54.090Z","cycle":9,"value":2237.03,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:28:15.650Z","cycle":10,"value":2237.49,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:28:36.945Z","cycle":11,"value":2237.25,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:28:58.345Z","cycle":12,"value":2236.93,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:29:19.568Z","cycle":13,"value":2236.475,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:29:40.982Z","cycle":14,"value":2235.745,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:30:02.161Z","cycle":15,"value":2234.99,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:30:23.476Z","cycle":16,"value":2234.845,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:30:44.678Z","cycle":17,"value":2234.848242,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:31:06.209Z","cycle":18,"value":2234.12,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:31:27.707Z","cycle":19,"value":2234.335,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:31:49.046Z","cycle":20,"value":2235.595,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:32:10.255Z","cycle":21,"value":2235.69,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T12:32:31.410Z","cycle":22,"value":2235.12,"threshold":2239.21,"met":false,"ageS":3,"spentAusd":0,"nextInS":20}
+{"at":"2026-10-30T13:11:30.351Z","event":"stop","outcome":"policy deadline close","spentAusd":0}

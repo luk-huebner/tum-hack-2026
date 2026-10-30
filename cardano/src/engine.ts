@@ -152,6 +152,8 @@ export const releaseDataFromResponse = (r: SignedResponse) =>
   );
 
 export interface PolicyView {
+  signerHex: string;
+  requestHashHex: string;
   beneficiaryHex: string;
   refundToHex: string;
   payout: bigint;
@@ -159,6 +161,8 @@ export interface PolicyView {
   maxAgeMs: number;
   threshold: number;
   scale: number;
+  slotFrom: number;
+  slotTo: number;
   cmp: Cmp;
 }
 
@@ -168,6 +172,8 @@ export const policyViewOf = (utxo: { datumOption?: unknown }): PolicyView => {
   if (!fields) throw new Error("The UTxO has no readable inline datum");
   const hex = (b: unknown) => Buffer.from(b as Uint8Array).toString("hex");
   return {
+    signerHex: hex(fields[0]),
+    requestHashHex: hex(fields[1]),
     beneficiaryHex: hex(fields[13]),
     refundToHex: hex(fields[14]),
     payout: BigInt(fields[15] as bigint),
@@ -175,6 +181,8 @@ export const policyViewOf = (utxo: { datumOption?: unknown }): PolicyView => {
     maxAgeMs: Number(fields[12]),
     threshold: Number(fields[9]),
     scale: Number(fields[5]),
+    slotFrom: Number(fields[6]),
+    slotTo: Number(fields[7]),
     cmp: Number((fields[8] as { index: bigint }).index) === 0 ? "Below" : "AtLeast",
   };
 };
@@ -190,7 +198,11 @@ const blockfrost = (path: string) => fetch(`${baseUrl}${path}`, { headers: { pro
 export const waitForTx = async (txHash: string, timeoutMs = 180_000): Promise<boolean> => {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    if ((await blockfrost(`/txs/${txHash}`)).ok) return true;
+    try {
+      if ((await blockfrost(`/txs/${txHash}`)).ok) return true;
+    } catch {
+      // a dropped connection (a train, say) must not end the wait
+    }
     await sleep(5000);
   }
   return false;
@@ -203,8 +215,12 @@ export const waitForTx = async (txHash: string, timeoutMs = 180_000): Promise<bo
 export const waitForTip = async (minMs: number, timeoutMs = 240_000): Promise<void> => {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const response = await blockfrost("/blocks/latest");
-    if (response.ok && ((await response.json()) as { time: number }).time * 1000 >= minMs) return;
+    try {
+      const response = await blockfrost("/blocks/latest");
+      if (response.ok && ((await response.json()) as { time: number }).time * 1000 >= minMs) return;
+    } catch {
+      // a dropped connection must not end the wait
+    }
     await sleep(5000);
   }
   throw new Error("The chain tip did not reach the start of the validity interval in time");

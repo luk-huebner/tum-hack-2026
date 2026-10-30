@@ -97,3 +97,20 @@ The response: TwitterAPI.io `tweetsByIds` for tweet 20, projected to five fields
 | **Release** of the 300,000 policy | `08796403a39fb51a1d04f35ff6aa857b52ab9eff32dc8667cba1ae32d0c8d161`, block 5353089. Koios: script spend 257,071 memory and 134,776,248 steps, 5 tADA to the seller |
 
 Limits of this test: tweet 20 is Jack Dorsey's 2006 tweet, so `views` is 0 and a views KPI is still untested; nobody posted a test tweet yet, so update speed after a live like is unmeasured; the signature proves what the API returned, not that the likes are genuine.
+
+## Keeper agent (Cardano preprod, 30 Oct 2026, about 12:06 to 12:21 UTC)
+
+`cardano/src/keeper.ts` watches a locked policy on a schedule and releases it when the signed data satisfies the rule. Source for these runs: the Nodary ETH/USD price through AirnodeHub (free, so the spending cap stayed at 0 aUSD). Before it spends anything it checks the response against the policy locally; every cycle is appended to `cardano/out/keeper-log*.jsonl`.
+
+| Run | Policy (5 tADA) | Result |
+|---|---|---|
+| 1 | `247dad32…2476#0`, ETH/USD at least 2234.445 | Cycle 1: price 2234.825, rule met. **Release** `7105a4fa3115b739e85b662b4e3e3438e92ab3e47e5b359f1cba4a809e167f8e`, block 5353121, submitted when the response was 15 s old. The log said "on-chain-rejected": a network error on the confirmation wait (train connection) was reported as a rejection. The transaction is on chain. Fixed: submit and confirmation are now separate and the wait tolerates network errors. Log kept as `keeper-log-run1.jsonl` |
+| 2 | lock `12b89bad3c69bdf1a52424e22aac689f66aa27eb545edda3bf6637876d99e042`, ETH/USD at least 2236.495 (price at lock 2235.495) | Cycle 1: price 2239.835, rule met. **Release** `a1c04de9d5637e0d80e70c00300ba8d2ba08f13df37aabc93f6160d70616d944`, response 20 s old, logged `released` then `confirmed`. Koios: block 5353160, fee 0.286457 tADA, 5 tADA to the seller. First attempt to start this run failed on a dropped Blockfrost read before any cycle; provider reads now retry with backoff |
+
+Runs 1 and 2 crossed the threshold in the first cycle, because the price moved up between locking and the first check. They prove the autonomous release, not the waiting loop. Run 3 was locked with a $4 margin to show the waiting loop:
+
+| Run | Policy (5 tADA) | Result |
+|---|---|---|
+| 3 | lock `aca78b2bb163a745a7c1fd22f23f26bf4b177f2850f75b5eb02cb9fb6df2e530`, ETH/USD at least 2239.21 (price at lock 2235.21) | 22 cycles in about 9 minutes (12:23 to 12:32 UTC, log `keeper-log-run3.jsonl`). The price stayed between 2234.12 and 2237.49, so the rule never held and **nothing was released**, which is the correct outcome. Three fetches failed (cycles 2, 6, 7); the keeper backed off 40 s, 40 s and 80 s and carried on. Spending stayed at 0 aUSD. After cycle 22 the log has no line for 39 minutes, then `stop: policy deadline close`. The cause is not known: either the laptop slept or a fetch hung, since the fetch had no timeout. A 60 s timeout was added afterwards, so a hung fetch now counts as a failed cycle. That fix is not tested against a real hang. The policy is still locked and refundable by the funder after its deadline |
+
+What the keeper runs do not show: a paid source in the loop (the tweet source costs 0.01 aUSD per cycle and was never run in a loop), an unattended run of hours, or any judgment beyond a threshold rule.
