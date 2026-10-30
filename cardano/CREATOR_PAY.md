@@ -57,6 +57,24 @@ Needs a new validator (not built): two sources that must agree, two measurements
 - **Edited post:** `--pin-text` in the intake puts the exact text into the signed text, so an edit (a removed `#ad`, a changed claim) means the policy no longer matches and nothing is paid. Tested on a real post: the registration fetched twice and the fixed text was identical (431 bytes); five contract tests with the real signed response pass in CI (`lib/creator_post.test.ak`). Risks: a larger datum and a policy that breaks if the provider ever encodes emoji or accents differently; a post whose text contains something like `:12,` cannot be pinned (the intake refuses).
 - **Proof stays on chain:** the release transaction carries the signed response, which shows that the post existed with its likes at that time, even if it is deleted later.
 
+## Different creators, different splits
+
+Some creators post for 24 hours and delete the post afterwards, some will not accept conditions at all, some leave a post up for good. The split is a plan file (`cardano/plans/`), so it can be changed per creator without touching the contract:
+
+| Creator | Plan | How it pays |
+|---|---|---|
+| The post stays up | `standard-week.json` | a third after the campaign, two thirds only if the post is still there a week later |
+| **The post lives 24 hours** | `ephemeral-24h.json` | milestones (1,000 / 5,000 likes) pay whenever they are reached while the post is up; the biggest part is measured near the end of the post's life (hours 22 to 23.7); **nothing is measured after the post is gone**, and the plan is refused if a window would end after it (`postLifetimeMinutes`) |
+| Wants a fee for delivering, with a bonus | `delivery-plus-bonus.json` | half pays when the post is live in its first hours (one like shows it exists), the rest as result bonuses |
+
+```bash
+npx tsx src/creator-campaign.ts --plan plans/ephemeral-24h.json --source <id> --payee <addr_test1...>   # prints, pays nothing
+```
+
+A plan lists tranches: how many 5 tADA escrows each is made of (its share), the number the post must have, from when a measurement counts and for how long it can be measured. Anyone can write one. For a post that is deleted after 24 hours the proof is the signed response in the payout transaction, which stays on chain; the creator is paid while the post is up, so the milestones carry the risk of a temporary spike, which is why the large part is measured late.
+
+**What watching costs.** A window that is open for 23 hours at one look per 5 minutes is about 280 looks, about 2.8 aUSD at 0.01 per look. The plan prints this estimate; the keeper's own budget (`AUTO_RELEASE_AUSD_CAP`) slows it down when it is smaller, so raise it for a long window.
+
 ## What we learnt from PolyTrack
 
 PolyTrack is Polymarket's own creator-payment dashboard. It has no public documentation that we could find; what is known comes from press reports of a program that pays hundreds of X accounts to quote-post its esports accounts (an investigation by ReaderGrev, reported by Aftermath on 15 Oct 2026, and echoed elsewhere). Whether access is invite-only is not stated. Per those reports:

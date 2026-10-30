@@ -1,0 +1,11 @@
+{
+  "note": "A post that lives 24 hours and is deleted afterwards. Milestones can be reached at any time while it is up; the last tranche is measured near the end of its life. Nothing is measured after the post is gone.",
+  "source": "<registered source id of the post>",
+  "payee": "<the creator's addr_test1...>",
+  "postLifetimeMinutes": 1440,
+  "tranches": [
+    { "label": "milestone 1", "escrows": 1, "atLeast": 1000, "measureAfterMinutes": 0, "windowMinutes": 1380 },
+    { "label": "milestone 2", "escrows": 1, "atLeast": 5000, "measureAfterMinutes": 0, "windowMinutes": 1380 },
+    { "label": "final, near the end", "escrows": 2, "atLeast": 10000, "measureAfterMinutes": 1320, "windowMinutes": 100 }
+  ]
+}

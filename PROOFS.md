@@ -398,3 +398,7 @@ So the same contract paid the campaign part to the named payee, and the retentio
 - **A payment that looked like a failure, twice.** The first campaign payment was in flight when the service was stopped (the stop was mine): the planner reported a failure, and the escrow was at the validator anyway. The retention payments came back as HTTP 402 and the client found each escrow by its datum. The planner now counts that as locked.
 
 **Not tested:** deleting the post (unliking stands in for it), a tranche measured days later, a payee that is a different person's wallet.
+
+## Flexible tranche plans (offline) (30 Oct 2026, about 19:45 UTC)
+
+Some creators post for 24 hours and delete the post; the retention tranche of a week does not fit them. `cardano/src/creator-campaign.ts` now takes a plan file (`cardano/plans/`): tranches with their own share (1 to 4 escrows), threshold, start of measurement and window, and an optional `postLifetimeMinutes`. **Checked without paying:** the three example plans (a post that lives 24 hours, delivery fee plus bonus, a week of retention) print and pass every offer check; a plan whose window would end after the post is gone, one with an unknown source and one with too many escrows are refused; the two-tranche shortcut still works. The plan prints an estimate of the watching cost (about 2.8 aUSD for a 23-hour window at one look per 5 minutes). Not run on chain (the two-tranche run above used the earlier version of the same planner).

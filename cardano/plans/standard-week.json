@@ -1,0 +1,9 @@
+{
+  "note": "A post that stays up. A third after the campaign, two thirds only if the post is still there a week later.",
+  "source": "<registered source id of the post>",
+  "payee": "<the creator's addr_test1...>",
+  "tranches": [
+    { "label": "campaign", "escrows": 1, "atLeast": 5000, "measureAfterMinutes": 1440, "windowMinutes": 30 },
+    { "label": "still there", "escrows": 2, "atLeast": 5000, "measureAfterMinutes": 10080, "windowMinutes": 30 }
+  ]
+}

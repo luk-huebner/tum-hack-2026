@@ -1,33 +1,43 @@
 /**
- * Pay a creator in tranches, so that deleting the post after the first payout costs them the rest.
+ * Pay a creator in tranches. The shape of the split is yours: a ladder of milestones, a payment for delivery plus a bonus, or
+ * a part after the campaign and a part only if the post is still there later.
  *
- *   tsx src/creator-campaign.ts --source <id> --payee <addr_test1...> --at-least 5000 --campaign-minutes 1440 --hold-minutes 10080
- *   tsx src/creator-campaign.ts ... --lock        really pay (every escrow is 5 tADA by x402, one payment after the other)
+ *   tsx src/creator-campaign.ts --plan plans/ephemeral-24h.json --source <id> --payee <addr_test1...>        print the plan, pay nothing
+ *   tsx src/creator-campaign.ts --plan ... --source <id> --payee <addr> --lock                                 really pay (5 tADA per escrow, by x402)
+ *   tsx src/creator-campaign.ts --source <id> --payee <addr> --at-least 5000 --campaign-minutes 1440 --hold-minutes 10080     the two-tranche shortcut
  *
- * A registered source for the creator's post (creator-intake.ts, register-source.ts) is needed. Every tranche is an ordinary
- * escrow on the same post and the same rule ("at least N"); they differ only in WHEN a measurement counts:
+ * A registered source for the creator's post is needed (creator-intake.ts, register-source.ts). Every tranche is an ordinary
+ * escrow of 5 tADA on that post. A plan file lists the tranches; each one says how many escrows it is made of (its share),
+ * the number the post must have (atLeast), from when a measurement counts (measureAfterMinutes, 0 means from the start) and for
+ * how long it can be measured (windowMinutes, at least 10):
  *
- *   campaign tranche   counts only data signed after the campaign ends (--campaign-minutes), paid if the post has N then
- *   retention tranche  counts only data signed after the retention period (--hold-minutes), paid if the post is STILL there
- *                      with N: a post deleted in between returns an empty record, which cannot match, so nothing is paid and
- *                      the buyer is refunded after the deadline
+ *   { "source": "...", "payee": "addr_test1...", "postLifetimeMinutes": 1440,
+ *     "tranches": [ { "label": "...", "escrows": 1, "atLeast": 1000, "measureAfterMinutes": 0, "windowMinutes": 1380 } ] }
  *
- * --after and --hold set how many 5 tADA escrows go into each tranche (default 1 and 2: a third, then two thirds). Without --lock
- * this only prints the plan and checks every offer; nothing is paid. The keeper must run until the last deadline and be allowed
- * to serve the payee (AUTO_RELEASE_PAYEES).
+ * "postLifetimeMinutes" is for creators whose post disappears by itself (a 24 hour story-like post, a creator who deletes it): a
+ * plan whose measurement would come after the post is gone is refused. A measurement can only pay if the post still meets the rule
+ * inside its window, so a post deleted early costs the creator every tranche that has not been measured yet.
+ *
+ * The keeper has to run until the last window ends and must be allowed to serve the payee (AUTO_RELEASE_PAYEES). Watching a long
+ * window costs data: the plan prints an estimate.
  */
 import { execFile } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseArgs, promisify } from "node:util";
 import { ESCROW_LOVELACE, describeOffer, parseOffer } from "./escrow.js";
+import { specFor } from "./templates.js";
 
 const run = promisify(execFile);
 const cardanoDir = fileURLToPath(new URL("../", import.meta.url));
 
 const { values } = parseArgs({
   options: {
+    plan: { type: "string" },
     source: { type: "string" },
     payee: { type: "string" },
+    "post-lifetime-minutes": { type: "string" },
+    // the two-tranche shortcut
     "at-least": { type: "string" },
     "campaign-minutes": { type: "string" },
     "hold-minutes": { type: "string" },
@@ -38,89 +48,169 @@ const { values } = parseArgs({
   },
 });
 
-const fail = (message: string): never => {
+const fail: (message: string) => never = (message) => {
   console.error(`NOT PLANNED: ${message}`);
   return process.exit(1);
 };
-if (!values.source || !values.payee || !values["at-least"] || !values["campaign-minutes"] || !values["hold-minutes"]) {
-  console.error("Usage: tsx src/creator-campaign.ts --source <id> --payee <addr_test1...> --at-least N --campaign-minutes C --hold-minutes H [--after 1] [--hold 2] [--window 30] [--lock]");
+
+interface Tranche {
+  label: string;
+  escrows: number;
+  atLeast: number;
+  measureAfterMinutes: number;
+  windowMinutes: number;
+}
+interface PlanFile {
+  source?: string;
+  payee?: string;
+  postLifetimeMinutes?: number;
+  tranches: Tranche[];
+}
+
+let file: PlanFile;
+if (values.plan) {
+  try {
+    file = JSON.parse(readFileSync(values.plan, "utf8")) as PlanFile;
+  } catch (error) {
+    file = fail(`cannot read the plan file: ${(error as Error).message}`);
+  }
+} else if (values["at-least"] && values["campaign-minutes"] && values["hold-minutes"]) {
+  const atLeast = Number(values["at-least"]);
+  const campaign = Number(values["campaign-minutes"]);
+  const hold = Number(values["hold-minutes"]);
+  const windowMin = Number(values.window);
+  const nAfter = Number(values.after);
+  const nHold = Number(values.hold);
+  if (![atLeast, campaign, hold, windowMin, nAfter, nHold].every(Number.isFinite)) fail("every number must be a number");
+  if (hold < campaign + windowMin) fail(`the retention measurement (${hold} minutes) must come after the campaign window ends (${campaign + windowMin} minutes)`);
+  file = {
+    tranches: [
+      ...(nAfter > 0 ? [{ label: "campaign", escrows: nAfter, atLeast, measureAfterMinutes: campaign, windowMinutes: windowMin }] : []),
+      { label: "retention", escrows: nHold, atLeast, measureAfterMinutes: hold, windowMinutes: windowMin },
+    ],
+  };
+} else {
+  console.error("Usage: tsx src/creator-campaign.ts --plan <file.json> [--source <id>] [--payee <addr>] [--post-lifetime-minutes N] [--lock]\n   or: tsx src/creator-campaign.ts --source <id> --payee <addr> --at-least N --campaign-minutes C --hold-minutes H [--after 1] [--hold 2] [--window 30] [--lock]");
   process.exit(2);
 }
 
-const atLeast = Number(values["at-least"]);
-const campaign = Number(values["campaign-minutes"]);
-const hold = Number(values["hold-minutes"]);
-const windowMin = Number(values.window);
-const nAfter = Number(values.after);
-const nHold = Number(values.hold);
-if (![atLeast, campaign, hold, windowMin, nAfter, nHold].every(Number.isFinite)) fail("every number must be a number");
-if (!(Number.isInteger(nAfter) && nAfter >= 0 && Number.isInteger(nHold) && nHold >= 1 && nAfter + nHold <= 6)) fail("--hold must be a whole number of at least 1, --after a whole number of at least 0 (0 locks the retention part alone), at most 6 escrows in all");
-if (hold < campaign + windowMin) fail(`the retention measurement (${hold} minutes) must come after the campaign window ends (${campaign + windowMin} minutes)`);
-if (windowMin < 10) fail("--window must be at least 10 minutes: the keeper needs time to measure and release");
+const source = values.source ?? file.source;
+const payee = values.payee ?? file.payee;
+const lifetime = values["post-lifetime-minutes"] === undefined ? file.postLifetimeMinutes : Number(values["post-lifetime-minutes"]);
+if (!source || !payee) fail("a source (--source) and a payee (--payee) are needed, on the command line or in the plan file");
 
-const buyer = process.env.BUYER_ADDRESS || values.payee; // only a stand-in for checking the offers; escrow-client uses the real wallet
+// ---- check the plan before anything is priced or paid
+if (!Array.isArray(file.tranches) || file.tranches.length === 0) fail("the plan has no tranches");
+let escrowCount = 0;
+for (const [i, t] of file.tranches.entries()) {
+  const name = `tranche ${i + 1} (${t.label ?? "unnamed"})`;
+  if (!(Number.isInteger(t.escrows) && t.escrows >= 1 && t.escrows <= 4)) fail(`${name}: escrows must be a whole number from 1 to 4`);
+  if (!(Number.isFinite(t.atLeast) && t.atLeast > 0)) fail(`${name}: atLeast must be a positive number`);
+  if (!(Number.isFinite(t.measureAfterMinutes) && t.measureAfterMinutes >= 0)) fail(`${name}: measureAfterMinutes must be 0 or more`);
+  if (!(Number.isFinite(t.windowMinutes) && t.windowMinutes >= 10)) fail(`${name}: windowMinutes must be at least 10 (the keeper needs time to measure and release)`);
+  if (lifetime !== undefined && t.measureAfterMinutes + t.windowMinutes > lifetime) {
+    fail(`${name}: its window ends at minute ${t.measureAfterMinutes + t.windowMinutes}, after the post is gone (${lifetime} minutes). Measure earlier or shorten the window`);
+  }
+  escrowCount += t.escrows;
+}
+if (escrowCount > 8) fail(`${escrowCount} escrows is more than the limit of 8 (40 tADA)`);
+
+const spec = (() => {
+  try {
+    return specFor("source", source);
+  } catch (error) {
+    return fail((error as Error).message);
+  }
+})();
+
 const t0 = Date.now();
-interface Tranche {
+const buyer = process.env.BUYER_ADDRESS || payee; // only a stand-in for checking the offers; escrow-client uses the real wallet
+interface Escrow {
   label: string;
-  measureAfterMs: number;
+  atLeast: number;
+  measureAfterMs?: number;
   deadlineMs: number;
 }
-const plan: Tranche[] = [
-  ...Array.from({ length: nAfter }, (_, i) => ({ label: `campaign ${i + 1}/${nAfter}`, measureAfterMs: t0 + campaign * 60_000, deadlineMs: t0 + (campaign + windowMin) * 60_000 })),
-  ...Array.from({ length: nHold }, (_, i) => ({ label: `retention ${i + 1}/${nHold}`, measureAfterMs: t0 + hold * 60_000, deadlineMs: t0 + (hold + windowMin) * 60_000 })),
-];
+const escrows: Escrow[] = file.tranches.flatMap((t) =>
+  Array.from({ length: t.escrows }, (_, k) => ({
+    label: t.escrows > 1 ? `${t.label} ${k + 1}/${t.escrows}` : t.label,
+    atLeast: t.atLeast,
+    ...(t.measureAfterMinutes > 0 ? { measureAfterMs: t0 + t.measureAfterMinutes * 60_000 } : {}),
+    deadlineMs: t0 + (t.measureAfterMinutes + t.windowMinutes) * 60_000,
+  })),
+);
 
 const tada = Number(ESCROW_LOVELACE) / 1_000_000;
-const total = plan.length * tada;
-console.log(`plan: ${plan.length} escrows of ${tada} tADA = ${total} tADA, all on source ${values.source}, paying ${values.payee.slice(0, 22)}..., refund to the buyer\n`);
-for (const t of plan) {
+const total = escrows.length * tada;
+const hm = (minutes: number) => (minutes >= 120 ? `${(minutes / 60).toFixed(minutes % 60 === 0 ? 0 : 1)} h` : `${minutes} min`);
+console.log(`plan: ${escrows.length} escrows of ${tada} tADA = ${total} tADA on source ${source}, paying ${payee.slice(0, 22)}..., refund to the buyer${lifetime === undefined ? "" : `, the post lives ${hm(lifetime)}`}\n`);
+for (const t of file.tranches) {
+  const share = Math.round((100 * t.escrows) / escrows.length);
+  console.log(`  ${String(share).padStart(3)}%  ${t.label.padEnd(18)} at least ${t.atLeast}, counted ${t.measureAfterMinutes === 0 ? "from the start" : `from ${hm(t.measureAfterMinutes)}`} until ${hm(t.measureAfterMinutes + t.windowMinutes)}`);
+}
+console.log("");
+for (const e of escrows) {
   const offer = (() => {
     try {
-      return parseOffer({ template: "source", sourceId: values.source, atLeast, refund: buyer, payee: values.payee, deadlineMs: t.deadlineMs, measureAfterMs: t.measureAfterMs }, t0);
+      return parseOffer({ template: "source", sourceId: source, atLeast: e.atLeast, refund: buyer, payee, deadlineMs: e.deadlineMs, ...(e.measureAfterMs === undefined ? {} : { measureAfterMs: e.measureAfterMs }) }, t0);
     } catch (error) {
-      return fail(`${t.label}: ${(error as Error).message}`);
+      return fail(`${e.label}: ${(error as Error).message}`);
     }
   })();
-  console.log(`  ${t.label.padEnd(15)} ${describeOffer(offer)}; deadline ${new Date(t.deadlineMs).toISOString()}`);
+  console.log(`  ${e.label.padEnd(22)} ${describeOffer(offer)}; deadline ${new Date(e.deadlineMs).toISOString()}`);
 }
-const share = (n: number) => `${Math.round((100 * n) / plan.length)}%`;
-console.log(`\nthe creator is paid ${share(nAfter)} if the post has ${atLeast} at the campaign end, and the other ${share(nHold)} only if it is still there with ${atLeast} after ${hold} minutes.`);
-console.log(`a post deleted before the campaign end: nothing is paid (all ${total} tADA come back after the deadlines). Deleted after the first payout: the retention part comes back.`);
-console.log(`the keeper must run until ${new Date(plan[plan.length - 1].deadlineMs).toISOString()} with AUTO_RELEASE=1 AUTO_RELEASE_PAID=1 AUTO_RELEASE_PAYEES=${values.payee}`);
+
+// What watching costs: the keeper looks about once per 5 minutes while any window is open (the windows of all tranches share one look)
+const spans = file.tranches.map((t) => [t.measureAfterMinutes, t.measureAfterMinutes + t.windowMinutes] as const).sort((a, b) => a[0] - b[0]);
+let open = 0;
+let end = -1;
+let start = 0;
+for (const [a, b] of spans) {
+  if (a > end) {
+    if (end >= 0) open += end - start;
+    start = a;
+    end = b;
+  } else end = Math.max(end, b);
+}
+open += end - start;
+const checks = Math.ceil(open / 5) + file.tranches.length;
+console.log(`\nwatching: a window is open for ${hm(open)} in all; at one look per 5 minutes that is about ${checks} looks, about ${(checks * spec.costAusd).toFixed(2)} aUSD at ${spec.costAusd} per look. The keeper's own budget (AUTO_RELEASE_AUSD_CAP, 0.3 by default) slows it down when it is smaller, so raise it for a long window.`);
+console.log(`the keeper must run until ${new Date(Math.max(...escrows.map((e) => e.deadlineMs))).toISOString()} with AUTO_RELEASE=1 AUTO_RELEASE_PAID=1 AUTO_RELEASE_PAYEES=${payee}`);
+console.log("a tranche that has not been measured when the post is deleted is not paid: its escrow comes back to the buyer after its deadline. Money already released cannot be recalled.");
 
 if (!values.lock) {
   console.log("\nnothing was paid. Add --lock to pay the escrows one after the other.");
   process.exit(0);
 }
 
-console.log(`\nlocking ${plan.length} escrows (${total} tADA), one x402 payment after the other (about a minute each)...`);
+console.log(`\nlocking ${escrows.length} escrows (${total} tADA), one x402 payment after the other (about a minute each)...`);
 const refs: string[] = [];
-for (const [i, t] of plan.entries()) {
+for (const [i, e] of escrows.entries()) {
   const now = Date.now();
   const args = [
     "node_modules/tsx/dist/cli.mjs", "src/escrow-client.ts",
-    "--template", "source", "--source", values.source,
-    "--at-least", String(atLeast),
-    "--minutes", ((t.deadlineMs - now) / 60_000).toFixed(2),
-    "--measure-after-minutes", ((t.measureAfterMs - now) / 60_000).toFixed(2),
-    "--payee", values.payee,
+    "--template", "source", "--source", source,
+    "--at-least", String(e.atLeast),
+    "--minutes", ((e.deadlineMs - now) / 60_000).toFixed(2),
+    ...(e.measureAfterMs === undefined ? [] : ["--measure-after-minutes", ((e.measureAfterMs - now) / 60_000).toFixed(2)]),
+    "--payee", payee,
   ];
   try {
     const { stdout } = await run(process.execPath, args, { cwd: cardanoDir, timeout: 420_000, maxBuffer: 16 * 1024 * 1024 });
     const ref = /Policy UTxO at the validator: (\S+)/.exec(stdout)?.[1];
     if (!ref) throw new Error(stdout.split("\n").slice(-4).join(" | "));
     refs.push(ref);
-    console.log(`  ${i + 1}/${plan.length} ${t.label}: ${ref}`);
+    console.log(`  ${i + 1}/${escrows.length} ${e.label}: ${ref}`);
   } catch (error) {
     // A slow settlement can come back as HTTP 402 although the escrow is there; the client then finds it by its datum and says so.
-    const said = String((error as { stdout?: string; stderr?: string }).stdout ?? "") + String((error as { stderr?: string }).stderr ?? "");
+    const said = String((error as { stdout?: string }).stdout ?? "") + String((error as { stderr?: string }).stderr ?? "");
     const found = /the escrow is at the validator as (\S+?)[.\s|]/.exec(said)?.[1];
     if (found) {
       refs.push(found);
-      console.log(`  ${i + 1}/${plan.length} ${t.label}: ${found}  (the answer said 402; the escrow was found at the validator by its datum)`);
+      console.log(`  ${i + 1}/${escrows.length} ${e.label}: ${found}  (the answer said 402; the escrow was found at the validator by its datum)`);
       continue;
     }
-    console.error(`  ${i + 1}/${plan.length} ${t.label} FAILED: ${String((error as { stdout?: string; message: string }).stdout ?? (error as Error).message).split("\n").filter(Boolean).slice(-3).join(" | ").slice(0, 300)}`);
+    console.error(`  ${i + 1}/${escrows.length} ${e.label} FAILED: ${String((error as { stdout?: string; message: string }).stdout ?? (error as Error).message).split("\n").filter(Boolean).slice(-3).join(" | ").slice(0, 300)}`);
     console.error(`  stopped; ${refs.length} escrow(s) were locked: ${refs.join(" ") || "none"}. An x402 payment that settles slowly can look like a failure: look at the board before paying again.`);
     process.exit(1);
   }

@@ -1,0 +1,11 @@
+{
+  "note": "For a creator who wants a fee for delivering, with a bonus on top: the first tranche pays when the post is live in its first hours (1 like or more shows it exists and is not removed), the bonus tranches pay on results.",
+  "source": "<registered source id of the post>",
+  "payee": "<the creator's addr_test1...>",
+  "postLifetimeMinutes": 1440,
+  "tranches": [
+    { "label": "delivery", "escrows": 2, "atLeast": 1, "measureAfterMinutes": 60, "windowMinutes": 120 },
+    { "label": "bonus 1", "escrows": 1, "atLeast": 5000, "measureAfterMinutes": 0, "windowMinutes": 1380 },
+    { "label": "bonus 2", "escrows": 1, "atLeast": 20000, "measureAfterMinutes": 0, "windowMinutes": 1380 }
+  ]
+}
