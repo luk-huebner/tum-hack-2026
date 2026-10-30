@@ -2,7 +2,8 @@
 //// 14 projected daily rainfall values (sum 26.20 mm), signed by the Open-Meteo Airnode on 30 Oct 2026.
 
 use aiken/collection/list
-use engine.{AtLeast, Below, Policy, parse_scaled, release_ok}
+use engine.{AtLeast, Below, Policy, observation_fresh, parse_scaled, release_ok}
+use vectors/keeper
 use vectors/meteo
 
 const signed_ms: Int = 1793355726000
@@ -25,6 +26,8 @@ fn policy() -> Policy {
     beneficiary: #"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     refund_to: #"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     payout: 5_000_000,
+    obs_slot: -1,
+    obs_max_age_ms: 0,
   }
 }
 
@@ -184,4 +187,92 @@ test parse_lone_dot_halts() fail {
 
 test parse_negative_halts() fail {
   parse_scaled("-1", 2) == 0
+}
+
+// ---------------------------------------------------------------------------
+// Observation freshness, with a REAL signed Nodary ETH/USD response: {"price":2235.21,"updatedAt":1793362921326}.
+// The signature covers updatedAt, so the contract can check how old the observation was when the Airnode signed it.
+
+const keeper_signed_ms: Int = 1793362921000
+
+fn price_policy() -> Policy {
+  Policy {
+    signer: keeper.pubkey,
+    request_hash: keeper.request_hash,
+    prefix: keeper.prefix,
+    separators: keeper.separators,
+    suffix: keeper.suffix,
+    scale: 6,
+    slot_from: 0,
+    slot_to: 1,
+    cmp: AtLeast,
+    threshold: 2_000_000_000,
+    settle_after_ms: keeper_signed_ms - 3_600_000,
+    deadline_ms: keeper_signed_ms + 3_600_000,
+    max_age_ms: 300_000,
+    beneficiary: #"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    refund_to: #"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    payout: 5_000_000,
+    obs_slot: 1,
+    obs_max_age_ms: 120_000,
+  }
+}
+
+fn price_release(p: Policy) -> Bool {
+  release_ok(
+    p,
+    keeper.timestamp,
+    keeper.slots,
+    keeper.signature,
+    keeper_signed_ms + 1000,
+    keeper_signed_ms + 100_000,
+  )
+}
+
+test real_price_with_a_fresh_observation_releases() {
+  price_release(price_policy())
+}
+
+test the_same_price_releases_without_an_observation_check() {
+  price_release(Policy { ..price_policy(), obs_slot: -1, obs_max_age_ms: 0 })
+}
+
+test observation_slot_beyond_the_signed_slots_is_rejected() {
+  !price_release(Policy { ..price_policy(), obs_slot: 5 })
+}
+
+test observation_slot_that_is_not_an_integer_halts() fail {
+  price_release(Policy { ..price_policy(), obs_slot: 0 })
+}
+
+test observation_exactly_at_the_age_limit_is_fresh() {
+  observation_fresh(keeper_signed_ms - 120_000, keeper_signed_ms, 120_000)
+}
+
+test observation_one_millisecond_too_old_is_stale() {
+  !observation_fresh(keeper_signed_ms - 120_001, keeper_signed_ms, 120_000)
+}
+
+test an_hour_old_observation_signed_just_now_is_stale() {
+  !observation_fresh(keeper_signed_ms - 3_600_000, keeper_signed_ms, 120_000)
+}
+
+test observation_within_the_signing_second_is_fresh() {
+  observation_fresh(keeper_signed_ms + 999, keeper_signed_ms, 120_000)
+}
+
+test observation_from_the_future_is_rejected() {
+  !observation_fresh(keeper_signed_ms + 1001, keeper_signed_ms, 120_000)
+}
+
+test tampered_observation_time_breaks_the_signature() {
+  // updatedAt edited from ...921326 to ...921999 after signing: the rebuilt text no longer matches the signature
+  !release_ok(
+    price_policy(),
+    keeper.timestamp,
+    [#"323233352e3231", #"31373933333632393231393939"],
+    keeper.signature,
+    keeper_signed_ms + 1000,
+    keeper_signed_ms + 100_000,
+  )
 }

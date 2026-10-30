@@ -46,8 +46,15 @@ pub type Policy {
   max_age_ms: Int,
   beneficiary: VerificationKeyHash,
   refund_to: VerificationKeyHash,
-  /// Lovelace the beneficiary must receive on release.
+  /// Lovelace the beneficiary must receive on release. The validator also requires at least the lovelace locked in the
+  /// UTxO, so nothing locked above the payout can be taken by whoever submits the release.
   payout: Int,
+  /// Index of the slot that holds the time the value was OBSERVED, in POSIX milliseconds (for example the `updatedAt`
+  /// that a price feed signs), or -1 when the feed carries none. The signature timestamp says when the Airnode signed;
+  /// this says how old the value itself was.
+  obs_slot: Int,
+  /// How old the observation may be at the moment the Airnode signed (milliseconds). Ignored when obs_slot is -1.
+  obs_max_age_ms: Int,
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +174,42 @@ pub fn signed_text(policy: Policy, slots: List<ByteArray>) -> ByteArray {
 }
 
 // ---------------------------------------------------------------------------
+// Observation freshness: the signed text may carry the time the value was observed.
+
+fn nth(slots: List<ByteArray>, index: Int) -> ByteArray {
+  when slots is {
+    [] -> fail @"observation slot missing"
+    [slot, ..rest] ->
+      if index == 0 {
+        slot
+      } else {
+        nth(rest, index - 1)
+      }
+  }
+}
+
+/// The observation may not be later than the signature (one second of slack: the signed timestamp is whole seconds)
+/// and may not be older than max_age_ms at the moment of signing.
+pub fn observation_fresh(obs_ms: Int, signed_ms: Int, max_age_ms: Int) -> Bool {
+  and {
+    obs_ms <= signed_ms + 1000,
+    signed_ms - obs_ms <= max_age_ms,
+  }
+}
+
+fn observation_ok(policy: Policy, slots: List<ByteArray>, signed_ms: Int) -> Bool {
+  if policy.obs_slot < 0 {
+    True
+  } else {
+    observation_fresh(
+      parse_scaled(nth(slots, policy.obs_slot), 0),
+      signed_ms,
+      policy.obs_max_age_ms,
+    )
+  }
+}
+
+// ---------------------------------------------------------------------------
 // The release check. lower_ms and upper_ms are the transaction's validity interval, in POSIX milliseconds.
 // The ledger only promises that the transaction runs somewhere inside that interval, so:
 //   signed_ms <= lower_ms            the attestation cannot be from the future at any moment in the interval
@@ -189,6 +232,7 @@ pub fn release_ok(
     policy.slot_from >= 0,
     policy.slot_from < policy.slot_to,
     policy.slot_to <= count,
+    policy.obs_slot < count,
     signed_ms >= policy.settle_after_ms,
     signed_ms <= lower_ms,
     upper_ms <= signed_ms + policy.max_age_ms,
@@ -200,6 +244,7 @@ pub fn release_ok(
       signed_text(policy, slots),
       signature,
     ),
+    observation_ok(policy, slots, signed_ms),
     rule_holds(policy, slots),
   }
 }

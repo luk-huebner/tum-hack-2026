@@ -8,7 +8,7 @@ use aiken/crypto.{VerificationKeyHash}
 use aiken/interval.{Finite, Interval}
 use cardano/address.{VerificationKey}
 use cardano/assets
-use cardano/transaction.{NoDatum, Output, OutputReference, Transaction}
+use cardano/transaction.{Input, NoDatum, Output, OutputReference, Transaction}
 use engine.{Below, Policy}
 use vectors/meteo
 
@@ -35,21 +35,50 @@ fn pays(outputs: List<Output>, pkh: VerificationKeyHash, amount: Int) -> Bool {
   )
 }
 
+/// A release may spend only ONE UTxO of this validator. `pays` accepts any output, so with two policies of the same
+/// beneficiary in one transaction a single payment would satisfy both and the submitter could keep the other
+/// (found and confirmed by script evaluation on 30 Oct 2026, see TRUST.md).
+fn only_input_here(inputs: List<Input>, own: Input) -> Bool {
+  let here =
+    list.filter(
+      inputs,
+      fn(input) {
+        input.output.address.payment_credential == own.output.address.payment_credential
+      },
+    )
+  list.length(here) == 1
+}
+
+fn at_least(a: Int, b: Int) -> Int {
+  if a >= b {
+    a
+  } else {
+    b
+  }
+}
+
 validator pay_on_proof {
   spend(
     datum: Option<Policy>,
     redeemer: Action,
-    _own_ref: OutputReference,
+    own_ref: OutputReference,
     self: Transaction,
   ) {
     expect Some(policy) = datum
     let (lower, upper) = bounds(self.validity_range)
     when redeemer is {
-      Release { timestamp, slots, signature } ->
+      Release { timestamp, slots, signature } -> {
+        expect Some(own_input) = transaction.find_input(self.inputs, own_ref)
+        // The beneficiary receives the payout, and at least everything that was locked: nothing above the payout can
+        // be left for the submitter.
+        let owed =
+          at_least(policy.payout, assets.lovelace_of(own_input.output.value))
         and {
+          only_input_here(self.inputs, own_input),
           engine.release_ok(policy, timestamp, slots, signature, lower, upper),
-          pays(self.outputs, policy.beneficiary, policy.payout),
+          pays(self.outputs, policy.beneficiary, owed),
         }
+      }
       Refund ->
         and {
           lower >= policy.deadline_ms,
@@ -99,6 +128,8 @@ fn policy() -> Policy {
     beneficiary,
     refund_to,
     payout: 5_000_000,
+    obs_slot: -1,
+    obs_max_age_ms: 0,
   }
 }
 
@@ -119,12 +150,58 @@ fn pays_to(pkh: ByteArray, lovelace: Int) -> Output {
   }
 }
 
-fn release_tx(outputs: List<Output>) -> Transaction {
+const validator_hash: ByteArray =
+  #"cccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+
+const wallet_key: ByteArray =
+  #"dddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+
+fn other_ref() -> OutputReference {
+  OutputReference {
+    transaction_id: #"2222222222222222222222222222222222222222222222222222222222222222",
+    output_index: 0,
+  }
+}
+
+fn script_input(ref: OutputReference, lovelace: Int) -> Input {
+  Input {
+    output_reference: ref,
+    output: Output {
+      address: address.from_script(validator_hash),
+      value: assets.from_lovelace(lovelace),
+      datum: NoDatum,
+      reference_script: None,
+    },
+  }
+}
+
+fn wallet_input() -> Input {
+  Input {
+    output_reference: OutputReference {
+      transaction_id: #"1111111111111111111111111111111111111111111111111111111111111111",
+      output_index: 0,
+    },
+    output: Output {
+      address: address.from_verification_key(wallet_key),
+      value: assets.from_lovelace(20_000_000),
+      datum: NoDatum,
+      reference_script: None,
+    },
+  }
+}
+
+fn release_tx_with(inputs: List<Input>, outputs: List<Output>) -> Transaction {
   Transaction {
     ..transaction.placeholder,
     validity_range: interval.between(signed_ms + 1000, signed_ms + 100_000),
+    inputs,
     outputs,
   }
+}
+
+/// The normal shape: the policy's own UTxO (5 tADA) plus a wallet input that pays the fee.
+fn release_tx(outputs: List<Output>) -> Transaction {
+  release_tx_with([script_input(own_ref, 5_000_000), wallet_input()], outputs)
 }
 
 test release_with_payment_passes() {
@@ -155,6 +232,85 @@ test release_paying_someone_else_fails() {
     release_action(),
     own_ref,
     release_tx([pays_to(refund_to, 5_000_000)]),
+  )
+}
+
+// The double-satisfaction attack found on 30 Oct 2026: two policies of the same beneficiary, one payment.
+
+test two_policies_in_one_transaction_with_one_payment_fails() {
+  !pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with(
+      [
+        script_input(own_ref, 5_000_000),
+        script_input(other_ref(), 5_000_000),
+        wallet_input(),
+      ],
+      [pays_to(beneficiary, 5_000_000)],
+    ),
+  )
+}
+
+test two_policies_in_one_transaction_fail_even_when_both_are_paid() {
+  !pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with(
+      [
+        script_input(own_ref, 5_000_000),
+        script_input(other_ref(), 5_000_000),
+        wallet_input(),
+      ],
+      [pays_to(beneficiary, 5_000_000), pays_to(beneficiary, 5_000_000)],
+    ),
+  )
+}
+
+test a_release_with_only_wallet_inputs_besides_its_own_passes() {
+  pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with(
+      [script_input(own_ref, 5_000_000), wallet_input(), wallet_input()],
+      [pays_to(beneficiary, 5_000_000)],
+    ),
+  )
+}
+
+test value_locked_above_the_payout_cannot_be_kept_by_the_submitter() {
+  !pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with(
+      [script_input(own_ref, 6_000_000), wallet_input()],
+      [pays_to(beneficiary, 5_000_000)],
+    ),
+  )
+}
+
+test paying_the_whole_locked_amount_passes() {
+  pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with(
+      [script_input(own_ref, 6_000_000), wallet_input()],
+      [pays_to(beneficiary, 6_000_000)],
+    ),
+  )
+}
+
+test a_release_that_does_not_spend_its_own_input_halts() fail {
+  pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with([wallet_input()], [pays_to(beneficiary, 5_000_000)]),
   )
 }
 
