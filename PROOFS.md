@@ -162,3 +162,17 @@ The same route with a 7-minute deadline (`--minutes 7`): ETH/USD at least 2000, 
 The buyer wallet went from 9916.864713 to 9916.426661 tADA: the two fees (0.178129 + 0.259923) and nothing else. The same UTxO was refused before the deadline and refunded after it, so the refusal is not an evaluator that could not see the UTxO.
 
 So both exits of a policy created by an x402 payment are shown: release to the seller (previous section) and refund to the buyer after the deadline. Not shown: the rule-not-met case on this route, and a refund attempted by someone other than the refund party (the validator requires the refund party's signature; that case is covered by the contract tests, not run on chain for this UTxO).
+
+## The seller's keeper released an x402-locked policy on its own (30 Oct 2026, about 14:31 to 14:33 UTC)
+
+The service ran with `AUTO_RELEASE=1`. After one command, `tsx src/escrow-client.ts --at-least 2000 --minutes 40` (the buyer pays 5 tADA by x402 into the validator), nobody named the policy or started a release: the watcher (`cardano/src/autorelease.ts`) found it on its next scan and released it. Log: `cardano/out/autorelease-log-live-test.jsonl`.
+
+| Step | Receipt |
+|---|---|
+| **x402 payment into the validator**, HTTP 200 after 26.6 s | `576696ed1c37990d42e620454dcf8f9e143ee9f1c879fdaef72ac656ee0899ef`, block 5353516, fee 0.176545 tADA. Policy UTxO `576696ed…99ef#0`: 5.0 tADA with inline datum |
+| Watcher scan: 1 candidate, ETH/USD 2219.855 against "at least 2000", ready | 14:31:45 |
+| **Release** by the watcher, response 24 s old | `d4d633697e33a41cc8d287045ed54042f877396fbf42b0a28580eff2752241db`, block 5353520, fee 0.283201 tADA, logged 14:32:07; confirmed 14:32:42. Koios: 5.0 tADA to the seller's key (enterprise address `addr_test1vqc6zk4f…`) |
+
+From the payment's confirmation to the release was about 40 seconds. The buyer wallet fell by 5.176545 tADA (the 5 locked plus its fee). The release fee, 0.283201 tADA, was paid by the service wallet, whose balance fell by exactly that amount.
+
+What this does not show: more than one escrow at a time, a rule that is not yet met when the watcher first sees it (the waiting cycles ran in the keeper's earlier run 3, with the same fetch and check code, not in this watcher), a watcher restart (it keeps no state: it rediscovers policies from the chain), or any source but the free Nodary ETH/USD feed. The watcher acts only on policies that name the service's seller key as beneficiary, so it can only collect money the policy already owes the service.
