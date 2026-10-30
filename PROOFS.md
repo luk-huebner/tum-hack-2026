@@ -82,3 +82,18 @@ Two standing policies for the tamper test, locked in `4ec3a5dd555f794d3f8ea4ad73
 | 3. **Release** the policy with that response, 16 s after it was signed | `b266fc382a1c89ca4bebdf44d273f5601424e20341a1124305f245f7c3caa12b`, block 5353069 |
 
 Koios confirms the release: it spends the script input with hash `a9e4420c…` (981,963 memory, 339,432,301 steps), pays 5 tADA to the seller address, fee 0.346383 tADA. The aUSD balance fell from 9.86 to 9.76 (0.1 for this call). The same request, response format and rule as the stored-response release, but the age limit (300 s) now actually binds: the response must be fresh.
+
+## Creator Pay shape: a signed tweet response drives the same validator (30 Oct 2026, about 13:15 Munich time)
+
+The response: TwitterAPI.io `tweetsByIds` for tweet 20, projected to five fields, signed by the TwitterAPI.io Airnode `0x7B02Fd3324D2dC362f65a9c01e59EC5fDb4E1CCB` at unix 1793361156, request hash `0xf083d879a1ca4e8aadc7aa72c7ee1c5b60bf18436689e935280bfa439497e191`. Signed text: `{"id":"20","likes":309363,"replies":18116,"retweets":124535,"views":0}`. Paid on Base Sepolia for 0.01 aUSD: `0x563dd83fc686f1b28e1cb7330b0791a2d77a94ae67d839419cdd76b90a421e27`. The counts moved by a few units since a call 40 minutes earlier (likes 309,362 to 309,363), so they are live. **No contract change was needed:** the tweet id sits in the fixed text (and in the request hash), and the rule sums only the likes slot.
+
+| Step | Transaction or outcome |
+|---|---|
+| Lock two policies, 5 tADA each ("at least 300,000 likes" and "at least 400,000 likes") | `16865f77c9d8ffe0984c30ab94469e52a1ea399af7d141d736f36e038a2128a6` |
+| Real response against the 300,000 policy (control, first) | ACCEPTED |
+| Real response against the 400,000 policy (about 309,000 likes) | REJECTED, KPI not met |
+| Likes edited to 999,999 in the signed text, against the 400,000 policy (the forged screenshot) | REJECTED (the signature no longer matches; the edited value would have met the KPI) |
+| Real response against the 300,000 policy (control, last) | ACCEPTED |
+| **Release** of the 300,000 policy | `08796403a39fb51a1d04f35ff6aa857b52ab9eff32dc8667cba1ae32d0c8d161`, block 5353089. Koios: script spend 257,071 memory and 134,776,248 steps, 5 tADA to the seller |
+
+Limits of this test: tweet 20 is Jack Dorsey's 2006 tweet, so `views` is 0 and a views KPI is still untested; nobody posted a test tweet yet, so update speed after a live like is unmeasured; the signature proves what the API returned, not that the likes are genuine.

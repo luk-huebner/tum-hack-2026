@@ -1,6 +1,7 @@
 // One AirnodeHub call through POST /, verified like a contract would verify it (signer, request hash).
 // Run by a person who holds a TESTNET key: the key stays in .env (PAYER_PRIVATE_KEY, Base Sepolia, aUSD only).
 //   node --env-file=.env checks/10-paid-call.ts tweet <tweetId>
+//   node --env-file=.env checks/10-paid-call.ts tweet-kpi <tweetId>   (projected: id, likes, replies, retweets, views)
 //   node --env-file=.env checks/10-paid-call.ts lunar-post <tweet|youtube-video|tiktok-video|reddit-post|instagram-post> <postId>
 //   node --env-file=.env checks/10-paid-call.ts meteo-rain  <lat> <lon> <startDate> <endDate>   (max 20 days)
 //   node --env-file=.env checks/10-paid-call.ts meteo-solar <lat> <lon> <startDate> <endDate>   (max 20 days)
@@ -23,6 +24,22 @@ const build = (): { slug: string; request: AirnodeV2Request } => {
     case 'tweet':
       // No projection on the first call: the listing does not document the tweet's field names.
       return { slug: 'twitterapi', request: { operation: 'tweetsByIds', parameters: { tweet_ids: rest[0] } } };
+    case 'tweet-kpi':
+      // Creator Pay shape: the tweet's id and its counts, nothing else. Keys sort as id, likes, replies, retweets, views.
+      return {
+        slug: 'twitterapi',
+        request: {
+          operation: 'tweetsByIds',
+          parameters: { tweet_ids: rest[0] },
+          responseProjection: {
+            id: '/tweets/0/id',
+            likes: '/tweets/0/likeCount',
+            replies: '/tweets/0/replyCount',
+            retweets: '/tweets/0/retweetCount',
+            views: '/tweets/0/viewCount',
+          },
+        },
+      };
     case 'lunar-post':
       return { slug: 'lunarcrush', request: { operation: 'post', parameters: { post_type: rest[0], post_id: rest[1] } } };
     case 'meteo-rain':

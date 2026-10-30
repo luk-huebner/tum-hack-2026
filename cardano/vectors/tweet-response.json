@@ -1,0 +1,20 @@
+{
+  "request": {
+    "operation": "tweetsByIds",
+    "parameters": {
+      "tweet_ids": "20"
+    },
+    "responseProjection": {
+      "id": "/tweets/0/id",
+      "likes": "/tweets/0/likeCount",
+      "replies": "/tweets/0/replyCount",
+      "retweets": "/tweets/0/retweetCount",
+      "views": "/tweets/0/viewCount"
+    }
+  },
+  "requestHash": "0xf083d879a1ca4e8aadc7aa72c7ee1c5b60bf18436689e935280bfa439497e191",
+  "airnode": "0x7B02Fd3324D2dC362f65a9c01e59EC5fDb4E1CCB",
+  "timestamp": "1793361156",
+  "data": "{\"id\":\"20\",\"likes\":309363,\"replies\":18116,\"retweets\":124535,\"views\":0}",
+  "signature": "0x5b5725341648f18947dce45719c15318454a1870b738220b084ab0c48b44fc913ff274507925f40960fc4a351a2649a986403f0c835325cccbb2b36bf03c2e231c"
+}
