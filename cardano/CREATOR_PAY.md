@@ -81,7 +81,7 @@ What we took from it, and from other public creator-payment documentation (per-v
 
 ## Limits
 
-- Not run end to end on chain with a payee other than the seller, a measurement time or several tranches yet; the offers, datum and keeper rules were tested offline (`PROOFS.md`), and the contract refuses an early measurement and a changed fixed text in CI.
+- Run on chain once (30 Oct, `PROOFS.md`, "Tranches on chain"): a campaign tranche paid to a payee that is not the seller after its window opened, and a retention tranche that did not pay when the post no longer met the rule and was refunded. The deletion was simulated by unliking; a post deleted for real, a retention period of days and a payee that is someone else's wallet are untested.
 - A tranche is a whole 5 tADA escrow, so shares are multiples of one escrow, and each escrow is a separate x402 payment (about a minute each).
 - A retention period of up to about 8 days fits (the keeper must run all that time, and the money is locked all that time).
 - The disclosure check reads the text. X's own paid-partnership label is not part of the data we receive.

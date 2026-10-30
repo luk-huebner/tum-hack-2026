@@ -213,6 +213,38 @@
       ]
     },
     {
+      "group": "Templates through the paid route",
+      "claim": "A creator campaign paid in tranches, on chain: the campaign part was paid to a named payee (not the seller) after its measurement window opened; the retention part, measured later when the post was no longer liked, was not paid and was refunded to the buyer after its deadline.",
+      "status": "onchain",
+      "detail": "Three escrows on one post, with the author, creation time, id and exact text pinned in the signed text. The keeper made no paid check before a window opened. The deletion was simulated by unliking, the post was not deleted. The payee was the team's own buyer wallet.",
+      "tx": [
+        {
+          "label": "campaign payment",
+          "hash": "fb6f91ecb5e9d509042558436c4d0a11901f94a3244fd74141de3dc72ec5a758"
+        },
+        {
+          "label": "campaign payout to the payee",
+          "hash": "3f22b3451cdccfcbea302b61221f06c25e9160f930d436edf421cc2bdf3426a3"
+        },
+        {
+          "label": "retention payment 1",
+          "hash": "db837990a1d03bb78d1f37be7fac5d6ba57bf1a8479a62ca51e068ecdd238e2c"
+        },
+        {
+          "label": "retention payment 2",
+          "hash": "bca39a39db625e39fe0ebbe73fb52e1a6ad791825bace33d60633a859a216886"
+        },
+        {
+          "label": "retention refund 1",
+          "hash": "201484c1032ef4cbba34e25f609da1dec0a5198388497bee3aa636fe2da502d9"
+        },
+        {
+          "label": "retention refund 2",
+          "hash": "c5f8d5ca488b0bc4754b4ac4f14c55a2d0a88cb6073db1ce1618e872b0f4703d"
+        }
+      ]
+    },
+    {
       "group": "Mistakes we made and fixed",
       "claim": "The seller's keeper released our own standing judge bench: it names the seller as beneficiary and pins a request the keeper had just learned to prove. The bench now names the buyer's key. We also fixed a wasted paid fetch and a provider call that could hang.",
       "status": "onchain",

@@ -376,3 +376,25 @@ Built after the question "what if the creator deletes the post after being paid"
 - **`cardano/src/creator-campaign.ts`** plans a campaign as several ordinary escrows on one post and one rule that differ only in the time from which a measurement counts: a campaign tranche and a retention tranche. Checked without paying: a booth-sized plan (campaign measured after 12 minutes, retention after 25, windows of 10 minutes) and a real one (24 hours, 7 days) were accepted, three plans were refused (a retention measurement before the campaign window ends, one beyond 8 days, an unknown source). `--lock` pays them one after the other and was not used.
 - **Pinned text:** the intake with `--pin-text` and `--register` on the team's own post bought three signed looks (0.03 aUSD), the two registration looks gave identical fixed text, and the signed text carried author id, creation time, post id, `isReply`, the counts and the exact text (431 bytes of fixed text). It refuses a text that contains something like `:12,`.
 - **Five contract tests with that real signed response** (78 of 78 tests pass in CI, run after commit `bde2558`; the release test costs 154,564 memory units and 104,921,827 steps for the engine function alone) (`aiken/airnode_spike/lib/creator_post.test.ak`): it releases with the pinned author and text; one like required with none present is refused; a changed prefix (another author or an edited text) is rejected; a response signed before the measurement time does not count and one signed after it does.
+
+## Tranches on chain: a campaign payout to a named payee, and a retention part that did not pay (30 Oct 2026, 19:00 to 19:40 UTC)
+
+The booth-sized plan of `creator-campaign.ts` run for real on the team's own post (pinned author, creation time, id and text), with the payee set to the buyer wallet (a key that is **not** the seller's): rule "at least 1 like", a campaign tranche measured only after 19:12:17 UTC (deadline 19:22:17) and a retention tranche of two escrows measured only after about 19:24 (deadline about 19:34). 15 tADA locked in all. The "deletion" was simulated by **unliking**; the post was not deleted.
+
+| Step | Result |
+|---|---|
+| Payments (x402, 5 tADA each) | campaign `fb6f91ecb5e9d509042558436c4d0a11901f94a3244fd74141de3dc72ec5a758#0`; retention `db837990a1d03bb78d1f37be7fac5d6ba57bf1a8479a62ca51e068ecdd238e2c#0` and `bca39a39db625e39fe0ebbe73fb52e1a6ad791825bace33d60633a859a216886#0` |
+| Keeper, as each escrow appeared | `waiting-for-window` with the measurement time; **no paid check before the window** (the first scan of the campaign escrow came at 19:12:28, 11 s after it opened) |
+| Like clicked | 19:06:11 (before the window: nothing could count yet) |
+| Campaign window open, post liked | scan 19:12:28: 1 like. First release attempt 19:12:38 failed to evaluate (a provider error, not a refusal, not counted), retried at 19:13:42, **released 19:13:48: `3f22b3451cdccfcbea302b61221f06c25e9160f930d436edf421cc2bdf3426a3`, block 5354250, 5 tADA to the payee key `13a77ce3...` (the buyer's, not the seller's `31a15aa9...`)** |
+| Unlike clicked | 19:14:17, before the retention window |
+| Retention window open, post no longer liked | scan 19:24:06: **0 likes, rule not met, nothing released**; the next check was scheduled 5 minutes later |
+| Retention escrows after their deadlines | refunded to the buyer: `201484c1032ef4cbba34e25f609da1dec0a5198388497bee3aa636fe2da502d9` and `c5f8d5ca488b0bc4754b4ac4f14c55a2d0a88cb6073db1ce1618e872b0f4703d` |
+
+So the same contract paid the campaign part to the named payee, and the retention part came back when the post no longer met the rule at the later measurement. Data cost of this run 0.04 aUSD (four paid checks: two while the post was liked, two in the retention window, both showing 0 likes: 19:24:06 and 19:29:28) plus 0.1 aUSD of a mistake (below); fees about 1.5 tADA.
+
+**Two things that went wrong, and what changed:**
+- **A near miss.** Letting the keeper serve the buyer address (`AUTO_RELEASE_PAYEES`) made it take on the public judge bench, whose two policies name the buyer key. It fetched the rainfall (0.1 aUSD) and had both bench policies ready to release when it was stopped; nothing was released (the bench is still open on the public site). The keeper now skips every reference in `standing-policies.json`, whatever it is configured to serve.
+- **A payment that looked like a failure, twice.** The first campaign payment was in flight when the service was stopped (the stop was mine): the planner reported a failure, and the escrow was at the validator anyway. The retention payments came back as HTTP 402 and the client found each escrow by its datum. The planner now counts that as locked.
+
+**Not tested:** deleting the post (unliking stands in for it), a tranche measured days later, a payee that is a different person's wallet.
