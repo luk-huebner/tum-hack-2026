@@ -2,6 +2,8 @@
 
 The judge site is the tamper bench and the live board on a public URL, so that a judge can paste a signed response and see the validator's own verdict without our laptops being on. It is the same page and the same routes as the local console (`src/judge-routes.ts`), run by `src/judge-site.ts`.
 
+**Live at https://pay-on-proof-judge.vercel.app** (Vercel project `maxander/pay-on-proof-judge`, production deployment of 30 Oct 2026, about 18:00 UTC).
+
 ## What the host holds, and what it does not
 
 | Holds | Does not hold |
@@ -35,3 +37,5 @@ Open the URL, go to "Tamper bench" and press Run. It must show six results: the 
 - Verdicts depend on Blockfrost being up and within its free-tier limits.
 - The standing bench policies (`standing-policies.json`) must still be unspent at the validator; if they are spent the page says so, and `src/attacks.ts` re-locks them.
 - The in-memory rate limit is per server instance, so it is a courtesy, not a guarantee.
+- The two standing bench policies have a deadline of Sat 31 Oct 2026 20:00 UTC and the stored real response is accepted by the 48-hour policy until Sun 1 Nov 10:22 UTC. After that the bench needs a fresh lock (`src/attacks.ts`).
+- The project was created with `npx vercel link --yes --project pay-on-proof-judge`, the key was added with `npx vercel env add BLOCKFROST_PROJECT_ID production --sensitive` (value piped from `.env`, never typed or printed) and the public address with `SELLER_ADDRESS`. The deployment is not connected to the GitHub repository, so a push does not change the live site.

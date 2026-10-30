@@ -287,6 +287,13 @@
       "tx": []
     },
     {
+      "group": "Attacks refused",
+      "claim": "A public judge site (https://pay-on-proof-judge.vercel.app) runs the tamper bench for anyone, with no key on the host: 6 of 6 cases came out as expected against the live validator (control accepted, four tampered cases rejected, control accepted).",
+      "status": "evaluation",
+      "detail": "The site uses an address-only client and never sends a transaction; a verdict is the node's script evaluation of an unsigned release. Not load tested.",
+      "tx": []
+    },
+    {
       "group": "Not shown yet",
       "claim": "The provider being unreachable for minutes, the facilitator being down, a rule-not-met case on the escrow route, a stale observation on chain, and a public judge URL.",
       "status": "notrun",

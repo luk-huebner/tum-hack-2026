@@ -1,5 +1,7 @@
 # Judge tamper bench (Cardano preprod)
 
+**Public page: https://pay-on-proof-judge.vercel.app** (tab "Tamper bench"). Paste a signed response into the box, or press "Run the whole bench (6 steps)". Nothing is ever sent to the chain; a verdict is the node's script evaluation of an unsigned release transaction.
+
 Two policies are locked at the validator (script hash `58fb7eef...62ea`, Cardano preprod) and stay open until Sat 31 Oct 2026, 20:00 UTC. The first version of the validator (`a9e4420c...`, which had the double-satisfaction flaw in TRUST.md) has its own pair of bench policies, listed in `standing-policies-v1.json`; run the attacks against both with `attacks.ts` to see the difference. Each pays 5 tADA to the beneficiary (the buyer wallet's key: not the seller's, so the seller's keeper never releases the bench) if an AirnodeHub response, signed by the **Open-Meteo Airnode** `0xee510FFb986299529fE987bfD163D6c89067D767` for the pinned request (Munich rainfall, 10 to 23 Oct 2026, 14 daily values), sums to **less than 30.00 mm**.
 
 | Policy | UTxO | Accepts a response up to |

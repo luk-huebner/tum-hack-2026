@@ -309,3 +309,11 @@ A teammate asked whether YouTube, Instagram and similar can be reached through t
 - **The counts did not move.** The same video returned exactly 1,090,232 views, 25,750 likes and 6,376 comments at 10:21 UTC (the earlier unprojected call) and at 17:28 UTC. LunarCrush's per-post numbers are a snapshot; this video may simply not be refreshed. It cannot serve a live "reaches N views" demo; it can serve a claim about settled history.
 - **Only what LunarCrush indexes.** An unknown post answers 404 (YouTube, TikTok, Instagram, Reddit) or `null` (tweet); an unknown creator answers an empty object. A judge cannot choose an arbitrary video.
 - **Not tested:** the single-post call for an Instagram or TikTok post (the Instagram field names for likes and views are unknown), creator follower series, and an escrow for a YouTube video through the service. The raw responses are in `hack-repo/checks/out/` (not in git).
+
+## Public judge site on Vercel (30 Oct 2026, about 18:00 UTC)
+
+`https://pay-on-proof-judge.vercel.app` serves the console's tamper bench and live board from Vercel. It is the read-only part of the service (`cardano/src/judge-routes.ts`) run by `cardano/src/judge-site.ts` with an **address-only client**: the host holds a free Blockfrost preprod key and a public address, no seed phrase, no payment key, no aUSD key, and the paid routes and the keeper are not part of it.
+
+- **Six-case bench on the live URL: 6 of 6 as expected** (control accepted, edited value / stale / other request / foreign signer rejected, control accepted again), 1.2 to 2.0 s each, through the public API and through the page's own "Run the whole bench" button. The same six cases passed on the local console after the routes were moved out of `service.ts`, and on the bundled site run locally with only two environment variables.
+- **Bad input is refused, not crashed on:** a non-JSON response and a malformed reference answer 400 with a message, an unknown policy answers 404, a 70 kB body answers 413.
+- **Not tested:** load, the free-tier Blockfrost limit under many visitors, a phone on another network (task W9 in the team plan).

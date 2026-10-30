@@ -2,7 +2,7 @@
 // holds one bundled handler, the compiled validator, public test vectors, the standing bench refs and the web page.
 //   node scripts/bundle-judge-site.mjs
 import { build } from "esbuild";
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,8 +11,11 @@ const cardano = join(here, "..");
 const repo = join(cardano, "..");
 const out = join(repo, "deploy", "judge");
 
-rmSync(out, { recursive: true, force: true });
+// Start clean, but keep .vercel (the link to the Vercel project) so that a rebuild can be deployed to the same site.
+mkdirSync(out, { recursive: true });
+for (const name of readdirSync(out)) if (name !== ".vercel") rmSync(join(out, name), { recursive: true, force: true });
 mkdirSync(join(out, "api"), { recursive: true });
+writeFileSync(join(out, ".vercelignore"), ".env*\n.vercel\n");
 
 // 1. One CommonJS file with every dependency inside. import.meta.url (used to find the vectors and the blueprint) points at the
 //    bundle's own location, so the files below sit next to it in the same relative places as in the repository.
