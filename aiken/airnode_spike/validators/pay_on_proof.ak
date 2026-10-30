@@ -348,3 +348,173 @@ test refund_without_the_refund_signature_fails() {
     refund_tx(signed_ms + 3_600_000, [beneficiary]),
   )
 }
+
+// ---------------------------------------------------------------------------
+// Edge behaviour an auditor will ask about. Each test pins down what the validator does today, including the places where
+// the behaviour is a decision (documented in AUDIT.md) and not a guarantee.
+
+fn pays_to_with_stake(pkh: ByteArray, stake: ByteArray, lovelace: Int) -> Output {
+  Output {
+    address: address.from_verification_key(pkh) |> address.with_delegation_key(stake),
+    value: assets.from_lovelace(lovelace),
+    datum: NoDatum,
+    reference_script: None,
+  }
+}
+
+/// Only a payment credential that is a verification key counts: paying the beneficiary's hash AS A SCRIPT does not.
+test a_payment_to_a_script_credential_with_the_beneficiarys_hash_does_not_count() {
+  !pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx(
+      [
+        Output {
+          address: address.from_script(beneficiary),
+          value: assets.from_lovelace(5_000_000),
+          datum: NoDatum,
+          reference_script: None,
+        },
+      ],
+    ),
+  )
+}
+
+/// The stake part of the payout address is not checked: the beneficiary's KEY must receive the money, but whoever builds the
+/// release chooses the staking credential. The beneficiary keeps spending control; staking rewards and wallet visibility are
+/// not guaranteed. A known limitation (AUDIT.md), not a loss of funds.
+test a_payment_with_another_stake_credential_still_counts() {
+  pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx([pays_to_with_stake(beneficiary, wallet_key, 5_000_000)]),
+  )
+}
+
+/// A release does not need to be the first input, or the only input: wallet inputs for fees may come before or after it.
+test the_policys_own_input_may_come_after_wallet_inputs() {
+  pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with(
+      [wallet_input(), script_input(own_ref, 5_000_000)],
+      [pays_to(beneficiary, 5_000_000)],
+    ),
+  )
+}
+
+/// The one-policy rule counts inputs of THIS validator only. An input at another script is not ours to forbid.
+test a_release_may_spend_an_input_of_another_script_too() {
+  pay_on_proof.spend(
+    Some(policy()),
+    release_action(),
+    own_ref,
+    release_tx_with(
+      [
+        script_input(own_ref, 5_000_000),
+        Input {
+          output_reference: other_ref(),
+          output: Output {
+            address: address.from_script(
+              #"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            ),
+            value: assets.from_lovelace(2_000_000),
+            datum: NoDatum,
+            reference_script: None,
+          },
+        },
+        wallet_input(),
+      ],
+      [pays_to(beneficiary, 5_000_000)],
+    ),
+  )
+}
+
+/// A refund puts no condition on where the money goes: the refund party signs and may send it anywhere.
+test a_refund_may_send_the_money_anywhere() {
+  pay_on_proof.spend(
+    Some(policy()),
+    Refund,
+    own_ref,
+    Transaction {
+      ..refund_tx(signed_ms + 3_600_000, [refund_to]),
+      outputs: [pays_to(wallet_key, 5_000_000)],
+    },
+  )
+}
+
+/// At the exact deadline instant (lower = upper = deadline) BOTH exits are open: a release (upper <= deadline) and a refund
+/// (lower >= deadline). They are different transactions and the UTxO can be spent once, so whoever lands first wins; the
+/// window is a single instant. Documented in AUDIT.md.
+test at_exactly_the_deadline_instant_a_release_is_still_valid() {
+  let early = Policy { ..policy(), deadline_ms: signed_ms + 100_000 }
+  pay_on_proof.spend(
+    Some(early),
+    release_action(),
+    own_ref,
+    Transaction {
+      ..release_tx([pays_to(beneficiary, 5_000_000)]),
+      validity_range: interval.between(signed_ms + 100_000, signed_ms + 100_000),
+    },
+  )
+}
+
+test at_exactly_the_deadline_instant_a_refund_is_also_valid() {
+  let early = Policy { ..policy(), deadline_ms: signed_ms + 100_000 }
+  pay_on_proof.spend(
+    Some(early),
+    Refund,
+    own_ref,
+    Transaction {
+      ..refund_tx(signed_ms + 100_000, [refund_to]),
+      validity_range: interval.between(signed_ms + 100_000, signed_ms + 100_000),
+    },
+  )
+}
+
+test one_millisecond_after_the_deadline_only_the_refund_is_valid() {
+  let early = Policy { ..policy(), deadline_ms: signed_ms + 100_000 }
+  and {
+    !pay_on_proof.spend(
+      Some(early),
+      release_action(),
+      own_ref,
+      Transaction {
+        ..release_tx([pays_to(beneficiary, 5_000_000)]),
+        validity_range: interval.between(signed_ms + 100_001, signed_ms + 100_001),
+      },
+    ),
+    pay_on_proof.spend(
+      Some(early),
+      Refund,
+      own_ref,
+      Transaction {
+        ..refund_tx(signed_ms + 100_001, [refund_to]),
+        validity_range: interval.between(signed_ms + 100_001, signed_ms + 100_001),
+      },
+    ),
+  }
+}
+
+/// A datum that is not a policy halts the script for every redeemer: such funds can never be spent. Nothing on chain can
+/// stop anyone from sending funds to the validator with a bad datum (the buyer's client checks the datum before paying).
+test a_missing_datum_makes_a_release_halt() fail {
+  pay_on_proof.spend(
+    None,
+    release_action(),
+    own_ref,
+    release_tx([pays_to(beneficiary, 5_000_000)]),
+  )
+}
+
+test a_missing_datum_makes_a_refund_halt() fail {
+  pay_on_proof.spend(
+    None,
+    Refund,
+    own_ref,
+    refund_tx(signed_ms + 3_600_000, [refund_to]),
+  )
+}
