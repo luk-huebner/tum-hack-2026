@@ -24,7 +24,8 @@ jobs:
           sha256sum -c "$file.sha256"
           mkdir aiken-bin
           tar -xzf "$file" -C aiken-bin
-          echo "$(dirname "$(find aiken-bin -name aiken -type f | head -1)")" >> "$GITHUB_PATH"
+          # GITHUB_PATH needs an absolute directory
+          echo "$PWD/$(dirname "$(find aiken-bin -name aiken -type f | head -1)")" >> "$GITHUB_PATH"
 
       - run: aiken --version
 
