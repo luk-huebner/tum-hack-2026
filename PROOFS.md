@@ -70,3 +70,15 @@ Two standing policies for the tamper test, locked in `4ec3a5dd555f794d3f8ea4ad73
 | Real response, valid (control, last) | 48 h | ACCEPTED |
 
 **A first run of these cases was thrown away.** Run straight after the lock confirmed, even the valid control was rejected, so the four rejections in that run could not be trusted: the evaluator had not yet seen the fresh output. The table above is the rerun, bracketed by two accepted controls.
+
+## Live flow: a fresh signed response releases a 5-minute policy (Cardano preprod + Base Sepolia, 30 Oct 2026, 11:45 to 11:47 UTC)
+
+`tsx src/live.ts --pay`, one command, 99 seconds end to end:
+
+| Step | Receipt |
+|---|---|
+| 1. Lock a 5 tADA policy that accepts a response up to 300 s old | `49ce28c19ee140d3322279c5238cd082c3eec79e80bca5c0e10964cf445f100f` |
+| 2. Buy a fresh signed Open-Meteo response, same pinned request, 0.1 aUSD (x402, Base Sepolia) | `0x427aba95eb24dec6ca272bf444d7d637524a65efb6fe0198ea31f41c68be0746`; response signed at unix 1793360750 |
+| 3. **Release** the policy with that response, 16 s after it was signed | `b266fc382a1c89ca4bebdf44d273f5601424e20341a1124305f245f7c3caa12b`, block 5353069 |
+
+Koios confirms the release: it spends the script input with hash `a9e4420c…` (981,963 memory, 339,432,301 steps), pays 5 tADA to the seller address, fee 0.346383 tADA. The aUSD balance fell from 9.86 to 9.76 (0.1 for this call). The same request, response format and rule as the stored-response release, but the age limit (300 s) now actually binds: the response must be fresh.
