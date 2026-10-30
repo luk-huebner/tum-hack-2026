@@ -6,6 +6,8 @@
  *   eth-usd      the Nodary ETH/USD price is at least X (free data, signs an observation time that the policy checks)
  *   tweet-likes  the likes of a REGISTERED tweet are at least N (TwitterAPI.io, 0.01 aUSD per fetch)
  *   rain-below   Munich rainfall from 10 to 23 Oct 2026 is below X mm (Open-Meteo, 0.1 aUSD per fetch)
+ *   source       ANY registered AirnodeHub request: one signed response is bought once (register-source.ts), the contract's fixed
+ *                text and number slots are cut from it, and the entry in vectors/sources.json says which slots to sum
  *
  * Only requests whose signed shape is known can be offered, because the contract rebuilds the signed text from fixed fragments.
  * Tweets are registered one by one (vectors/tweets.json maps a tweet id to a saved vector, see src/register-tweet.ts).
@@ -14,8 +16,8 @@ import { existsSync, readFileSync } from "node:fs";
 import type { Cmp } from "./engine.js";
 import type { Kind } from "./polling.js";
 
-export type TemplateId = "eth-usd" | "tweet-likes" | "rain-below";
-export const TEMPLATE_IDS: TemplateId[] = ["eth-usd", "tweet-likes", "rain-below"];
+export type TemplateId = "eth-usd" | "tweet-likes" | "rain-below" | "source";
+export const TEMPLATE_IDS: TemplateId[] = ["eth-usd", "tweet-likes", "rain-below", "source"];
 
 export interface Spec {
   id: string; // template id, plus the tweet id for tweets
@@ -41,6 +43,44 @@ export interface Spec {
 }
 
 const tweetsFile = new URL("../vectors/tweets.json", import.meta.url);
+
+const sourcesFile = new URL("../vectors/sources.json", import.meta.url);
+
+/** A registered AirnodeHub request (written by register-source.ts). */
+export interface RegisteredSource {
+  id: string;
+  label: string; // "views of YouTube video -CP1gxzpGhY": the rule reads "<label> at least N"
+  slug: string; // the Airnode listing, for example "lunarcrush"
+  request: { operation: string; parameters: Record<string, unknown>; responseProjection?: Record<string, string> };
+  vectorName: string;
+  slotFrom: number;
+  slotTo: number;
+  slotNames: string[];
+  scale: number;
+  cmp: Cmp;
+  kind: Kind;
+  costAusd: number;
+  max: number;
+  registeredAt: string;
+}
+
+export const registeredSources = (): RegisteredSource[] => (existsSync(sourcesFile) ? JSON.parse(readFileSync(sourcesFile, "utf8")) : []);
+
+const sourceSpec = (r: RegisteredSource): Spec => ({
+  id: `source:${r.id}`,
+  template: "source",
+  vectorName: r.vectorName,
+  sourceSpec: `reg:${r.id}`,
+  costAusd: r.costAusd,
+  scale: r.scale,
+  slotFrom: r.slotFrom,
+  slotTo: r.slotTo,
+  cmp: r.cmp,
+  toThreshold: (v) => Math.round(v * 10 ** r.scale),
+  describe: (v) => `${r.label} ${r.cmp === "Below" ? "below" : "at least"} ${v}`,
+  max: r.max,
+  kind: r.kind,
+});
 
 /** The tweets that can be offered: tweet id to vector name. */
 export const registeredTweets = (): Record<string, string> => (existsSync(tweetsFile) ? JSON.parse(readFileSync(tweetsFile, "utf8")) : {});
@@ -96,16 +136,21 @@ const tweetLikes = (tweetId: string, vectorName: string): Spec => ({
   kind: "counter",
 });
 
-/** The spec behind an offer. Throws when the template needs a tweet that is not registered. */
-export const specFor = (template: TemplateId, tweetId?: string): Spec => {
+/** The spec behind an offer. `instance` is the tweet id for tweet-likes and the source id for source. Throws when it is not registered. */
+export const specFor = (template: TemplateId, instance?: string): Spec => {
   if (template === "eth-usd") return ethUsd;
   if (template === "rain-below") return rainBelow;
+  if (template === "source") {
+    const found = registeredSources().find((r) => r.id === instance);
+    if (!found) throw new Error(`sourceId must be one of the registered sources: ${registeredSources().map((r) => r.id).join(", ") || "none yet"}`);
+    return sourceSpec(found);
+  }
   const tweets = registeredTweets();
-  if (!tweetId || !Object.prototype.hasOwnProperty.call(tweets, tweetId)) {
+  if (!instance || !Object.prototype.hasOwnProperty.call(tweets, instance)) {
     throw new Error(`tweetId must be one of the registered tweets: ${Object.keys(tweets).join(", ") || "none yet"}`);
   }
-  return tweetLikes(tweetId, tweets[tweetId]);
+  return tweetLikes(instance, tweets[instance]);
 };
 
 /** Every offer the service can make and the keeper can prove: the fixed templates and each registered tweet. */
-export const allSpecs = (): Spec[] => [ethUsd, rainBelow, ...Object.entries(registeredTweets()).map(([id, vector]) => tweetLikes(id, vector))];
+export const allSpecs = (): Spec[] => [ethUsd, rainBelow, ...Object.entries(registeredTweets()).map(([id, vector]) => tweetLikes(id, vector)), ...registeredSources().map(sourceSpec)];

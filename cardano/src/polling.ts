@@ -47,6 +47,8 @@ export interface PollInput {
   kind: Kind;
   /** The watcher's cycle length, used for free sources. */
   baseMs: number;
+  /** Booth mode: look every cycle whatever the data kind, because a person is waiting. Costs more; the budget still caps it. */
+  fast?: boolean;
 }
 
 export interface PollPlan {
@@ -71,6 +73,7 @@ export const planNext = (p: PollInput): PollPlan => {
   if (p.costAusd === 0) return { delayMs: p.baseMs, reason: "free source: every cycle" };
   if (p.budgetLeftAusd < p.costAusd) return { delayMs: null, reason: "the aUSD budget is used up" };
   if (!last) return { delayMs: 0, reason: "first check" };
+  if (p.fast) return { delayMs: p.baseMs, reason: "booth mode: look every cycle while the budget lasts" };
 
   const pace = (p.costAusd * tLeft) / p.budgetLeftAusd; // the budget floor on the delay
   const gap = p.cmp === "AtLeast" ? p.threshold - last.value : last.value - p.threshold; // how far from the threshold, > 0

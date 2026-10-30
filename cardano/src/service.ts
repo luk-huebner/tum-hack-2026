@@ -27,7 +27,7 @@ import { startAutoRelease, type WatchStatus } from "./autorelease.js";
 import { type DemoParams, getRun, refusal, startDemoRun } from "./demo-run.js";
 import { ESCROW_LOVELACE, describeOffer, offerExtra, parseOffer, validatorAddressBech32 } from "./escrow.js";
 import { judgeRoutes, policySummary } from "./judge-routes.js";
-import { TEMPLATE_IDS, allSpecs } from "./templates.js";
+import { TEMPLATE_IDS, allSpecs, registeredSources } from "./templates.js";
 import {
   type Client,
   checkAgainst,
@@ -238,7 +238,7 @@ app.get("/api/info", (_req, res) => {
     validatorHash: scriptHash,
     validatorAddress: `70${scriptHash}`,
     paidRoute: { method: "POST", path: "/api/keep", priceTada: Number(PRICE_LOVELACE) / 1_000_000, payTo, chargedOnlyWhen: "the policy is released", sources: ALLOW_PAID_SOURCES ? "nodary:<feed>, tweet:<id>" : "nodary:<feed>" },
-    escrowRoute: { method: "POST", path: "/api/escrow", priceTada: Number(ESCROW_LOVELACE) / 1_000_000, payTo: validatorAddressBech32, transferMethod: "script (locked into the validator)", templates: TEMPLATE_IDS },
+    escrowRoute: { method: "POST", path: "/api/escrow", priceTada: Number(ESCROW_LOVELACE) / 1_000_000, payTo: validatorAddressBech32, transferMethod: "script (locked into the validator)", templates: TEMPLATE_IDS, sources: registeredSources().map((r) => ({ id: r.id, label: r.label, rule: r.cmp === "Below" ? "below" : "at least", kind: r.kind, costAusd: r.costAusd })) },
     demoBuyer: process.env.DEMO_BUYER === "1",
     facilitator: facilitatorUrl,
   });
@@ -288,6 +288,7 @@ app.listen(...(listenArgs as [number]), () => {
       intervalMs: Number(process.env.AUTO_RELEASE_INTERVAL_S ?? "20") * 1000,
       onJob: recordJob,
       allowPaid: process.env.AUTO_RELEASE_PAID === "1", // tweet and rainfall sources cost aUSD per fetch
+      fast: process.env.AUTO_RELEASE_FAST === "1", // booth mode: paid counters every cycle (set AUTO_RELEASE_INTERVAL_S=3 and a larger AUTO_RELEASE_AUSD_CAP)
       ausdCap: Number(process.env.AUTO_RELEASE_AUSD_CAP ?? "0.3"),
     });
   }

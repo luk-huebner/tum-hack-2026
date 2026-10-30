@@ -9,6 +9,7 @@
  *                                                       deadline, refund this wallet otherwise
  *   tsx src/escrow-client.ts --template tweet-likes --tweet 20 --at-least 300000     the likes of a registered tweet
  *   tsx src/escrow-client.ts --template rain-below --below 30                        Munich rainfall, 10 to 23 Oct 2026, in mm
+ *   tsx src/escrow-client.ts --template source --source yt-views-brian-cohen --at-least 1100000   any registered source (register-source.ts)
  *
  * The refund party is this wallet (MNEMONIC) unless --refund is given. Afterwards the policy UTxO is at the validator under
  * the payment's transaction hash; the reference is printed and saved to out/escrow-ref.json.
@@ -30,6 +31,7 @@ const { values } = parseArgs({
   options: {
     template: { type: "string", default: "eth-usd" },
     tweet: { type: "string" },
+    source: { type: "string" },
     "at-least": { type: "string" },
     below: { type: "string" },
     minutes: { type: "string", default: "40" },
@@ -57,7 +59,9 @@ const body =
     ? { ...base0, below: Number(values.below ?? "30") }
     : values.template === "tweet-likes"
       ? { ...base0, tweetId: values.tweet, atLeast: Number(values["at-least"] ?? "300000") }
-      : { ...base0, atLeast: Number(values["at-least"] ?? "2000") };
+      : values.template === "source"
+        ? { ...base0, sourceId: values.source, ...(values.below !== undefined ? { below: Number(values.below) } : { atLeast: Number(values["at-least"]) }) }
+        : { ...base0, atLeast: Number(values["at-least"] ?? "2000") };
 const request = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
 
 type Requirement = { scheme: string; network: string; amount: string; asset: string; payTo: string; maxTimeoutSeconds: number; extra?: Record<string, unknown> };

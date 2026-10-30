@@ -9,6 +9,7 @@ import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Address, Data } from "@evolution-sdk/evolution";
+import { registeredSources } from "./templates.js";
 import {
   type PolicyView,
   type SignedResponse,
@@ -44,7 +45,11 @@ export const parseSource = (spec: string): Source => {
   if (kind === "tweet" && /^\d{1,20}$/.test(arg)) return { spec, args: ["tweet-kpi", arg], costAusd: 0.01 };
   // the one rainfall request the contract knows how to rebuild: Munich, 10 to 23 Oct 2026, 14 daily values (0.1 aUSD)
   if (kind === "meteo" && arg === "munich") return { spec, args: ["meteo-rain", "48.14", "11.58", "2026-10-10", "2026-10-23"], costAusd: 0.1 };
-  throw new Error(`Unknown source "${spec}". Use nodary:<feed>, tweet:<id> or meteo:munich`);
+  if (kind === "reg") {
+    const registered = registeredSources().find((r) => r.id === arg);
+    if (registered) return { spec, args: ["registered", registered.id], costAusd: registered.costAusd };
+  }
+  throw new Error(`Unknown source "${spec}". Use nodary:<feed>, tweet:<id>, meteo:munich or reg:<id> of a registered source`);
 };
 
 /** Fetches (or buys, if not free) one signed response through the paid-call script, which verifies signer and request hash. */

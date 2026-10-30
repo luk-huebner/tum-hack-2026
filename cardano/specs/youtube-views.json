@@ -1,0 +1,14 @@
+{
+  "id": "yt-views-brian-cohen",
+  "label": "views of the YouTube video -CP1gxzpGhY",
+  "slug": "lunarcrush",
+  "request": {
+    "operation": "post",
+    "parameters": { "post_type": "youtube-video", "post_id": "-CP1gxzpGhY" },
+    "responseProjection": { "id": "/id", "views": "/metrics/views", "likes": "/metrics/likes", "comments": "/metrics/comments" }
+  },
+  "use": ["views"],
+  "cmp": "AtLeast",
+  "kind": "counter",
+  "scale": 0
+}

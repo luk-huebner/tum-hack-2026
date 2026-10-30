@@ -71,6 +71,7 @@ The honest answer is about which trust assumptions disappear and which remain.
 - **"Is the data fresh?"** The signature is (age limit, not from the future). The underlying observation is not checked yet.
 - **"Can a response be reused?"** For another policy that pins the same request, yes, by design. For the same policy, no.
 - **"How often does the keeper check, and what does that cost?"** It depends on the data. Rainfall over a finished window: once. Likes: next look at half the predicted time to the threshold, at most 15 minutes apart with a trend and 5 without, never twice a minute, always inside an aUSD cap. A free price feed: every 20 seconds. Derivation and numbers in `POLLING.md`.
+- **"How fast does a like become a payout?"** Measured on 30 Oct: the signed like count followed a like within the next response (about 2 s), the keeper saw it within one 5-second cycle, and the payout was on chain 53 s after the like, most of it waiting for the chain. See `PROOFS.md`.
 - **"What if the keeper fails?"** The funds stay in the contract. Anyone can release a satisfied policy, and the refund party gets the money back after the deadline.
 - **"Can a malformed refund address lock funds?"** A bad datum can. The server validates the address and the client recomputes the whole datum before paying.
 - **"Who is the customer?"** A buyer (a person or an agent) who wants to pay for a measurable outcome without trusting the seller to deliver, and a seller who wants proof that the money exists before working.

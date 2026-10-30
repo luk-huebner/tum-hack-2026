@@ -76,6 +76,8 @@ export interface AutoReleaseOptions {
   intervalMs?: number;
   allowPaid?: boolean;
   ausdCap?: number;
+  /** Booth mode (AUTO_RELEASE_FAST=1): paid counters are checked every cycle instead of on the cost-derived schedule. */
+  fast?: boolean;
   onJob?: (entry: Record<string, unknown>) => void;
 }
 
@@ -88,7 +90,7 @@ interface Known {
 }
 
 export const startAutoRelease = (options: AutoReleaseOptions) => {
-  const { client, dry = false, intervalMs = 20_000, allowPaid = false, ausdCap = 0.3, onJob } = options;
+  const { client, dry = false, intervalMs = 20_000, allowPaid = false, ausdCap = 0.3, fast = false, onJob } = options;
   const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
   // What the keeper can prove, keyed by the request hash a policy pins. Rebuilt every cycle: tweets can be registered at run time.
   const knownRequests = (): Map<string, Known> => {
@@ -205,7 +207,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
           log({ event: "paid-source-skipped", source: spec, why: dry ? "dry run" : !allowPaid ? "AUTO_RELEASE_PAID is off" : "aUSD cap reached", spentAusd: spent, capAusd: ausdCap });
           continue;
         }
-        if (now - (lastFetch.get(spec) ?? 0) < FLOOR_MS) continue; // never twice within a minute
+        if (now - (lastFetch.get(spec) ?? 0) < (fast ? 0 : FLOOR_MS)) continue; // never twice within a minute (booth mode: every cycle)
       }
       let fetched;
       try {
@@ -234,7 +236,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
         const at = Date.now();
         const history = [...(samples.get(m.ref) ?? []), { at, value: check.value }].slice(-6);
         samples.set(m.ref, history);
-        const plan = planNext({ now: at, deadlineMs: m.policy.deadlineMs, stopBeforeMs: MIN_TIME_LEFT_MS, costAusd: source.costAusd, budgetLeftAusd: ausdCap - spent, samples: history, threshold: m.policy.threshold / 10 ** m.policy.scale, cmp: m.policy.cmp, kind: m.known.kind, baseMs: intervalMs });
+        const plan = planNext({ now: at, deadlineMs: m.policy.deadlineMs, stopBeforeMs: MIN_TIME_LEFT_MS, costAusd: source.costAusd, budgetLeftAusd: ausdCap - spent, samples: history, threshold: m.policy.threshold / 10 ** m.policy.scale, cmp: m.policy.cmp, kind: m.known.kind, baseMs: intervalMs, fast });
         if (plan.delayMs === null) {
           stopChecking.add(m.ref);
           setState([m.ref], "settled-not-met");

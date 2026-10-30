@@ -44,6 +44,12 @@ Two escrows whose rules cannot hold were paid and left to the keeper, then refun
 - **Tweet: three checks** (0.03 aUSD), each with its reason in the log: at 16:40:33 "first estimate: look again in 2 minutes"; at 16:42:36 the count had not moved, so "not approaching: back off" (193 s, brought forward so a last check would happen a minute before the keeper must stop); at 16:46:01 the count was up by 2,448 and the plan said "approaching at 717.5 per minute, about 124 min to go: check after half of it" (900 s). That is past the stop time, so there was no fourth check.
 - Both escrows were refunded after their deadlines (`20e884e9ffd886b2a471bb3d0b3dfbc53df00f5a9945a0a2157e561414f0afd5`, `0504bffc977987662d3dbaf26631529c4895f3bec3f0e66d4c5972224a9aa417`); receipts and the log are in `PROOFS.md` and `cardano/out/autorelease-log-polling.jsonl`. Not shown live: a counter that crosses its threshold under this schedule.
 
+## Booth mode (`AUTO_RELEASE_FAST=1`)
+
+When a person is waiting at a booth, the cost-derived schedule is too slow: it would place the next look minutes away. Booth mode checks a paid counter every cycle (`AUTO_RELEASE_INTERVAL_S=3`, in practice about 5 s with the fetch) while the aUSD cap lasts (`AUTO_RELEASE_AUSD_CAP`). At 0.01 aUSD per fetch that is about 0.12 aUSD per minute; 0.5 aUSD buys about four minutes of watching, so switch it on for the demo and not before. Static data is still checked once.
+
+**What delay is worth.** The measurements in `PROOFS.md` put the data side at about 2 s (a like to a signed count) and the keeper's cycle at about 5 s. The remaining delay in a live payout (about 47 s) is the chain, which polling cannot reduce, so a faster cycle than 3 s would buy almost nothing. This also answers the earlier open point that the price of a minute of delay was not measured: for a like counter the controllable part of the delay is under 10 s and costs about 0.12 aUSD a minute.
+
 ## Limits
 
 The simulation's histories are invented. A two-point trend estimate is crude. A sudden burst costs up to the current gap in delay (at most 5 minutes without a trend). The price of delay v is not measured. Two policies on the same tweet share one fetch. A free source stays at 20 seconds, which can miss a price excursion shorter than that.

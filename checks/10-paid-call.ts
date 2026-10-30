@@ -5,13 +5,14 @@
 //   node --env-file=.env checks/10-paid-call.ts tweet-kpi <tweetId>   (projected: id, likes, replies, retweets, views)
 //   node --env-file=.env checks/10-paid-call.ts lunar-post <tweet|youtube-video|tiktok-video|reddit-post|instagram-post> <postId>
 //   node --env-file=.env checks/10-paid-call.ts lunar-post-kpi <youtube-video|tiktok-video|instagram-post|...> <postId>   (projected: id, views, likes, comments)
+//   node --env-file=.env checks/10-paid-call.ts registered <sourceId>   (a request registered with cardano/src/register-source.ts)
 //   node --env-file=.env checks/10-paid-call.ts lunar-creators   (the accounts LunarCrush ranks, with their networks)
 //   node --env-file=.env checks/10-paid-call.ts lunar-creator-posts <twitter|youtube|instagram|reddit|tiktok> <creatorId>
 //   node --env-file=.env checks/10-paid-call.ts meteo-rain  <lat> <lon> <startDate> <endDate>   (max 20 days)
 //   node --env-file=.env checks/10-paid-call.ts meteo-solar <lat> <lon> <startDate> <endDate>   (max 20 days)
 // Add --dry to print the request and the price without paying. Without PAYER_PRIVATE_KEY the call stops at the 402 and
 // prints the price; nothing is ever paid unless the key is set and --dry is absent.
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { isHex, type Hex } from 'viem';
 import { deriveRequestHash, fetchSignedResponse, verifySignedResponse, type AirnodeV2Request } from '../lib/airnode-v2.ts';
 import { createPayingFetch, readPaymentSettlement } from '../lib/x402.ts';
@@ -69,6 +70,18 @@ const build = (): { slug: string; request: AirnodeV2Request } => {
           responseProjection: { id: '/id', views: '/metrics/views', likes: '/metrics/likes', comments: '/metrics/comments' },
         },
       };
+    case 'registered': {
+      // A request registered with cardano/src/register-source.ts: the id names an entry in cardano/vectors/sources.json.
+      const list = JSON.parse(readFileSync(new URL('../cardano/vectors/sources.json', import.meta.url), 'utf8')) as { id: string; slug: string; request: AirnodeV2Request }[];
+      const entry = list.find((r) => r.id === rest[0]);
+      if (!entry) throw new Error(`No registered source "${rest[0]}"`);
+      return { slug: entry.slug, request: entry.request };
+    }
+    case 'request-file': {
+      // A request written to a file by cardano/src/register-source.ts: { slug, request }.
+      const { slug, request } = JSON.parse(readFileSync(rest[0], 'utf8')) as { slug: string; request: AirnodeV2Request };
+      return { slug, request };
+    }
     case 'lunar-creators':
       // The only listing that names each account's network and id.
       return { slug: 'lunarcrush', request: { operation: 'creatorsList', parameters: {} } };

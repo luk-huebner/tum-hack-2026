@@ -197,6 +197,22 @@
       ]
     },
     {
+      "group": "Templates through the paid route",
+      "claim": "A like on a post paid out on chain: 5 tADA locked by x402 for \"likes of the post at least 1\", a like clicked at 18:22:46, the keeper saw it in 6 s and the release was on chain 53 s after the like (about 47 s of that is the chain). The rule came from the generic source tool, not from a hand-built template.",
+      "status": "onchain",
+      "detail": "The signed like count followed a like within the next response (about 2 s) in two timed runs. The beneficiary was the team's own seller key, so only fees were spent. Not tested: several likers at once or a judge's phone.",
+      "tx": [
+        {
+          "label": "escrow payment",
+          "hash": "8c9ac1de176e74b90c0d43b68c2c972e7c93075166b9f1364997f3a7e4a05427"
+        },
+        {
+          "label": "release",
+          "hash": "e3d03ef789985374587412cb459b0db441623ff770bd03006583da302ece5e67"
+        }
+      ]
+    },
+    {
       "group": "Mistakes we made and fixed",
       "claim": "The seller's keeper released our own standing judge bench: it names the seller as beneficiary and pins a request the keeper had just learned to prove. The bench now names the buyer's key. We also fixed a wasted paid fetch and a provider call that could hang.",
       "status": "onchain",

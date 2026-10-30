@@ -1,0 +1,40 @@
+{
+  "airnode": "0x7B02Fd3324D2dC362f65a9c01e59EC5fDb4E1CCB",
+  "request": {
+    "operation": "tweetsByIds",
+    "parameters": {
+      "tweet_ids": "2116232087808205089"
+    },
+    "responseProjection": {
+      "id": "/tweets/0/id",
+      "likes": "/tweets/0/likeCount",
+      "replies": "/tweets/0/replyCount",
+      "retweets": "/tweets/0/retweetCount",
+      "views": "/tweets/0/viewCount"
+    }
+  },
+  "data": "{\"id\":\"2116232087808205089\",\"likes\":0,\"replies\":0,\"retweets\":0,\"views\":2}",
+  "timestamp": 1793384380,
+  "requestHashHex": "5b73a265ad5c59d6f54380c05ba134c983b43c7a9c1cd46837e4ac8a7bb6967f",
+  "signatureHex": "d740b84a7c75fb3015eb4318b7463a49c59b69983d741d6e5560129c71f53d6c0be4c5a2632e4ba197708aaf23418507ec103fd2f55586eed8488212057718d7",
+  "pubkeyHex": "0223dbf88146ba756ff33fc523e884c231d5d226a370ab654a70059bfc05193428",
+  "prefixHex": "7b226964223a2232313136323332303837383038323035303839222c226c696b6573223a",
+  "separatorsHex": [
+    "2c227265706c696573223a",
+    "2c227265747765657473223a",
+    "2c227669657773223a"
+  ],
+  "suffixHex": "7d",
+  "slotsText": [
+    "0",
+    "0",
+    "0",
+    "2"
+  ],
+  "slotsHex": [
+    "30",
+    "30",
+    "30",
+    "32"
+  ]
+}

@@ -29,8 +29,12 @@ export interface EscrowOffer {
   refund: string;
   deadlineMs: number;
   value: number;
-  tweetId?: string;
+  tweetId?: string; // template tweet-likes
+  sourceId?: string; // template source
 }
+
+/** The tweet id or source id that the template needs to find its spec. */
+const instanceOf = (offer: { tweetId?: string; sourceId?: string }) => offer.tweetId ?? offer.sourceId;
 
 export const parseOffer = (body: unknown, nowMs: number): EscrowOffer => {
   const b = (body ?? {}) as Record<string, unknown>;
@@ -38,9 +42,8 @@ export const parseOffer = (body: unknown, nowMs: number): EscrowOffer => {
   if (!TEMPLATE_IDS.includes(template)) throw new Error(`template must be one of: ${TEMPLATE_IDS.join(", ")}`);
   const refund = typeof b.refund === "string" ? b.refund.trim() : "";
   const deadlineMs = Number(b.deadlineMs);
-  // the threshold is called atLeast for prices and likes, below for rain
-  const value = Number(template === "rain-below" ? b.below : b.atLeast);
   const tweetId = template === "tweet-likes" ? String(b.tweetId ?? "") : undefined;
+  const sourceId = template === "source" ? String(b.sourceId ?? "") : undefined;
   let credential: string | undefined;
   try {
     credential = Address.fromBech32(refund).paymentCredential?._tag;
@@ -48,23 +51,26 @@ export const parseOffer = (body: unknown, nowMs: number): EscrowOffer => {
     // reported below
   }
   if (!refund.startsWith("addr_test1") || credential !== "KeyHash") throw new Error("refund must be a preprod address (addr_test1...) controlled by a key, not a script");
-  const spec = specFor(template, tweetId);
-  if (!Number.isFinite(value) || value <= 0 || value > spec.max) throw new Error(`${template === "rain-below" ? "below" : "atLeast"} must be a positive number up to ${spec.max}`);
+  const spec = specFor(template, tweetId ?? sourceId);
+  // the threshold is called atLeast for a rule "at least" (prices, likes, views) and below for a rule "below" (rain)
+  const key = spec.cmp === "Below" ? "below" : "atLeast";
+  const value = Number(b[key]);
+  if (!Number.isFinite(value) || value <= 0 || value > spec.max) throw new Error(`${key} must be a positive number up to ${spec.max}`);
   if (template !== "eth-usd" && Math.abs(value * 10 ** spec.scale - Math.round(value * 10 ** spec.scale)) > 1e-9) {
     throw new Error(`the threshold may have at most ${spec.scale} decimals`);
   }
   if (!Number.isSafeInteger(deadlineMs) || deadlineMs < nowMs + MIN_LEAD_MS || deadlineMs > nowMs + MAX_LEAD_MS) {
     throw new Error("deadlineMs must be a unix time in milliseconds between 5 minutes and 72 hours from now");
   }
-  return { template, refund, deadlineMs, value, ...(tweetId === undefined ? {} : { tweetId }) };
+  return { template, refund, deadlineMs, value, ...(tweetId === undefined ? {} : { tweetId }), ...(sourceId === undefined ? {} : { sourceId }) };
 };
 
 /** A sentence for the offer's rule. */
-export const describeOffer = (offer: EscrowOffer): string => specFor(offer.template, offer.tweetId).describe(offer.value);
+export const describeOffer = (offer: EscrowOffer): string => specFor(offer.template, instanceOf(offer)).describe(offer.value);
 
 /** The policy datum for an offer. The seller (SELLER_ADDRESS) is paid; the buyer's address is the refund party. */
 export const offerPolicy = (offer: EscrowOffer): Policy => {
-  const spec = specFor(offer.template, offer.tweetId);
+  const spec = specFor(offer.template, instanceOf(offer));
   const vec = loadVector(spec.vectorName);
   return {
     signerHex: vec.pubkeyHex,

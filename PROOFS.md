@@ -317,3 +317,35 @@ A teammate asked whether YouTube, Instagram and similar can be reached through t
 - **Six-case bench on the live URL: 6 of 6 as expected** (control accepted, edited value / stale / other request / foreign signer rejected, control accepted again), 1.2 to 2.0 s each, through the public API and through the page's own "Run the whole bench" button. The same six cases passed on the local console after the routes were moved out of `service.ts`, and on the bundled site run locally with only two environment variables.
 - **Bad input is refused, not crashed on:** a non-JSON response and a malformed reference answer 400 with a message, an unknown policy answers 404, a 70 kB body answers 413.
 - **Not tested:** load, the free-tier Blockfrost limit under many visitors, a phone on another network (task W9 in the team plan).
+
+## Like speed through the signed response, a generic source tool, and a live Creator Pay payout (30 Oct 2026, 18:13 to 18:24 UTC)
+
+**The test tweet.** A meme post for Cardano and API3 was published from the owner's X account at the owner's request (https://x.com/EuLinkas/status/2116232087808205089, tweet id `2116232087808205089`). Its only purpose is to give the like counter a real, live target.
+
+**How fast does the signed like count follow a like?** `checks/20-like-speed.ts` buys one signed response (0.01 aUSD, x402 on Base Sepolia, signer and request hash verified) every few seconds while the account likes and unlikes the post in the browser pane at logged times. 45 fetches, 0.45 aUSD.
+
+| Run | Like clicked (UTC) | Last response before the click | First response requested after the click |
+|---|---|---|---|
+| 1 | 18:14:43.609 | requested 18:14:41.342: 0 likes | requested 18:14:44.960 (1.35 s after the click), received 2.3 s after the click: **1 like** |
+| 2 | 18:16:43.426 | requested 18:16:42.111: 0 likes | requested 18:16:44.127 (0.7 s after the click), received **1.7 s after the click: 1 like** |
+
+- **The first signed response requested after a like already carried it, both times.** Run 1's unlike (click time not logged, about 18:15:30) showed in the first response requested after it. A paid signed fetch took 1.0 to 1.4 s from request to answer, with one 10 s outlier.
+- `views` is not zero on a new post: 1 at the start (the author's own view), 2 about two minutes later, so views on a recent post move too. (For tweet 20, from 2006, `views` stays 0.)
+- The signed timestamps run about 3 s behind our clock (whole seconds; we did not measure the offset), so the exact lag cannot be read below the 2 to 3 s sample spacing. The statement that holds is "within the next response".
+
+**A generic source tool.** `cardano/src/register-source.ts` registers any AirnodeHub request as a source (`cardano/SOURCES.md`). Two sources are registered: `meme-tweet-likes` (two paid fetches, 0.02 aUSD, the fixed text was identical in both) and `yt-views-brian-cohen` (from a response bought earlier, nothing paid). The escrow route, the escrow client, the seller's keeper and the console's board accept them with no change to the validator.
+
+**A live Creator Pay payout, end to end.** The keeper ran in booth mode (`AUTO_RELEASE_FAST=1`, a check every cycle of about 5 s, cap 0.5 aUSD) after the escrow was locked.
+
+| Step | Result |
+|---|---|
+| x402 payment of 5 tADA into the validator: "likes of the Cardano and API3 meme post at least 1", refund after 18:46:09 UTC | `8c9ac1de176e74b90c0d43b68c2c972e7c93075166b9f1364997f3a7e4a05427` (policy `8c9ac1de176e74b90c0d43b68c2c972e7c93075166b9f1364997f3a7e4a05427#0`) |
+| The keeper found it | 18:22:11 |
+| The keeper's checks while the post had 0 likes | 7 checks, each 0.01 aUSD |
+| **Like clicked** | **18:22:46.556** |
+| The first check that saw 1 like | 18:22:52.845 (6.3 s after the click; the cycle is about 5 s) |
+| Release submitted | 18:23:39.526 (52.9 s after the click), transaction `e3d03ef789985374587412cb459b0db441623ff770bd03006583da302ece5e67`, block 5354119, fee 0.311 tADA, 5 tADA to the seller key |
+
+About 47 of those 53 seconds are the release waiting for the chain: the validator needs the transaction's lower time bound to be at or after the signed time, so the transaction cannot be built until the ledger's time has caught up. The data side (a like to a signed count) took about 2 s and the keeper about 6 s. The beneficiary was our own seller key, so only fees were spent. Data cost of the payout: 0.08 aUSD. The post was unliked afterwards (0 likes).
+
+**Not tested:** more than one liker at once, the keeper under a burst of many likes, other platforms through the generic tool on chain, and a judge's phone liking the post (the account that owns it did the liking).

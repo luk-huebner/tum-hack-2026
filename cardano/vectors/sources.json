@@ -1,0 +1,67 @@
+[
+  {
+    "id": "yt-views-brian-cohen",
+    "label": "views of the YouTube video -CP1gxzpGhY",
+    "slug": "lunarcrush",
+    "request": {
+      "operation": "post",
+      "parameters": {
+        "post_type": "youtube-video",
+        "post_id": "-CP1gxzpGhY"
+      },
+      "responseProjection": {
+        "id": "/id",
+        "views": "/metrics/views",
+        "likes": "/metrics/likes",
+        "comments": "/metrics/comments"
+      }
+    },
+    "vectorName": "src-yt-views-brian-cohen",
+    "slotFrom": 2,
+    "slotTo": 3,
+    "slotNames": [
+      "comments",
+      "likes",
+      "views"
+    ],
+    "scale": 0,
+    "cmp": "AtLeast",
+    "kind": "counter",
+    "costAusd": 0.02,
+    "max": 2000000000,
+    "registeredAt": "2026-10-30T18:19:36.167Z"
+  },
+  {
+    "id": "meme-tweet-likes",
+    "label": "likes of the Cardano and API3 meme post 2116232087808205089",
+    "slug": "twitterapi",
+    "request": {
+      "operation": "tweetsByIds",
+      "parameters": {
+        "tweet_ids": "2116232087808205089"
+      },
+      "responseProjection": {
+        "id": "/tweets/0/id",
+        "likes": "/tweets/0/likeCount",
+        "replies": "/tweets/0/replyCount",
+        "retweets": "/tweets/0/retweetCount",
+        "views": "/tweets/0/viewCount"
+      }
+    },
+    "vectorName": "src-meme-tweet-likes",
+    "slotFrom": 0,
+    "slotTo": 1,
+    "slotNames": [
+      "likes",
+      "replies",
+      "retweets",
+      "views"
+    ],
+    "scale": 0,
+    "cmp": "AtLeast",
+    "kind": "counter",
+    "costAusd": 0.01,
+    "max": 2000000000,
+    "registeredAt": "2026-10-30T18:19:46.556Z"
+  }
+]
