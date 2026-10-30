@@ -133,3 +133,18 @@ Both confirmed on Koios in the same block. The beneficiary here is our own selle
 **Fresh response on the 5-minute bench policy.** A response bought for 0.1 aUSD (`0xcaeebff9db9863a69450c55a8a3d69d0c61508a099e69dd20c7ac23ef8efd6d5`, Base Sepolia) and 12 s old was ACCEPTED by `bench-5min`, both through `judge.ts` and through the page. This is the case the old fixed validity window would have refused; the old code was not re-run to confirm that.
 
 Limits: the service ran on a laptop; the 91 s probably consists mostly of waiting for the preprod chain tip (not measured separately); the service does not wait for the release to be confirmed before answering; the paid route has been run once for a release.
+
+## An x402 payment locked straight into the validator (Cardano `script` transfer method, 30 Oct 2026, about 14:35 UTC)
+
+`POST /api/escrow` on the local service. The buyer asked: pay the seller if ETH/USD is at least 2000 (the price was about 2217) before a deadline 40 minutes away, refund the buyer otherwise; 5 tADA, signed response at most 300 s old. The 402 price list declared `assetTransferMethod: script`, our script hash and the policy as inline datum; `payTo` was the validator address.
+
+| Step | Receipt |
+|---|---|
+| **x402 payment into the validator**: HTTP 200 after 26.3 s, settled by the hosted facilitator | `d903edc39152b5a07e8492a4536c51adc162a60852fb7a6e330cb88d8cd4b292`, block 5353457, fee 0.176545 tADA. Koios: output 0 is 5.0 tADA at the validator address with an inline datum; the policy UTxO is `d903edc3…b292#0` |
+| **Release** by the keeper (free Nodary data: price 2216.94, response 70 s old) | `076de3e1fbff36936d46e364bd699442424259b4409691e7948f59aa3e106430`, block 5353461, fee 0.2859 tADA. Koios: 5.0 tADA to the seller's key (enterprise address `addr_test1vqc6zk4f…`) |
+
+The buyer wallet fell from 9922.327158 to 9916.864713 tADA: 5 tADA moved to the seller plus the two fees (0.176545 + 0.2859). That the release worked proves that the datum on the payment output is a valid policy for the validator, since the keeper read the policy from it and the validator ran against it.
+
+Before paying, without sending anything: the price list decoded to the intended policy, and a payment transaction built and signed locally carried exactly that datum on the validator output.
+
+Not shown: the buyer's **refund** from a policy created this way (the validator and the datum shape are the ones whose refund was tested earlier, but not this UTxO), the rule-not-met case on this route, and what the facilitator does with a wrong datum (it does not check the datum, only that `payTo` is the declared script). The refund party is whatever address the buyer declares. The release here was a separate keeper run; the service does not yet watch its own escrows and release them.
