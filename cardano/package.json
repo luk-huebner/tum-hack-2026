@@ -19,7 +19,8 @@
     "service": "tsx src/service.ts",
     "keep": "tsx src/keep-client.ts",
     "judge": "tsx src/judge.ts",
-    "keeper": "tsx src/keeper.ts"
+    "keeper": "tsx src/keeper.ts",
+    "judge-site:bundle": "node scripts/bundle-judge-site.mjs"
   },
   "dependencies": {
     "@evolution-sdk/evolution": "0.5.14",
