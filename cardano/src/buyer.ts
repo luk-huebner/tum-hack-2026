@@ -32,11 +32,24 @@ async function main() {
     allowedAssets: [{ network: "cardano:*", asset: "lovelace", maxAmountPerPayment: "5000000" }],
   });
 
-  const signer = toClientCardanoSigner({
+  const baseSigner = toClientCardanoSigner({
     mnemonic,
     network: NETWORK,
     provider: { blockfrost: { baseUrl: blockfrostBaseUrl, projectId } },
   });
+  // The client sets the transaction's TTL to Date.now() + maxTimeoutSeconds, but the facilitator only accepts a TTL
+  // up to (time of the chain tip) + maxTimeoutSeconds. The tip is on average 20 s old (31 s when checked on 30 Oct), so
+  // the unmodified client was rejected with invalid_exact_cardano_payload_ttl_too_far. Asking for a shorter window
+  // leaves room for a stale tip and still gives the transaction minutes to be included.
+  const TTL_MARGIN_SECONDS = 120;
+  const signer = {
+    ...baseSigner,
+    buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
+      baseSigner.buildAndSignPaymentTransaction({
+        ...input,
+        maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS),
+      }),
+  };
   client.register("cardano:*", new ExactCardanoScheme(signer));
   console.log(`Buyer wallet: ${signer.getAddress()}`);
 
