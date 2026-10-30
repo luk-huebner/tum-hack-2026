@@ -22,7 +22,7 @@ Every row names where it was shown. "Evaluation" means the node provider ran the
 | Anyone | Release and keep the money (pay nobody, or pay another key) | **No.** One policy per release; the beneficiary must receive everything locked | `attacks.ts`: all cases refused; the same two-policy attack was ACCEPTED by the first validator and is REJECTED by the current one |
 | Anyone | Release and pay the beneficiary less than the payout (4.9 tADA, 5 tADA minus a lovelace) | **No** | `attacks.ts`: both refused |
 | Anyone | Release with an edited value, a different request, a different signer, or a response older than the policy allows | **No** | The judge bench: `cardano/JUDGES.md`, page at `/` |
-| Anyone | Release after the deadline | No, by the code (`upper <= deadline`) | Contract tests in CI (73 pass); **not run on chain** |
+| Anyone | Release after the deadline | No, by the code (`upper <= deadline`) | Contract tests in CI (78 pass); **not run on chain** |
 | Refund party | Refund after the deadline | Yes | `1057e1d9…0d1d`, `b338476f…` |
 | Refund party | Refund before the deadline | **No** | Same UTxO refused 343 s early, then refunded after the deadline (`PROOFS.md`) |
 | Anyone else, including the beneficiary | Refund (not listing the refund party as signer) | **No** | `attacks.ts --expired`: no signer, the attacker's key and the beneficiary's key all refused |
