@@ -4,6 +4,10 @@
  *   POST /api/keep   a paid x402 job (2 tADA). The keeper fetches a fresh signed AirnodeHub response for a locked policy
  *                    and, if the rule holds, releases the policy's funds to its beneficiary. You are charged only when
  *                    it releases: any answer with a 4xx or 5xx status cancels the payment (see @x402/express).
+ *   POST /api/escrow a paid x402 payment (5 tADA) that is locked straight into the validator: the Cardano x402 "script"
+ *                    transfer method. The buyer names the refund address, a price threshold and a deadline; the datum
+ *                    is built here (escrow.ts), the seller is the beneficiary. Nothing is sent to the chain by this
+ *                    process: the buyer's payment transaction is submitted by the facilitator when it settles.
  *   POST /api/judge  free. Takes a signed response and a policy and answers with the validator's own verdict. It never
  *                    sends a transaction. The page at / drives it for the tamper test.
  *
@@ -17,6 +21,7 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactCardanoScheme } from "@x402/cardano/exact/server";
 import { type SignedResponse, hexOf, makeClient, scriptHash, waitForTip } from "./engine.js";
+import { ESCROW_LOVELACE, ESCROW_MAX_AGE_MS, offerExtra, parseOffer, validatorAddressBech32 } from "./escrow.js";
 import {
   type Client,
   checkAgainst,
@@ -207,6 +212,57 @@ app.post("/api/keep", async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
+// The escrow route: the x402 payment itself is locked at the validator
+
+/**
+ * The requirements for this route depend on the buyer's request (their refund address, threshold and deadline are in the
+ * datum), so the payment middleware is built per request from the body. The same body gives the same datum, which is what
+ * the paid retry needs: the facilitator and the middleware compare the requirements of the retry with those of the 402.
+ * The shared resource server is already initialised by the middleware above.
+ */
+const escrowGate = (req: Request, res: Response, next: (error?: unknown) => void) => {
+  let extra;
+  try {
+    extra = offerExtra(parseOffer(req.body, Date.now()));
+  } catch (error) {
+    return void res.status(400).json({ error: (error as Error).message, charged: false });
+  }
+  const routes = {
+    "POST /api/escrow": {
+      accepts: [
+        {
+          scheme: "exact",
+          network: NETWORK,
+          price: { amount: ESCROW_LOVELACE.toString(), asset: "lovelace" },
+          payTo: validatorAddressBech32,
+          maxTimeoutSeconds: PAYMENT_WINDOW_SECONDS,
+          extra,
+        },
+      ],
+      description: "Escrow: this payment is locked in the Pay-on-Proof validator and reaches the seller only when a signed AirnodeHub response proves the rule; otherwise you can refund after the deadline.",
+      mimeType: "application/json",
+    },
+  };
+  return paymentMiddleware(routes, resourceServer, undefined, undefined, false)(req, res, next);
+};
+
+app.post("/api/escrow", escrowGate, (req: Request, res: Response) => {
+  // Runs after the payment was verified and before it is settled: the facilitator submits the payment transaction next.
+  const offer = parseOffer(req.body, Date.now()); // the gate above validated this same body a moment ago
+  recordJob({ route: "escrow", refund: offer.refund.slice(0, 18), atLeast: offer.atLeast, deadline: new Date(offer.deadlineMs).toISOString(), outcome: "payment-verified" });
+  res.json({
+    status: "accepted",
+    lockedAt: validatorAddressBech32,
+    payoutTada: Number(ESCROW_LOVELACE) / 1_000_000,
+    rule: `ETH/USD at least ${offer.atLeast}, signed by the Nodary Airnode, not older than ${ESCROW_MAX_AGE_MS / 1000} s`,
+    seller: "SELLER_ADDRESS (the beneficiary)",
+    refundTo: offer.refund,
+    refundAfter: new Date(offer.deadlineMs).toISOString(),
+    next: "When the payment settles, your 5 tADA sits at the validator under this policy. Anyone with a matching signed response can release it to the seller; you can refund it after the deadline. Find it with the payment transaction hash.",
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The judge bench
 
 app.get("/api/policies", async (_req, res) => {
@@ -299,6 +355,7 @@ app.get("/api/info", (_req, res) => {
     validatorHash: scriptHash,
     validatorAddress: `70${scriptHash}`,
     paidRoute: { method: "POST", path: "/api/keep", priceTada: Number(PRICE_LOVELACE) / 1_000_000, payTo, chargedOnlyWhen: "the policy is released", sources: ALLOW_PAID_SOURCES ? "nodary:<feed>, tweet:<id>" : "nodary:<feed>" },
+    escrowRoute: { method: "POST", path: "/api/escrow", priceTada: Number(ESCROW_LOVELACE) / 1_000_000, payTo: validatorAddressBech32, transferMethod: "script (locked into the validator)" },
     facilitator: facilitatorUrl,
   });
 });
@@ -311,5 +368,6 @@ app.listen(port, () => {
   console.log(`Pay-on-Proof service on http://localhost:${port}`);
   console.log(`  judge page   GET  /            (free; verdicts only, nothing is ever sent to the chain)`);
   console.log(`  paid job     POST /api/keep    ${Number(PRICE_LOVELACE) / 1_000_000} tADA on ${NETWORK}, charged only when the policy is released`);
+  console.log(`  escrow       POST /api/escrow  ${Number(ESCROW_LOVELACE) / 1_000_000} tADA locked into the validator (x402 script transfer method)`);
   console.log(`  facilitator  ${facilitatorUrl}`);
 });

@@ -1,0 +1,31 @@
+{
+  "airnode": "0xE70f1e8b22a21e4Bb5188918a3033341b281E4c0",
+  "request": {
+    "operation": "latestFeeds",
+    "parameters": {
+      "name": "ETH/USD"
+    },
+    "responseProjection": {
+      "price": "/ETH~1USD/value",
+      "updatedAt": "/ETH~1USD/timestamp"
+    }
+  },
+  "data": "{\"price\":2235.21,\"updatedAt\":1793362921326}",
+  "timestamp": 1793362921,
+  "requestHashHex": "180eae9387bb66a72380e61ebe0a00d19f8414a716a37ebe1df124b66acfff66",
+  "signatureHex": "db83f4d955499ae5093304c27777b4c6d075e1ef707d3ee3afacb7b7b0dcb52652995c30e691951c2ab0bfe0674972d7f89012dc14655e86894c1e5d9ae24235",
+  "pubkeyHex": "024e993579608baf1d542741675d347867f3d2c558d2e9bc3b74bac3583b569322",
+  "prefixHex": "7b227072696365223a",
+  "separatorsHex": [
+    "2c22757064617465644174223a"
+  ],
+  "suffixHex": "7d",
+  "slotsText": [
+    "2235.21",
+    "1793362921326"
+  ],
+  "slotsHex": [
+    "323233352e3231",
+    "31373933333632393231333236"
+  ]
+}
