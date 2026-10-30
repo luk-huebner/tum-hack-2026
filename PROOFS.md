@@ -349,3 +349,9 @@ A teammate asked whether YouTube, Instagram and similar can be reached through t
 About 47 of those 53 seconds are the release waiting for the chain: the validator needs the transaction's lower time bound to be at or after the signed time, so the transaction cannot be built until the ledger's time has caught up. The data side (a like to a signed count) took about 2 s and the keeper about 6 s. The beneficiary was our own seller key, so only fees were spent. Data cost of the payout: 0.08 aUSD. The post was unliked afterwards (0 likes).
 
 **Not tested:** more than one liker at once, the keeper under a burst of many likes, other platforms through the generic tool on chain, and a judge's phone liking the post (the account that owns it did the liking).
+
+## An MCP server for agents (30 Oct 2026, about 18:50 UTC)
+
+`cardano/src/mcp-server.ts` exposes the contract to an AI agent over the Model Context Protocol (`cardano/MCP.md`). `node scripts/mcp-test.mjs` starts it and drives it like an agent host: **14 of 14 checks passed** (initialize and tool listing; the sources listed; a preview that says the rule in words and pays nothing; an unknown source refused; the escrows at the contract read from the chain; a released escrow reported as gone; the real signed response judged ACCEPTED and one with an edited value judged REJECTED by the validator itself; both spending tools refusing while spending is off; an unknown tool answered as a protocol error; nothing but protocol messages on stdout). Nothing was paid. The board decoding was moved into one function shared by the console, the public site and the server.
+
+**Not tested:** a real Claude Desktop session (the test client speaks the same protocol, which is not the same as the host), the spending tools through the server (the scripts they call were run on chain separately), several agents at once.

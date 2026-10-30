@@ -1,0 +1,30 @@
+# Pay-on-Proof (Cardano preprod, testnet)
+
+> A Cardano smart contract holds a payment and releases it to the seller only when a signed AirnodeHub (API3) response proves a condition agreed in advance. Otherwise the buyer is refunded after the deadline. This site is the public, read-only part: you can ask the contract itself whether a signed response would release a payment. It holds no key and never sends a transaction.
+
+Contract: Plutus V3 validator, script hash 58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea (Cardano preprod).
+Source, receipts, trust sheet: see the repository README (PROOFS.md lists every transaction).
+
+## The tamper test (API3 track)
+
+1. GET /api/cases returns six cases: a real signed response (control), four tampered versions (an edited value, a stale response, a response to another request, a response signed by a foreign key) and the control again. Each has `ref` (the policy at the contract), `response` and `expect`.
+2. POST /api/judge with JSON { "ref": "<case.ref>", "response": <case.response> } returns the validator's own verdict: { "verdict": "ACCEPTED" | "REJECTED" | "EXPIRED" | "ERROR", "detail": ..., "sentToChain": false, "hints": ... }.
+3. To test your own: take any signed AirnodeHub response { airnode, requestHash, timestamp, data, signature }, change one character of a value in `data`, and POST it with the same `ref`. It must come back REJECTED. The unedited response must come back ACCEPTED.
+
+Example:
+
+    curl -s https://pay-on-proof-judge.vercel.app/api/cases > cases.json
+    # then POST one case: {"ref": "<ref>", "response": {...}} to /api/judge
+
+## Other routes
+
+- GET /api/policies: the two standing bench policies and whether they are still open.
+- GET /api/board: everything locked at the contract, decoded (rule in words, deadline, state).
+- GET /api/info: validator hash and network.
+- GET /health: {"ok": true}.
+
+Limits: at most 30 evaluations a minute per visitor, 3 at once; request bodies up to 64 kB; `data` up to 8000 characters. A verdict is the node's script evaluation of an unsigned release transaction, so it depends on the Blockfrost provider being up.
+
+## What this proves, and what it does not
+
+It proves the contract checks the signer, the request, the age of the response and the rule, and rejects edits. It does not prove the API's data is true (a signature proves what the API returned). There is no dispute process and no external audit yet; see TRUST.md and AUDIT.md in the repository.

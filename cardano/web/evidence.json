@@ -310,6 +310,13 @@
       "tx": []
     },
     {
+      "group": "Attacks refused",
+      "claim": "An AI agent can use the contract through seven tools (MCP): read what is locked, preview a payment, ask the validator for a verdict. The test client got ACCEPTED for the real response and REJECTED for one with an edited value, and both spending tools refused while spending was off (14 of 14 checks).",
+      "status": "tests",
+      "detail": "Spending (5 tADA by x402) is off unless the operator enables it, then every call needs confirmation. Not tried in a real Claude Desktop session.",
+      "tx": []
+    },
+    {
       "group": "Not shown yet",
       "claim": "The provider being unreachable for minutes, the facilitator being down, a rule-not-met case on the escrow route, a stale observation on chain, and a public judge URL.",
       "status": "notrun",

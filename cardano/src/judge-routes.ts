@@ -59,6 +59,39 @@ const policySummary = (utxo: Parameters<typeof policyViewOf>[0]) => {
 
 export { policySummary };
 
+/** Everything locked at the validator that follows the Pay-on-Proof policy layout, decoded (newest deadline first, at most 40). */
+export const boardRows = async (client: Client) => {
+  const utxos = await withRetry(() => client.getUtxos(scriptAddress), 3);
+  const known = new Map(allSpecs().map((spec) => [loadVector(spec.vectorName).requestHashHex, spec]));
+  const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
+  const now = Date.now();
+  return utxos
+    .map((u) => {
+      let p;
+      try {
+        p = policyViewOf(u);
+      } catch {
+        return undefined;
+      }
+      const spec = known.get(p.requestHashHex);
+      const left = Math.round((p.deadlineMs - now) / 60_000);
+      return {
+        ref: `${hexOf(u.transactionId.hash)}#${Number(u.index)}`,
+        lockedTada: Number(u.assets.lovelace) / 1_000_000,
+        rule: spec ? spec.describe(p.threshold / 10 ** p.scale) : `a request this service does not know (${p.requestHashHex.slice(0, 8)}...)`,
+        template: spec?.template ?? "unknown",
+        deadline: new Date(p.deadlineMs).toISOString(),
+        minutesLeft: left,
+        state: left < 0 ? "deadline passed: refundable" : "open",
+        paysThisService: p.beneficiaryHex === sellerPkh,
+        observationCheck: p.obsSlot >= 0 ? `observation at most ${p.obsMaxAgeMs / 1000} s old` : "none",
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => Date.parse((b as { deadline: string }).deadline) - Date.parse((a as { deadline: string }).deadline))
+    .slice(0, 40);
+};
+
 export const judgeRoutes = (getClient: () => Client): Router => {
   const router = Router();
 
@@ -153,35 +186,8 @@ export const judgeRoutes = (getClient: () => Client): Router => {
   router.get("/api/board", async (_req, res) => {
     try {
       if (!boardCache || Date.now() - boardCache.at > 10_000) {
-        const utxos = await withRetry(() => getClient().getUtxos(scriptAddress), 3);
-        const known = new Map(allSpecs().map((spec) => [loadVector(spec.vectorName).requestHashHex, spec]));
-        const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
+        const rows = await boardRows(getClient());
         const now = Date.now();
-        const rows = utxos
-          .map((u) => {
-            let p;
-            try {
-              p = policyViewOf(u);
-            } catch {
-              return undefined;
-            }
-            const spec = known.get(p.requestHashHex);
-            const left = Math.round((p.deadlineMs - now) / 60_000);
-            return {
-              ref: `${hexOf(u.transactionId.hash)}#${Number(u.index)}`,
-              lockedTada: Number(u.assets.lovelace) / 1_000_000,
-              rule: spec ? spec.describe(p.threshold / 10 ** p.scale) : `a request this service does not know (${p.requestHashHex.slice(0, 8)}...)`,
-              template: spec?.template ?? "unknown",
-              deadline: new Date(p.deadlineMs).toISOString(),
-              minutesLeft: left,
-              state: left < 0 ? "deadline passed: refundable" : "open",
-              paysThisService: p.beneficiaryHex === sellerPkh,
-              observationCheck: p.obsSlot >= 0 ? `observation at most ${p.obsMaxAgeMs / 1000} s old` : "none",
-            };
-          })
-          .filter(Boolean)
-          .sort((a, b) => Date.parse((b as { deadline: string }).deadline) - Date.parse((a as { deadline: string }).deadline))
-          .slice(0, 40);
         boardCache = { at: now, rows };
       }
       res.json({ validatorHash: scriptHash, count: boardCache.rows.length, rows: boardCache.rows });
