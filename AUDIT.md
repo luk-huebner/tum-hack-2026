@@ -4,7 +4,7 @@
 
 - Current validator: `pay_on_proof`, Plutus V3, script hash `58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea`, 2,317 bytes, Aiken v1.1.24, stdlib v4.0.0.
 - First version (kept as evidence, flawed): `a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c`.
-- Tests: **65, all passing in CI** (`.github/workflows/aiken.yml`). Receipts of everything that ran on chain: `PROOFS.md`. Trust assumptions and known gaps in plain language: `TRUST.md`.
+- Tests: **73, all passing in CI** (`.github/workflows/aiken.yml`). Receipts of everything that ran on chain: `PROOFS.md`. Trust assumptions and known gaps in plain language: `TRUST.md`.
 
 ## 1. Scope
 
@@ -104,7 +104,7 @@ Protocol limits per transaction: 17,500,000 memory units, 10,000,000,000 steps.
 
 ## 8. Tests
 
-65 tests: attestation (hash and signature vectors, four tamper cases), engine (decimal parsing edge cases, the rule, time bounds, a real Open-Meteo vector, a real Nodary vector with the observation check), and the validator (release and refund paths, redirect, underpay, surplus, double satisfaction with and without payment, inputs of other scripts, input order, script and stake credentials, the deadline instant, missing datum). All use real signed vectors where a signature is involved.
+73 tests: attestation (hash and signature vectors, four tamper cases), engine (decimal parsing edge cases, the rule, time bounds, a real Open-Meteo vector, a real Nodary vector with the observation check, a real LunarCrush YouTube vector), and the validator (release and refund paths, redirect, underpay, surplus, double satisfaction with and without payment, inputs of other scripts, input order, script and stake credentials, the deadline instant, missing datum). All use real signed vectors where a signature is involved.
 
 **Gaps:** no property-based or fuzz tests (stdlib v4.0.0 as pinned has no fuzzer module); no formal verification; no external review; the off-chain code is tested end to end on chain but has no unit tests of its own beyond the attack scripts.
 

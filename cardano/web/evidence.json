@@ -5,7 +5,7 @@
     "current": {
       "hash": "58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea",
       "bytes": 2317,
-      "tests": 65
+      "tests": 73
     },
     "first": {
       "hash": "a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c",
@@ -17,7 +17,7 @@
   "items": [
     {
       "group": "The contract",
-      "claim": "One validator checks the signer, the request, the age and the rule, then pays the beneficiary. 65 contract tests pass, including the four tamper cases API3 asks for.",
+      "claim": "One validator checks the signer, the request, the age and the rule, then pays the beneficiary. 73 contract tests pass, including the four tamper cases API3 asks for.",
       "status": "tests",
       "detail": "Current validator, script hash 58fb7eef. CI run 41090389165.",
       "tx": []
@@ -144,6 +144,13 @@
           "hash": "a1c04de9d5637e0d80e70c00300ba8d2ba08f13df37aabc93f6160d70616d944"
         }
       ]
+    },
+    {
+      "group": "Real signed data",
+      "claim": "A view count of a YouTube video, signed by the LunarCrush Airnode, passes the same validator logic: 8 tests with the real response (views 1,090,232; an edited count, another video's request, a wrong signer and a stale response are refused). It is not offered as a service template yet.",
+      "status": "tests",
+      "detail": "The request asks the Airnode to project the post to {comments, id, likes, views}, so the signed text is 66 bytes and carries the video id. Limits: LunarCrush only holds posts it indexes, and the same video showed exactly the same counts 7 hours apart, so these are snapshots, not a live counter. Instagram was only listed (150 posts of one account), not tested against the contract.",
+      "tx": []
     },
     {
       "group": "Templates through the paid route",
