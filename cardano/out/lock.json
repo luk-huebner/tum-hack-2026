@@ -1,0 +1,59 @@
+{
+  "txHash": "211d85c16ac19ca116c0d5551f1474a480a137e98240fea459b87b5865d2ef89",
+  "cases": [
+    {
+      "name": "valid",
+      "index": 0,
+      "policy": {
+        "deadlineMs": 1793373885398,
+        "maxAgeMs": 86400000,
+        "threshold": 3000
+      }
+    },
+    {
+      "name": "stale-limit",
+      "index": 1,
+      "policy": {
+        "deadlineMs": 1793373885398,
+        "maxAgeMs": 300000,
+        "threshold": 3000
+      }
+    },
+    {
+      "name": "wrong-request",
+      "index": 2,
+      "policy": {
+        "deadlineMs": 1793373885398,
+        "maxAgeMs": 86400000,
+        "threshold": 3000
+      }
+    },
+    {
+      "name": "wrong-signer",
+      "index": 3,
+      "policy": {
+        "deadlineMs": 1793373885398,
+        "maxAgeMs": 86400000,
+        "threshold": 3000
+      }
+    },
+    {
+      "name": "rule-not-met",
+      "index": 4,
+      "policy": {
+        "deadlineMs": 1793373885398,
+        "maxAgeMs": 86400000,
+        "threshold": 2000
+      }
+    },
+    {
+      "name": "refund",
+      "index": 5,
+      "policy": {
+        "deadlineMs": 1793360085398,
+        "maxAgeMs": 86400000,
+        "threshold": 3000
+      }
+    }
+  ]
+}

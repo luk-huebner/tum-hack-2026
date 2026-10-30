@@ -56,4 +56,29 @@ pub const slots: List<ByteArray> = [${slots.map((s) => bytes(hex(s))).join(', ')
 const dir = new URL('../aiken/airnode_spike/lib/vectors/', import.meta.url);
 mkdirSync(dir, { recursive: true });
 writeFileSync(new URL(`${name}.ak`, dir), out);
+
+// The same vector as JSON for the off-chain scripts (public data: a signed response and the key that signed it).
+const jsonDir = new URL('../cardano/vectors/', import.meta.url);
+mkdirSync(jsonDir, { recursive: true });
+writeFileSync(
+  new URL(`${name}.json`, jsonDir),
+  JSON.stringify(
+    {
+      airnode: r.airnode,
+      request: r.request,
+      data: r.data,
+      timestamp: Number(r.timestamp),
+      requestHashHex: r.requestHash.slice(2),
+      signatureHex: signature64,
+      pubkeyHex: bytesToHex(compressed).slice(2),
+      prefixHex: hex(prefix),
+      separatorsHex: separators.map(hex),
+      suffixHex: hex(suffix),
+      slotsText: slots,
+      slotsHex: slots.map(hex),
+    },
+    null,
+    2,
+  ),
+);
 console.log(`wrote aiken/airnode_spike/lib/vectors/${name}.ak: ${slots.length} slots, prefix ${JSON.stringify(prefix)}, suffix ${JSON.stringify(suffix)}, slots ${JSON.stringify(slots)}`);
