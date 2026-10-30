@@ -32,7 +32,7 @@ Pay-on-Proof was built on 30 Oct 2026 at the TUM Blockchain & AI Hackathon (more
 
 ## If we continue
 
-1. An external audit of the validator (a new validator would also close the two documented findings and could add a second data source that must agree, and a buyer veto window).
+1. An external audit of the validator. A new version would also close the two documented findings and could add a registry of trusted signer keys read as a reference input (able to revoke a key but not to add one under an open policy, so that its admin cannot steal), a second data source that must agree, and a buyer veto window. Reference scripts could lower the fee.
 2. Run the Masumi layer against a real payment service and register the agent.
 3. One real pilot, on preprod first, mainnet only after the audit.
 4. Data payments on Cardano, which needs API3 to support them; today the keeper pays for data in aUSD on Base Sepolia.
