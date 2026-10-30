@@ -14,7 +14,9 @@ config();
 // ---------------------------------------------------------------------------
 // The compiled validator (built by CI from aiken/airnode_spike, committed as aiken/blueprint/plutus.json)
 
-const blueprint = JSON.parse(readFileSync(new URL("../../aiken/blueprint/plutus.json", import.meta.url), "utf8"));
+// VALIDATOR_BLUEPRINT points at another compiled validator, for example aiken/blueprint/plutus-v1-a9e4420c.json (the first
+// version, whose flaw TRUST.md describes), so the same attacks can be run against both.
+const blueprint = JSON.parse(readFileSync(process.env.VALIDATOR_BLUEPRINT ?? new URL("../../aiken/blueprint/plutus.json", import.meta.url), "utf8"));
 const validator = blueprint.validators.find((v: { title: string }) => v.title === "pay_on_proof.pay_on_proof.spend");
 if (!validator) throw new Error("pay_on_proof.spend not found in the blueprint");
 
@@ -50,6 +52,8 @@ export interface Policy {
   beneficiaryHex: string; // 28-byte payment key hash
   refundToHex: string; // 28-byte payment key hash
   payout: bigint; // lovelace
+  obsSlot?: number; // index of the slot holding the observation time in POSIX ms, -1 (the default) when the feed has none
+  obsMaxAgeMs?: number; // how old that observation may be when the Airnode signed
 }
 
 export const policyData = (p: Policy) =>
@@ -70,6 +74,8 @@ export const policyData = (p: Policy) =>
     bytes(p.beneficiaryHex),
     bytes(p.refundToHex),
     p.payout,
+    BigInt(p.obsSlot ?? -1),
+    BigInt(p.obsMaxAgeMs ?? 0),
   ]);
 
 export const releaseData = (timestamp: number, slotsHex: string[], signatureHex: string) =>
@@ -164,6 +170,8 @@ export interface PolicyView {
   slotFrom: number;
   slotTo: number;
   cmp: Cmp;
+  obsSlot: number;
+  obsMaxAgeMs: number;
 }
 
 /** Reads the policy back from a locked UTxO's inline datum, so a caller needs nothing but the UTxO reference. */
@@ -184,6 +192,9 @@ export const policyViewOf = (utxo: { datumOption?: unknown }): PolicyView => {
     slotFrom: Number(fields[6]),
     slotTo: Number(fields[7]),
     cmp: Number((fields[8] as { index: bigint }).index) === 0 ? "Below" : "AtLeast",
+    // policies locked under the first validator version have 16 fields and no observation check
+    obsSlot: fields.length > 16 ? Number(fields[16]) : -1,
+    obsMaxAgeMs: fields.length > 17 ? Number(fields[17]) : 0,
   };
 };
 

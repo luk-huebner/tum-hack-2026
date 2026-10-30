@@ -8,7 +8,7 @@ Built at the TUM Blockchain & AI Hackathon 2026 (30 to 31 Oct, Munich). Testnets
 
 Every item below has a transaction hash in [PROOFS.md](PROOFS.md).
 
-- **The validator verifies an Airnode attestation on Cardano.** Plutus V3, 1,832 bytes. 39 Aiken tests pass in CI, including API3's four required tamper cases.
+- **The validator verifies an Airnode attestation on Cardano.** Plutus V3, 2,317 bytes, script hash `58fb7eef...62ea`. 55 Aiken tests pass in CI, including API3's four required tamper cases. An attack matrix found a double-satisfaction flaw in the first version (`a9e4420c...`); it is fixed and the same attack is now refused ([TRUST.md](TRUST.md)).
 - **Release, refund and live flow on preprod.** A real signed Open-Meteo response released a policy; a response signed 16 seconds earlier released a policy that accepts only 5 minutes; a refund after the deadline needs the funder's signature.
 - **Two industries, one contract.** Rainfall (Open-Meteo, 14 values summed) and tweet likes (TwitterAPI.io, a KPI) run on the same unchanged validator. An edited count (the forged screenshot) and an unmet KPI are rejected.
 - **A judge tamper bench, as a web page and a command.** Send any signed response to a locked policy and get ACCEPTED or REJECTED from the validator's own evaluation; the page runs the six-step bench (two controls, four tampered cases) in one click and never sends a transaction: [cardano/JUDGES.md](cardano/JUDGES.md).

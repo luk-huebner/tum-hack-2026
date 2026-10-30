@@ -65,6 +65,9 @@ export const offerPolicy = (offer: EscrowOffer): Policy => {
     beneficiaryHex: paymentKeyHashHex(sellerAddressBech32()),
     refundToHex: paymentKeyHashHex(offer.refund),
     payout: ESCROW_LOVELACE,
+    // the Nodary feed signs the time it observed the price (slot 1, "updatedAt", POSIX ms): it may be at most 2 minutes old
+    obsSlot: 1,
+    obsMaxAgeMs: 120_000,
   };
 };
 

@@ -1,0 +1,4 @@
+{"at":"2026-10-30T15:21:56.212Z","event":"start","dry":false,"source":"nodary:ETH/USD","intervalS":20,"beneficiary":"31a15aa9…"}
+{"at":"2026-10-30T15:23:18.186Z","event":"scan","candidates":1,"price":2246.885,"ready":1,"dry":false}
+{"at":"2026-10-30T15:23:54.660Z","event":"released","ref":"5d3488232e4944a7600c69c07558f448e9750fd5468126d80c44ff077b970923#0","tx":"aba3ded929b15142c0804a09c449c8027d11a43bf522c33a80d7531e6868bd94","value":2246.885,"threshold":2000,"responseAgeS":40}
+{"at":"2026-10-30T15:24:09.849Z","event":"confirmed","tx":"aba3ded929b15142c0804a09c449c8027d11a43bf522c33a80d7531e6868bd94"}

@@ -110,8 +110,9 @@ function hintLines(res) {
     lines.push('Hints below are worked out by this page, not by the contract.');
     if (h.sameRequest === false) lines.push('The response answers a different request than this policy pins.');
     if (h.tooOld) lines.push('The response is ' + h.ageSeconds + ' s old; this policy accepts at most ' + h.maxAgeSeconds + ' s.');
+    if (h.sameRequest !== false && h.observationFresh === false) lines.push('The value was observed too long before it was signed (the policy checks the observation time in the signed text).');
     if (h.sameRequest !== false && h.ruleHolds === false) lines.push('The submitted values sum to ' + h.sum + '; the policy needs a sum ' + res.policy.rule + '.');
-    if (h.sameRequest !== false && !h.tooOld && h.ruleHolds !== false) lines.push('Request, age and the rule all look fine, so the refusal comes from the signature or the signed text: the data was changed after signing, or the signer is not the Airnode the policy pins.');
+    if (h.sameRequest !== false && !h.tooOld && h.ruleHolds !== false && h.observationFresh !== false) lines.push('Request, age and the rule all look fine, so the refusal comes from the signature or the signed text: the data was changed after signing, or the signer is not the Airnode the policy pins.');
   }
   return lines;
 }

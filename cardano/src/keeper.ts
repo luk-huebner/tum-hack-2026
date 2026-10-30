@@ -103,6 +103,8 @@ if (mode === "lock") {
     beneficiaryHex: paymentKeyHashHex(sellerAddressBech32()),
     refundToHex: paymentKeyHashHex(Address.toBech32(await client.address())),
     payout: 5_000_000n,
+    // a Nodary feed signs the time it observed the price (slot 1); other sources have no observation time
+    ...(source.spec.startsWith("nodary") ? { obsSlot: 1, obsMaxAgeMs: 120_000 } : {}),
   };
   const submitted = await (await client.newTx().payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policy)) }).build()).signAndSubmit();
   const hash = hexOf(submitted.hash);
@@ -161,7 +163,8 @@ if (mode === "lock") {
       outcome = "the response answers a different request than the policy pins";
       break;
     }
-    const { met, signedMs } = check;
+    const { signedMs } = check;
+    const met = check.ready; // the rule holds and, if the policy asks for it, the observation is fresh
     const ratio = Math.abs(check.scaledThreshold - check.scaledValue) / Math.max(1, check.scaledThreshold);
     const wait = Math.max(10, Math.min(120, ratio < 0.0005 ? baseInterval / 2 : baseInterval));
     log({ cycle, value: check.value, threshold: check.threshold, met, ageS: Math.round((Date.now() - signedMs) / 1000), spentAusd: spent, ...(met ? {} : { nextInS: wait }) });

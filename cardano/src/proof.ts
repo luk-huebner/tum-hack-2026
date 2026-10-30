@@ -102,20 +102,32 @@ export interface Check {
   scaledValue: number;
   scaledThreshold: number;
   met: boolean;
+  /** The observation-time check of the policy (always true when the policy has none). */
+  observationOk: boolean;
+  /** The rule holds AND the observation is fresh: what the validator will accept as far as the data goes. */
+  ready: boolean;
   signedMs: number;
 }
 
 export const checkAgainst = (policy: PolicyView, response: SignedResponse): Check => {
-  const slots = slotsFromData(response.data).slice(policy.slotFrom, policy.slotTo);
+  const all = slotsFromData(response.data);
+  const slots = all.slice(policy.slotFrom, policy.slotTo);
   const scaledValue = slots.reduce((sum, slot) => sum + Math.round(Number(slot) * 10 ** policy.scale), 0);
+  const signedMs = Number(response.timestamp) * 1000;
+  const obs = policy.obsSlot >= 0 ? all[policy.obsSlot] : undefined;
+  const obsMs = obs !== undefined && /^\d+$/.test(obs) ? Number(obs) : undefined;
+  const observationOk = policy.obsSlot < 0 || (obsMs !== undefined && obsMs <= signedMs + 1000 && signedMs - obsMs <= policy.obsMaxAgeMs);
+  const met = policy.cmp === "AtLeast" ? scaledValue >= policy.threshold : scaledValue < policy.threshold;
   return {
     sameRequest: response.requestHash.replace(/^0x/, "").toLowerCase() === policy.requestHashHex,
     value: scaledValue / 10 ** policy.scale,
     threshold: policy.threshold / 10 ** policy.scale,
     scaledValue,
     scaledThreshold: policy.threshold,
-    met: policy.cmp === "AtLeast" ? scaledValue >= policy.threshold : scaledValue < policy.threshold,
-    signedMs: Number(response.timestamp) * 1000,
+    met,
+    observationOk,
+    ready: met && observationOk,
+    signedMs,
   };
 };
 
@@ -145,15 +157,18 @@ export const evaluationWindow = (policy: PolicyView, signedMs: number, nowMs: nu
   return { from, to };
 };
 
-export const releaseTx = (client: Client, utxo: Utxo, policy: PolicyView, response: SignedResponse, window: { from: number; to: number }) =>
-  client
+export const releaseTx = (client: Client, utxo: Utxo, policy: PolicyView, response: SignedResponse, window: { from: number; to: number }) => {
+  // The validator requires the beneficiary to receive the payout AND everything that was locked in the UTxO.
+  const owed = utxo.assets.lovelace > policy.payout ? utxo.assets.lovelace : policy.payout;
+  return client
     .newTx()
     .collectFrom({ inputs: [utxo], redeemer: releaseDataFromResponse(response) })
     .attachScript({ script })
     // The contract only checks the beneficiary's payment key hash, so an enterprise address (header 0x60) is enough.
-    .payToAddress({ address: Address.fromHex(`60${policy.beneficiaryHex}`), assets: lovelace(policy.payout) })
+    .payToAddress({ address: Address.fromHex(`60${policy.beneficiaryHex}`), assets: lovelace(owed) })
     .setValidity({ from: BigInt(window.from), to: BigInt(window.to) })
     .build();
+};
 
 // ---------------------------------------------------------------------------
 // Verdicts

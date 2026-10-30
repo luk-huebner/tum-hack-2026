@@ -2,6 +2,9 @@
 
 Collected during the TUM Blockchain & AI Hackathon 2026. All networks are testnets; nothing here has real value.
 
+> **Which validator?** Everything above the section "Validator revision" was run against the FIRST validator, script hash `a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c` (1,832 bytes, 39 tests), which has the double-satisfaction flaw described in TRUST.md. Those receipts stay valid as evidence of what that version did. The current validator is `58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea` (2,317 bytes, 55 tests), see the last section.
+
+
 ## Cardano preprod: first paid x402 request (the Cardano track gate)
 
 - Date: 30 Oct 2026, about 12:17 Munich time. HTTP 200 after 24.3 s, 2 confirmations.
@@ -200,3 +203,30 @@ What this does not show: more than one escrow at a time, a rule that is not yet 
 **Not run:** release after the deadline on chain (covered by a contract test), a refund listing the refund party without their signature (the ledger's check).
 
 **Double satisfaction: CONFIRMED (30 Oct 2026, about 15:00 UTC).** With a fresh Open-Meteo response bought for 0.1 aUSD (`0x4192c420bcbfeb1d6db5e9f80d8130b6be22b2cee935a157fe3200df48ef4232`, 12 s old), `attacks.ts --fresh` evaluated one transaction that spends BOTH standing bench policies (same beneficiary, 5 tADA each) and pays the beneficiary 5 tADA once. The validator ACCEPTED it; the other 5 tADA would stay with whoever submitted it. Controls around it behave: each policy alone is accepted, an honest batch paying 10 tADA is accepted. Nothing was signed or submitted. The cause: `pays(outputs, beneficiary, payout)` is satisfied by any output, so one payment satisfies every policy in the transaction. This is a flaw in the current validator (`a9e4420c…`), not a property of the demos, and it is open until the validator is fixed; the case is now the regression test (`attacks.ts --fresh` exits 1 while it is open).
+
+## Validator revision: the double-satisfaction flaw fixed and re-tested (30 Oct 2026, about 15:20 to 16:10 UTC)
+
+**The change** (`aiken/airnode_spike/validators/pay_on_proof.ak`, `lib/engine.ak`): (1) a release may spend only ONE UTxO of this validator per transaction; (2) the beneficiary must receive at least everything locked in the UTxO, not only the stated payout; (3) an optional observation-time check: the policy names a slot that holds the time the value was observed (POSIX ms, for example the Nodary `updatedAt`) and a maximum age, and the contract refuses a response whose observation is older than that when the Airnode signed it, or later than the signature by more than a second. CI run `41079363081`: **55 of 55 tests pass** (39 before; the new ones cover two policies with one payment, two policies both paid, the surplus rule, a release that does not spend its own input, and the observation check with a real signed Nodary response), build clean. New script hash `58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea`, 2,317 bytes. The first validator's blueprint is kept at `aiken/blueprint/plutus-v1-a9e4420c.json`.
+
+**The same attack on both validators** (`attacks.ts --fresh`, evaluation only, nothing submitted; one fresh Open-Meteo response bought for 0.1 aUSD, `0x0b618703f858647ba2dbd50969c8c202109d5de19a92f161cf6f56c6dcb6dc5e`, 14 s old on the current validator and 26 s old on the first; same wallet, same transaction shapes):
+
+| Transaction | First validator `a9e4420c...` | Current validator `58fb7eef...` |
+|---|---|---|
+| Each policy alone, paid 5 tADA | ACCEPTED | ACCEPTED |
+| Both bench policies, beneficiary paid 5 tADA once (**double satisfaction**) | **ACCEPTED (the flaw)** | **REJECTED** |
+| Both bench policies, beneficiary paid 10 tADA (an honest batch) | ACCEPTED | REJECTED (one policy per release now) |
+
+All other cases on the current validator are as before (13 of 13 as expected: redirect, underpay, anyone may submit, controls). On the first validator the run exits 1 on exactly the two rows above.
+
+**The full flow on the current validator**
+
+| Step | Receipt |
+|---|---|
+| Re-lock the two standing bench policies (10 tADA, refundable) | `53521b16498c0bd4ce7f7920433a6b9d34e7ad77bce5e974c25d66f7990b725d`, block 5353645, fee 0.194937 tADA. Standing list: `cardano/standing-policies.json` (the first validator's bench is kept in `standing-policies-v1.json`) |
+| The judge page's six-step bench on the current validator | 6 of 6 as expected (control, edited value, stale for the 5-minute policy, other request, foreign signer, control) |
+| **x402 escrow payment into the current validator** (ETH/USD at least 2000; the datum now carries an observation check of at most 120 s on `updatedAt`), HTTP 200 after 52.0 s | `5d3488232e4944a7600c69c07558f448e9750fd5468126d80c44ff077b970923`, block 5353648, fee 0.178393 tADA. Policy UTxO `...0923#0`, 5.0 tADA, inline datum of 206 bytes. The client first recomputed the whole datum and found it matched field by field |
+| **Release by the seller's keeper with no further command** (price 2246.885, response 40 s old; the local check and then the validator both passed the observation test) | `aba3ded929b15142c0804a09c449c8027d11a43bf522c33a80d7531e6868bd94`, block 5353651, fee 0.321922 tADA, 5.0 tADA to the seller's key. Log: `cardano/out/autorelease-log-v2-test.jsonl` |
+
+Not run on chain: a UTxO with more locked than the payout (covered by contract tests), an observation that is actually stale (the Nodary feed's `updatedAt` stayed within 0.9 s of the signature in all 31 responses saved today; the stale case is covered by contract tests), several escrows at once, a watcher restart.
+
+**Left behind on the first validator** (its address; not refundable with the current tooling unless `VALIDATOR_BLUEPRINT` points at the old blueprint): the first bench pair `4ec3a5dd...973e#0/#1` (deadline Sat 31 Oct 20:00 UTC) and a few older test policies, about 40 tADA of test funds in all.

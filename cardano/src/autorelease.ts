@@ -110,9 +110,9 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
     status.lastPrice = price;
     status.candidates = status.candidates.map((c) => {
       const hit = checks.find((x) => x.m.ref === c.ref);
-      return hit ? { ...c, state: hit.check.met ? "releasing" : "rule-not-met", value: hit.check.value } : c;
+      return hit ? { ...c, state: hit.check.ready ? "releasing" : "rule-not-met", value: hit.check.value } : c;
     });
-    const ready = checks.filter((x) => x.check.sameRequest && x.check.met);
+    const ready = checks.filter((x) => x.check.sameRequest && x.check.ready);
     log({ event: "scan", candidates: open.length, price, ready: ready.length, dry });
     if (ready.length === 0) return;
 

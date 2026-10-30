@@ -4,6 +4,8 @@
  *
  *   tsx src/attacks.ts                              redirect, underpay and permissionless cases on the standing bench policy, stored response
  *   tsx src/attacks.ts --expired <txHash>#<index>   adds refund attacks on a policy whose deadline has passed and whose refund party is the MNEMONIC wallet
+ *   --standing <file>                               which standing bench list to attack (default standing-policies.json, the current validator;
+ *                                                   standing-policies-v1.json with VALIDATOR_BLUEPRINT=../aiken/blueprint/plutus-v1-a9e4420c.json attacks the first version)
  *   tsx src/attacks.ts --fresh <response.json>      adds the double-satisfaction case, which needs a response fresh enough for both
  *                                                   bench policies (one is limited to 5 minutes): buy one with checks/10-paid-call.ts meteo-rain
  *
@@ -15,8 +17,9 @@ import { Address, KeyHash } from "@evolution-sdk/evolution";
 import { type SignedResponse, loadVector, lovelace, makeClient, paymentKeyHashHex, refundData, releaseDataFromResponse, script, sellerAddressBech32 } from "./engine.js";
 import { type Utxo, classify, evaluationWindow, findPolicyUtxo, policyViewOf } from "./proof.js";
 
-const { values } = parseArgs({ options: { fresh: { type: "string" }, expired: { type: "string" } } });
-const B = "4ec3a5dd555f794d3f8ea4ad730282701bc71a6e6e94518ddea875bc6d1d973e";
+const { values } = parseArgs({ options: { fresh: { type: "string" }, expired: { type: "string" }, standing: { type: "string", default: "standing-policies.json" } } });
+const standing = JSON.parse(readFileSync(new URL(`../${values.standing}`, import.meta.url), "utf8")) as { name: string; ref: string }[];
+const refOf = (name: string) => standing.find((s) => s.name === name)?.ref ?? (() => { throw new Error(`${name} is not in ${values.standing}`); })();
 const buyer = makeClient("MNEMONIC");
 const seller = makeClient("SELLER_MNEMONIC");
 const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
@@ -45,7 +48,7 @@ const run = async (name: string, expect: Verdict, go: () => Promise<Verdict>) =>
 };
 
 const stored = JSON.parse(readFileSync(new URL("../vectors/tamper/valid.json", import.meta.url), "utf8")) as SignedResponse;
-const stored48 = await findPolicyUtxo(buyer, `${B}#0`);
+const stored48 = await findPolicyUtxo(buyer, refOf("bench-48h"));
 if (!stored48) throw new Error("bench-48h is spent or not visible");
 const policy48 = policyViewOf(stored48);
 const signedStored = loadVector("meteo").timestamp * 1000;
@@ -64,14 +67,14 @@ await run("pay more than required (6 tADA)", "ACCEPTED", () => evaluate(buyer, [
 
 if (values.fresh) {
   const fresh = JSON.parse(readFileSync(values.fresh, "utf8")) as SignedResponse;
-  const stored5 = await findPolicyUtxo(buyer, `${B}#1`);
+  const stored5 = await findPolicyUtxo(buyer, refOf("bench-5min"));
   if (!stored5) throw new Error("bench-5min is spent or not visible");
   const policy5 = policyViewOf(stored5);
   const signedFresh = Number(fresh.timestamp) * 1000;
   const window = evaluationWindow(policy5, signedFresh, Date.now());
   console.log(`\n== two policies with the same beneficiary in ONE transaction, one fresh response (${Math.round((Date.now() - signedFresh) / 1000)} s old) ==`);
   await run("control: each policy alone, paid 5 tADA (bench-5min)", "ACCEPTED", () => evaluate(buyer, [stored5], fresh, [{ pkh: sellerPkh, ada: 5 }], window));
-  await run("control: both policies, the beneficiary paid 10 tADA (what an honest batch does)", "ACCEPTED", () => evaluate(buyer, [stored48, stored5], fresh, [{ pkh: sellerPkh, ada: 10 }], window));
+  await run("batch: both policies, the beneficiary paid 10 tADA (an honest batch; the current validator allows one policy per release, the first version allowed this)", "REJECTED", () => evaluate(buyer, [stored48, stored5], fresh, [{ pkh: sellerPkh, ada: 10 }], window));
   await run("double satisfaction: both policies, the beneficiary paid 5 tADA once (the other 5 stays with the submitter)", "REJECTED", () => evaluate(buyer, [stored48, stored5], fresh, [{ pkh: sellerPkh, ada: 5 }], window));
   await run("control again: each policy alone, paid 5 tADA (bench-5min)", "ACCEPTED", () => evaluate(buyer, [stored5], fresh, [{ pkh: sellerPkh, ada: 5 }], window));
 } else {

@@ -185,7 +185,7 @@ app.post("/api/keep", async (req: Request, res: Response) => {
       recordJob({ ref, source: source.spec, outcome: "wrong-request" });
       return void res.status(422).json({ error: "This source does not answer the request the policy pins.", pinned: `0x${policy.requestHashHex}`, got: response.requestHash, charged: false });
     }
-    if (!check.met) {
+    if (!check.ready) {
       recordJob({ ref, source: source.spec, outcome: "rule-not-met", value: check.value, threshold: check.threshold });
       return void res.status(409).json({ verdict: "rule-not-met", rule: policySummary(utxo).rule, value: check.value, threshold: check.threshold, signedAt: new Date(check.signedMs).toISOString(), evidence: response, charged: false });
     }
@@ -338,6 +338,7 @@ app.post("/api/judge", async (req: Request, res: Response) => {
         sum: check.value,
         threshold: check.threshold,
         ruleHolds: check.met,
+        observationFresh: check.observationOk,
       },
       validity: { from: new Date(window.from).toISOString(), to: new Date(window.to).toISOString() },
       tookMs: Date.now() - started,
