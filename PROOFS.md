@@ -248,3 +248,26 @@ The x402 payments took 14 to 17 s in these runs (26 to 52 s earlier). The client
 **A mistake, found because the keeper did what it was built to do.** When the keeper learned to prove the rainfall template, it found the two standing **judge-bench** policies, which named the seller key as beneficiary and pinned the Open-Meteo request, saw the rule hold, and released both on its own (`346e7c496d59cd0928cf127b7334deba9da2ff1eec5ab90fbff0287c42309003`, block 5353696, and `0693dbcaa73acf21dacf7cd22323cd50773326609e8532c2a5ae6c6c4a70a8c0`, block 5353698), spending 0.2 aUSD. The 10 tADA went to the seller key, which is ours, so nothing was lost but the bench. Fix: the bench is re-locked with the **buyer** key as beneficiary (`403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc`, block 5353710), so the keeper never treats it as its own, and the attack script now pays whichever beneficiary a policy names. The rule to remember: **the seller's keeper releases every policy that names the seller key as beneficiary and pins a request it knows how to fetch.** The judge page's six cases pass on the re-locked bench (6 of 6).
 
 **Two more fixes from the same runs.** The keeper bought a paid response and then discarded it because of its post-release cooldown, and bought another; the cooldown is now checked before any data is fetched. A confirmation wait hung for about 8 minutes because provider calls had no timeout (the train connection); every provider call now gives up after 15 s and the loop tries again. Not run again after those two fixes except for the refund demo, which does not use the keeper.
+
+## Watcher hardening: three escrows at once, injected faults, a lost response, a crash and a restart (30 Oct 2026, about 16:10 to 16:20 UTC)
+
+The seller's keeper was changed to fail safely (see the header of `cardano/src/autorelease.ts`) and then tested on chain in one scenario. The service ran with fast cycles (8 s) and three kinds of injected fault (`AUTO_RELEASE_FAULTS=cycle:2,fetch:2,evaluate:1`, `cardano/src/faults.ts`), three escrows were paid into the validator, and the service was killed in the middle.
+
+| What was tested | What happened |
+|---|---|
+| **Two cycles fail at the start** (injected) | `cycle-failed` twice, backoff 16 s then 32 s, then normal cycles. Nothing else stopped |
+| **Two data fetches fail** (injected) | `source-failed` with backoff 16 s then 32 s for that source only, `source-backoff` on the cycles in between, then the fetch worked and the scan found a value |
+| **The first release fails like a blind evaluator** (injected) | `release-retry`, `counted=false` ("policy seen less than 90 s ago"): it did not count against the policy. The next cycle released it |
+| **Three escrows at once** (ETH/USD at least 2000, ETH/USD at least 2100, likes of tweet 20 at least 300,000) | One release per cycle, the policy closest to its deadline first, with the 45 s cooldown between releases. All three released, one transaction each |
+| **A buyer who is told the payment failed.** The first escrow's payment returned HTTP 402 after 60.8 s | **The payment had settled anyway**: the escrow was at the validator and was released. A slow settlement is reported as a failure. The buyer clients used to print "not charged" here; they now look for the escrow at the validator by its datum before saying anything |
+| **The service was killed seconds after the first release was sent, before it was confirmed**, and restarted (it keeps no state) | The restarted watcher found all three escrows again from the chain. It tried the first one again, was refused because the input was already spent, and did not count that against it; it then released the other two. Nothing was released twice |
+
+| Escrow | Payment | Release | Data |
+|---|---|---|---|
+| ETH/USD at least 2000 | `19f87c81c8bbbd0533950d017a12f5bb2b3b856320ed14c4bfb52ec789c18886`, block 5353789 | `b670ff12a08ffbafac0d88d4a824d0c730a8d6c9569744cd0bac58350e9a6a89`, block 5353795 (original process, after the injected faults) | price 2233.09, free |
+| ETH/USD at least 2100 | `e94c7b1fccc55b1e1327177acae1b9e197d7989c09bb4b119a67df57a922f16f`, block 5353790 | `771be277ed1bf93756a20e33c2ecb4eae433fcd1cf141675017c2a76e6682ff2`, block 5353801 (after the restart) | price 2236.33, free |
+| Likes of tweet 20 at least 300,000 | `a824f2e042a49dafd69e6fe6638ef3e257b617377b7da350235984eb992e7f48`, block 5353792 | `93d9d6582bcc13d4bdd28471c3aa7e0fae10452d1f5e0bf6bac2fba83c397739`, block 5353807 (after the restart) | 308,790 likes, 0.01 aUSD per fetch |
+
+Costs: three 5 tADA payments to the seller key (our own), about 1.5 tADA in fees, 0.03 aUSD. Logs: `cardano/out/autorelease-log-e2-run1.jsonl` (until the kill) and `autorelease-log-e2-run2.jsonl` (the whole file).
+
+**Not tested:** the provider being unreachable for minutes (the injected cycle faults and the 15 s call timeouts stand in for it), the facilitator being down, the lossy-connection test (`escrow-client.ts --drop-response`) after its fix (it did not trigger in this run because it checked the wrong place for the payment header; the natural 402-while-settled case above covered the same hazard), several watchers on one wallet, and a release whose transaction is dropped from the mempool (the 6-minute "sent but not spent" retry is coded, not exercised).

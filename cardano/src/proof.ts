@@ -8,7 +8,7 @@
 import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { Address } from "@evolution-sdk/evolution";
+import { Address, Data } from "@evolution-sdk/evolution";
 import {
   type PolicyView,
   type SignedResponse,
@@ -84,6 +84,16 @@ export const withRetry = async <T>(fn: () => Promise<T>, attempts = 4, onRetry?:
     }
   }
 };
+
+/** Gives up waiting for a promise after `ms` (the work itself cannot be cancelled, but the caller stops hanging on it). */
+export const bounded = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`timed out after ${Math.round(ms / 1000)} s: ${label}`)), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
 
 /** The policy UTxO at the validator address, or undefined when it is spent (or typed wrongly). */
 export const findPolicyUtxo = async (client: Client, ref: string): Promise<Utxo | undefined> => {
@@ -218,4 +228,27 @@ export const evaluateRelease = async (client: Client, utxo: Utxo, policy: Policy
   } catch (error) {
     return classify(error);
   }
+};
+
+/**
+ * The escrow at the validator whose datum is exactly `datumHex`, waiting up to `timeoutMs` for it to appear. A payment into the
+ * validator can settle even when the buyer never hears so (the connection dropped, or the facilitator took too long and the
+ * service answered with a failure while the transaction landed anyway). The datum is unique to the buyer's request, so it finds
+ * the escrow without needing the payment's transaction hash.
+ */
+export const findByDatum = async (client: Client, datumHex: string, timeoutMs: number): Promise<Utxo | undefined> => {
+  const started = Date.now();
+  do {
+    const utxos = await bounded(client.getUtxos(scriptAddress), 30_000, "reading the validator's UTxOs").catch(() => [] as Utxo[]);
+    const hit = utxos.find((u) => {
+      try {
+        return Data.toCBORHex((u.datumOption as unknown as { data: never }).data) === datumHex;
+      } catch {
+        return false;
+      }
+    });
+    if (hit) return hit;
+    await sleep(8_000);
+  } while (Date.now() - started < timeoutMs);
+  return undefined;
 };

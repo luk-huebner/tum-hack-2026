@@ -1,0 +1,22 @@
+{"at":"2026-10-30T16:13:42.242Z","event":"start","dry":false,"allowPaid":true,"ausdCap":0.1,"intervalS":8,"beneficiary":"31a15aa9…","templates":["eth-usd","rain-below","tweet-likes:20"],"faultsInjected":{"cycle":2,"fetch":2,"evaluate":1}}
+{"at":"2026-10-30T16:13:42.245Z","event":"cycle-failed","failures":1,"retryInS":16,"error":"injected fault: cycle"}
+{"at":"2026-10-30T16:13:58.248Z","event":"cycle-failed","failures":2,"retryInS":32,"error":"injected fault: cycle"}
+{"at":"2026-10-30T16:14:54.965Z","event":"found","ref":"19f87c81c8bbbd0533950d017a12f5bb2b3b856320ed14c4bfb52ec789c18886#0","rule":"ETH/USD at least 2000","deadline":"2026-10-30T16:53:48.124Z"}
+{"at":"2026-10-30T16:14:54.972Z","event":"source-failed","source":"nodary:ETH/USD","failures":1,"retryInS":16,"error":"injected fault: fetch"}
+{"at":"2026-10-30T16:14:54.973Z","event":"scan","candidates":1,"sources":["nodary:ETH/USD"],"values":{},"ready":0,"spentAusd":0,"dry":false}
+{"at":"2026-10-30T16:15:03.159Z","event":"source-backoff","source":"nodary:ETH/USD","failures":1,"retryInS":8}
+{"at":"2026-10-30T16:15:03.160Z","event":"scan","candidates":1,"sources":["nodary:ETH/USD"],"values":{},"ready":0,"spentAusd":0,"dry":false}
+{"at":"2026-10-30T16:15:11.341Z","event":"source-failed","source":"nodary:ETH/USD","failures":2,"retryInS":32,"error":"injected fault: fetch"}
+{"at":"2026-10-30T16:15:11.343Z","event":"scan","candidates":1,"sources":["nodary:ETH/USD"],"values":{},"ready":0,"spentAusd":0,"dry":false}
+{"at":"2026-10-30T16:15:19.515Z","event":"source-backoff","source":"nodary:ETH/USD","failures":2,"retryInS":24}
+{"at":"2026-10-30T16:15:19.515Z","event":"scan","candidates":1,"sources":["nodary:ETH/USD"],"values":{},"ready":0,"spentAusd":0,"dry":false}
+{"at":"2026-10-30T16:15:27.692Z","event":"found","ref":"e94c7b1fccc55b1e1327177acae1b9e197d7989c09bb4b119a67df57a922f16f#0","rule":"ETH/USD at least 2100","deadline":"2026-10-30T16:54:50.682Z"}
+{"at":"2026-10-30T16:15:27.693Z","event":"source-backoff","source":"nodary:ETH/USD","failures":2,"retryInS":16}
+{"at":"2026-10-30T16:15:27.693Z","event":"scan","candidates":2,"sources":["nodary:ETH/USD"],"values":{},"ready":0,"spentAusd":0,"dry":false}
+{"at":"2026-10-30T16:15:35.869Z","event":"source-backoff","source":"nodary:ETH/USD","failures":2,"retryInS":8}
+{"at":"2026-10-30T16:15:35.869Z","event":"scan","candidates":2,"sources":["nodary:ETH/USD"],"values":{},"ready":0,"spentAusd":0,"dry":false}
+{"at":"2026-10-30T16:15:45.196Z","event":"scan","candidates":2,"sources":["nodary:ETH/USD"],"values":{"nodary:ETH/USD":2233.515},"ready":2,"spentAusd":0,"dry":false}
+{"at":"2026-10-30T16:16:05.431Z","event":"release-retry","ref":"19f87c81c8bbbd0533950d017a12f5bb2b3b856320ed14c4bfb52ec789c18886#0","counted":false,"attempt":0,"kind":"REJECTED","why":"policy seen less than 90 s ago","error":"Script evaluation failed: injected fault (a blind evaluator looks just like this)"}
+{"at":"2026-10-30T16:16:13.609Z","event":"found","ref":"a824f2e042a49dafd69e6fe6638ef3e257b617377b7da350235984eb992e7f48#0","rule":"likes of tweet 20 at least 300000","deadline":"2026-10-30T16:55:44.915Z"}
+{"at":"2026-10-30T16:16:16.384Z","event":"scan","candidates":3,"sources":["nodary:ETH/USD","tweet:20"],"values":{"nodary:ETH/USD":2233.09,"tweet:20":308790},"ready":3,"spentAusd":0.01,"dry":false}
+{"at":"2026-10-30T16:16:32.597Z","event":"released","ref":"19f87c81c8bbbd0533950d017a12f5bb2b3b856320ed14c4bfb52ec789c18886#0","rule":"ETH/USD at least 2000","tx":"b670ff12a08ffbafac0d88d4a824d0c730a8d6c9569744cd0bac58350e9a6a89","value":2233.09,"threshold":2000,"responseAgeS":22}

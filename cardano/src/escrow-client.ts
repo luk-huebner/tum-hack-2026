@@ -3,6 +3,8 @@
  *
  *   tsx src/escrow-client.ts --dry                      show the price list and the policy datum, pay nothing
  *   tsx src/escrow-client.ts --build-only               also build and sign the payment transaction locally, send nothing
+ *   tsx src/escrow-client.ts --drop-response ...        a test of a buyer whose connection drops right after the payment is sent: the client
+ *                                                       gives up on the answer after 1.5 s, then looks for its escrow at the validator by its datum
  *   tsx src/escrow-client.ts --at-least 2220 --minutes 40   pay 5 tADA: pay the seller if ETH/USD is at least 2220 before the
  *                                                       deadline, refund this wallet otherwise
  *   tsx src/escrow-client.ts --template tweet-likes --tweet 20 --at-least 300000     the likes of a registered tweet
@@ -20,6 +22,7 @@ import { toClientCardanoSigner } from "@x402/cardano";
 import { ExactCardanoScheme } from "@x402/cardano/exact/client";
 import { hexOf, makeClient, paymentKeyHashHex, policyViewOf, scriptAddress, scriptHash, sleep } from "./engine.js";
 import { checkRequirement, parseOffer } from "./escrow.js";
+import { findByDatum } from "./proof.js";
 
 config();
 
@@ -33,6 +36,7 @@ const { values } = parseArgs({
     refund: { type: "string" },
     dry: { type: "boolean", default: false },
     "build-only": { type: "boolean", default: false },
+    "drop-response": { type: "boolean", default: false },
   },
 });
 
@@ -130,13 +134,37 @@ if (values.dry) {
   client.register("cardano:*", new ExactCardanoScheme(signer));
   console.log(`\nPaying ${Number(requirement.amount) / 1_000_000} tADA into the validator via ${url}`);
   const started = Date.now();
-  const response = await wrapFetchWithPayment(fetch, client)(url, request);
+  // With --drop-response the paid retry (the request that carries the signed payment) is abandoned 1.5 s after it is sent: the
+  // server receives it, verifies, runs the handler and settles, but this client never sees the answer or the receipt.
+  const lossyFetch: typeof fetch = async (input, init) => {
+    const req = new Request(input as RequestInfo, init);
+    if (!values["drop-response"] || !req.headers.has("payment-signature")) return fetch(req);
+    const ctl = new AbortController();
+    setTimeout(() => ctl.abort(), 1500);
+    return fetch(req, { signal: ctl.signal });
+  };
+  let response: Response;
+  try {
+    response = await wrapFetchWithPayment(lossyFetch, client)(url, request);
+  } catch (error) {
+    if (!values["drop-response"]) throw error;
+    console.log(`The connection dropped after the payment was sent (${(error as Error).name}). The buyer does not know whether it settled; looking for the escrow at the validator by its datum.`);
+    const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 240_000);
+    if (found) console.log(`The escrow IS at the validator: ${hexOf(found.transactionId.hash)}#${Number(found.index)}. Nothing was lost; the seller's keeper will release it, or the buyer can refund it after the deadline.`);
+    else console.log("No escrow appeared at the validator within 4 minutes: the payment did not settle, so nothing was charged.");
+    process.exit(0);
+  }
   console.log(`HTTP ${response.status} after ${((Date.now() - started) / 1000).toFixed(1)} s`);
   const answer = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   console.log(JSON.stringify(answer, null, 2));
   if (!response.ok) {
-    console.log("\nNot charged: the payment is settled only when the seller accepts it.");
-    process.exitCode = 1;
+    // A refusal after the payment was sent is not proof that nothing was charged: a slow settlement is reported as a failure while the
+    // transaction lands anyway (seen on 30 Oct: HTTP 402 after 61 s, escrow on chain). Look before saying so.
+    console.log(`\nThe service answered HTTP ${response.status}. That does not prove the payment failed; looking for the escrow at the validator by its datum.`);
+    const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 150_000);
+    if (found) console.log(`The payment DID settle: the escrow is at the validator as ${hexOf(found.transactionId.hash)}#${Number(found.index)}.`);
+    else console.log("No escrow appeared: nothing was charged.");
+    process.exitCode = found ? 0 : 1;
   } else {
     const receipt = new x402HTTPClient(client).getPaymentSettleResponse((name) => response.headers.get(name));
     const txHash = receipt?.transaction;

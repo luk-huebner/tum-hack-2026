@@ -210,6 +210,26 @@
       ]
     },
     {
+      "group": "Failing safely",
+      "claim": "The seller's keeper survived injected failures, three escrows at once, a buyer who was told the payment had failed when it had not, and a crash right after a release was sent. All three escrows were released, once each, and the restarted keeper found the open ones again from the chain with no saved state.",
+      "status": "onchain",
+      "detail": "Two cycle faults, two fetch faults and one blind-evaluator fault were injected on purpose; the service was killed before the first release was confirmed.",
+      "tx": [
+        {
+          "label": "escrow 1: release",
+          "hash": "b670ff12a08ffbafac0d88d4a824d0c730a8d6c9569744cd0bac58350e9a6a89"
+        },
+        {
+          "label": "escrow 2: release after the restart",
+          "hash": "771be277ed1bf93756a20e33c2ecb4eae433fcd1cf141675017c2a76e6682ff2"
+        },
+        {
+          "label": "escrow 3 (tweet): release after the restart",
+          "hash": "93d9d6582bcc13d4bdd28471c3aa7e0fae10452d1f5e0bf6bac2fba83c397739"
+        }
+      ]
+    },
+    {
       "group": "Attacks refused",
       "claim": "The tamper bench: one real response is accepted, and an edited value, a stale response, a response to a different request and a foreign signer are all refused. Run it on the Tamper bench tab.",
       "status": "evaluation",
@@ -237,7 +257,7 @@
     },
     {
       "group": "Not shown yet",
-      "claim": "Several escrows at once, a watcher restart, the rule-not-met case on the escrow route, a stale observation on chain, and a public judge URL.",
+      "claim": "The provider being unreachable for minutes, the facilitator being down, a rule-not-met case on the escrow route, a stale observation on chain, and a public judge URL.",
       "status": "notrun",
       "detail": "On the build list. (The three templates are shown above.)",
       "tx": []

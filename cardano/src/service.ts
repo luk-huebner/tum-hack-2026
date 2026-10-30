@@ -451,6 +451,7 @@ app.listen(...(listenArgs as [number]), () => {
     watcher = startAutoRelease({
       client: operator(),
       dry: process.env.AUTO_RELEASE === "dry",
+      intervalMs: Number(process.env.AUTO_RELEASE_INTERVAL_S ?? "20") * 1000,
       onJob: recordJob,
       allowPaid: process.env.AUTO_RELEASE_PAID === "1", // tweet and rainfall sources cost aUSD per fetch
       ausdCap: Number(process.env.AUTO_RELEASE_AUSD_CAP ?? "0.3"),

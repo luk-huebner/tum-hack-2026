@@ -14,7 +14,7 @@ import { toClientCardanoSigner } from "@x402/cardano";
 import { ExactCardanoScheme } from "@x402/cardano/exact/client";
 import { hexOf, makeClient, refundData, script, scriptAddress, sleep, waitForTip, waitForTx } from "./engine.js";
 import { checkRequirement, describeOffer, parseOffer } from "./escrow.js";
-import { classify, policyViewOf, withRetry } from "./proof.js";
+import { classify, findByDatum, policyViewOf, withRetry } from "./proof.js";
 
 export interface Step {
   at: string;
@@ -140,18 +140,27 @@ const execute = async (params: DemoParams, deps: DemoDeps, run: Run, add: (kind:
   add("wait", "Building, signing and sending the payment (this takes 20 to 60 seconds on preprod).");
   const started = Date.now();
   const response = await wrapFetchWithPayment(fetch, client)(url, request);
-  if (!response.ok) throw new Error(`The service refused the payment (HTTP ${response.status}); nothing was charged.`);
-  const receipt = new x402HTTPClient(client).getPaymentSettleResponse((name) => response.headers.get(name));
-  const payTx = receipt?.transaction;
-  if (!payTx) throw new Error("The payment settled but no transaction hash came back.");
-  add("ok", `Paid 5 tADA by x402 in ${Math.round((Date.now() - started) / 1000)} s. The payment output is at the contract.`, { label: "payment transaction", url: scan(payTx) });
-
   let utxo;
-  for (let i = 0; i < 24 && !utxo; i++) {
-    utxo = (await withRetry(() => buyer.getUtxos(scriptAddress), 2).catch(() => [])).find((u) => hexOf(u.transactionId.hash) === payTx);
-    if (!utxo) await sleep(5000);
+  let payTx: string | undefined;
+  if (!response.ok) {
+    // A refusal after the payment was sent does not prove that nothing was charged: a slow settlement is reported as a failure while the
+    // transaction lands anyway. Look at the contract before saying the payment failed.
+    add("wait", `The service answered HTTP ${response.status}. A slow settlement is reported as a failure even when the payment lands, so the console looks for the escrow at the contract by its datum.`);
+    utxo = await findByDatum(buyer, String(requirement.extra?.datum), 150_000);
+    if (!utxo) throw new Error(`The service refused the payment (HTTP ${response.status}) and no escrow appeared at the contract: nothing was charged.`);
+    payTx = hexOf(utxo.transactionId.hash);
+    add("ok", `The payment DID settle: the escrow is at the contract (the buyer was told it failed, which is why the console looks).`, { label: "payment transaction", url: scan(payTx) });
+  } else {
+    const receipt = new x402HTTPClient(client).getPaymentSettleResponse((name) => response.headers.get(name));
+    payTx = receipt?.transaction;
+    if (!payTx) throw new Error("The payment settled but no transaction hash came back.");
+    add("ok", `Paid 5 tADA by x402 in ${Math.round((Date.now() - started) / 1000)} s. The payment output is at the contract.`, { label: "payment transaction", url: scan(payTx) });
+    for (let i = 0; i < 24 && !utxo; i++) {
+      utxo = (await withRetry(() => buyer.getUtxos(scriptAddress), 2).catch(() => [])).find((u) => hexOf(u.transactionId.hash) === payTx);
+      if (!utxo) await sleep(5000);
+    }
+    if (!utxo) throw new Error("The payment settled but its output is not visible at the contract yet.");
   }
-  if (!utxo) throw new Error("The payment settled but its output is not visible at the contract yet.");
   const ref = `${payTx}#${Number(utxo.index)}`;
   run.ref = ref;
   const policy = policyViewOf(utxo);

@@ -349,7 +349,7 @@ async function loadWatch() {
   if (!w || !w.enabled) { box.textContent = 'The seller\'s keeper is off in this run of the service.'; const td = tb.insertRow().insertCell(); td.colSpan = 3; td.className = 'small'; td.textContent = '-'; return; }
   const age = w.lastCycleAt ? Math.round((Date.now() - Date.parse(w.lastCycleAt)) / 1000) + ' s ago' : 'not yet';
   const vals = w.lastValues && Object.keys(w.lastValues).length ? ' Latest values: ' + Object.entries(w.lastValues).map(([k, v]) => k + ' = ' + v).join(', ') + '.' : '';
-  box.textContent = 'On' + (w.dry ? ' (dry run: logs only)' : '') + '. Last check ' + age + '. Released so far: ' + w.released + '.' + vals + (w.allowPaid ? ' Paid sources allowed, ' + w.ausdSpent + ' aUSD spent.' : ' Paid sources (tweets, rainfall) are off.');
+  box.textContent = 'On' + (w.dry ? ' (dry run: logs only)' : '') + '. Last check ' + age + '. Released so far: ' + w.released + '. Retried without counting: ' + (w.retries || 0) + '.' + vals + (w.sources && Object.entries(w.sources).some(([, v]) => v.failures) ? ' Sources backing off: ' + Object.entries(w.sources).filter(([, v]) => v.failures).map(([k, v]) => k + ' (' + v.failures + ' failures)').join(', ') + '.' : '') + (w.allowPaid ? ' Paid sources allowed, ' + w.ausdSpent + ' aUSD spent.' : ' Paid sources (tweets, rainfall) are off.');
   for (const c of w.candidates || []) {
     const tr = tb.insertRow();
     tr.insertCell().textContent = short(c.ref, 8);
