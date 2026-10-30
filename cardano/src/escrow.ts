@@ -77,3 +77,33 @@ export const offerExtra = (offer: EscrowOffer) => ({
 
 /** The validator's bech32 address, which is what the buyer pays to. */
 export const validatorAddressBech32 = Address.toBech32(scriptAddress);
+
+export interface RequirementLike {
+  scheme: string;
+  network: string;
+  amount: string;
+  asset: string;
+  payTo: string;
+  extra?: Record<string, unknown>;
+}
+
+/**
+ * What a buyer's client must check before it signs a payment: everything in the price list that it can recompute from its own
+ * request. The facilitator does not look at the datum, so a seller that lies in it (another beneficiary or refund party, an easier
+ * rule, a longer deadline, a different signer or request, a larger payout) would not be caught by anyone else. An empty list means
+ * the price list is exactly the escrow this client asked for.
+ */
+export const checkRequirement = (r: RequirementLike, offer: EscrowOffer): string[] => {
+  const problems: string[] = [];
+  const expected = offerExtra(offer);
+  const extra = r.extra ?? {};
+  if (r.scheme !== "exact") problems.push("scheme is not exact");
+  if (r.network !== "cardano:preprod") problems.push("network is not Cardano preprod");
+  if (r.asset !== "lovelace") problems.push("asset is not lovelace");
+  if (r.amount !== ESCROW_LOVELACE.toString()) problems.push(`amount is ${r.amount}, expected ${ESCROW_LOVELACE}`);
+  if (r.payTo !== validatorAddressBech32) problems.push("payTo is not the validator address");
+  if (extra.assetTransferMethod !== expected.assetTransferMethod) problems.push("the transfer method is not script");
+  if (extra.scriptHash !== expected.scriptHash) problems.push("the script hash is not our validator");
+  if (extra.datum !== expected.datum) problems.push("the datum is not the policy this wallet asked for (refund party, beneficiary, rule, deadline, request, signer, payout or age limit differs)");
+  return problems;
+};

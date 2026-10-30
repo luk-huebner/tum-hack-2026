@@ -17,6 +17,7 @@ import { x402Client, wrapFetchWithPayment, x402HTTPClient } from "@x402/fetch";
 import { toClientCardanoSigner } from "@x402/cardano";
 import { ExactCardanoScheme } from "@x402/cardano/exact/client";
 import { hexOf, makeClient, paymentKeyHashHex, policyViewOf, scriptAddress, scriptHash, sleep } from "./engine.js";
+import { checkRequirement, parseOffer } from "./escrow.js";
 
 config();
 
@@ -70,8 +71,10 @@ const describe = (r: Requirement) => {
 
 const requirement = await priceList();
 const policy = describe(requirement);
-if (policy.refundToHex !== paymentKeyHashHex(buyerAddress)) throw new Error("The datum does not name this wallet as the refund party; not paying");
-if (requirement.extra?.scriptHash !== scriptHash) throw new Error("The seller declared a different script; not paying");
+// Recompute the whole price list from our own request and refuse unless it matches field by field (see checkRequirement).
+const problems = checkRequirement(requirement, parseOffer(body, Date.now()));
+if (problems.length > 0) throw new Error(`The price list is not the escrow this wallet asked for; not paying:\n  - ${problems.join("\n  - ")}`);
+console.log("  the price list matches the escrow this wallet asked for, field by field");
 
 const client = new x402Client().setSpendControls({
   // the escrow costs 5 tADA; refuse anything above 5.5 tADA per payment

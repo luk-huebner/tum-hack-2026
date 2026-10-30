@@ -176,3 +176,25 @@ The service ran with `AUTO_RELEASE=1`. After one command, `tsx src/escrow-client
 From the payment's confirmation to the release was about 40 seconds. The buyer wallet fell by 5.176545 tADA (the 5 locked plus its fee). The release fee, 0.283201 tADA, was paid by the service wallet, whose balance fell by exactly that amount.
 
 What this does not show: more than one escrow at a time, a rule that is not yet met when the watcher first sees it (the waiting cycles ran in the keeper's earlier run 3, with the same fetch and check code, not in this watcher), a watcher restart (it keeps no state: it rediscovers policies from the chain), or any source but the free Nodary ETH/USD feed. The watcher acts only on policies that name the service's seller key as beneficiary, so it can only collect money the policy already owes the service.
+
+## Attack matrix: who can do what (30 Oct 2026, about 14:50 UTC; evaluation only, nothing signed or submitted)
+
+`cardano/src/attacks.ts` builds each case and asks the node provider to run the validator; `cardano/src/attack-offline.ts` needs no network. Controls run first and last. The evaluation reads a transaction's list of required signers and does not check signatures, so the refund cases show what the validator requires, not what the ledger would then check.
+
+**Release attacks on `bench-48h` with the stored real response (9 cases, all as expected)**
+
+| Case | Result |
+|---|---|
+| Control: pay the beneficiary 5 tADA (run first and last) | ACCEPTED |
+| Release but pay nobody (the 5 tADA would go to the submitter's change) | REJECTED |
+| Pay the 5 tADA to an attacker's key instead | REJECTED |
+| Pay the beneficiary 4.9 tADA | REJECTED |
+| Pay the beneficiary 5 tADA minus one lovelace | REJECTED |
+| Anyone may submit: the buyer's wallet, and a third wallet, pay correctly | ACCEPTED, ACCEPTED |
+| Pay more than required (6 tADA) | ACCEPTED |
+
+**Refund attacks on the expired keeper policy `aca78b2b…e530#0`** (deadline passed 13:02 UTC, refund party the buyer wallet; 5 cases, all as expected): the refund party listed as signer ACCEPTED (control, first and last); no signer REJECTED; the attacker's key as signer REJECTED; the beneficiary's key as signer REJECTED.
+
+**Lying price lists (`attack-offline.ts`, no network):** the buyer's client recomputes the whole policy datum and refuses unless it matches. 17 dishonest variants, each refused: refund party swapped, beneficiary swapped, rule made trivial, rule made impossible, deadline pushed out, deadline pulled in, payout lowered, response age limit stretched, request swapped, signer swapped, `payTo` the attacker (with the script method and with a plain payment), another script hash, amount raised, a non-lovelace asset, mainnet, no datum. The honest price list passes.
+
+**Not run:** two policies with the same beneficiary spent in one transaction (a suspected double-satisfaction gap found by reading the validator; needs a fresh response), release after the deadline on chain (covered by a contract test), a refund listing the refund party without their signature (the ledger's check).

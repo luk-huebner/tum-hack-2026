@@ -55,6 +55,9 @@ Needs Node 24. Aiken's tests run in CI (`.github/workflows/aiken.yml`); the Wind
 
 ## Limits, stated plainly
 
+What the contract proves, who can do what, which trust assumptions disappear and which remain, and the gaps we know of are in [TRUST.md](TRUST.md).
+
+
 - A signature proves what the API returned, not that it is true. Likes can be bought, and the upstream APIs can be wrong. For most listings the Airnode is run by API3 over a provider's API.
 - The contract does not check the data's own observation time (for example a price feed's `updatedAt`), only when the Airnode signed.
 - The rule is deliberately small: a sum of numeric slots compared with a threshold.
