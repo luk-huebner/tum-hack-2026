@@ -69,7 +69,7 @@ Anything else (other script purposes, a missing datum) halts. Both validity boun
 | Spoofed inputs / unauthenticated reference data | N/A: it uses its own input's datum; no reference inputs are read |
 | Open-ended validity intervals | **Closed**: `bounds` halts unless both ends are finite |
 | Time handling at the edges | Tested at the boundaries; **one instant open** (F5) |
-| Stake credential of the payout address | **Open, low** (F4) |
+| Stake credential of the payout address | **Open, low, accepted** (F4) |
 | Missing signature check | Refund requires the refund key; release deliberately needs none (it only pays the beneficiary) |
 | Arbitrary redeemer data | Slots and signature are checked by rebuilding and verifying; a bad slot halts |
 | Other redeemers or purposes | `else(_) fail` |
@@ -84,8 +84,8 @@ Anything else (other script purposes, a missing datum) halts. Both validity boun
 | F1 | **Double satisfaction** in the first validator: one payment satisfied two policies, the submitter kept the second | Found by an on-chain evaluation attack, confirmed (`0x0b618703...`, fresh signed response), **fixed** in `58fb7eef...`, regression test |
 | F2 | Value locked above `payout` could be taken by the submitter | **Fixed** (same revision); native tokens still unprotected |
 | F3 | The contract checked when the data was signed, not when it was observed | **Fixed for feeds that sign an observation time** (the Nodary `updatedAt`); not for rainfall or tweets, which sign none |
-| F4 | The stake part of the payout address is not checked: the release builder picks it. The beneficiary keeps spending control through the payment key; staking rewards and wallet visibility are not guaranteed. Our own releases pay an enterprise address, which a wallet that tracks only base addresses may not list | **Open, low.** Fix: store the full beneficiary address in the datum and require it exactly (a new validator) |
-| F5 | At exactly the deadline instant (lower = upper = deadline) both a release and a refund are valid. They are different transactions on one UTxO, so one wins | **Open, low.** Pinned by two tests. Fix: make the release bound strict (`upper < deadline`) |
+| F4 | The stake part of the payout address is not checked: the release builder picks it. The beneficiary keeps spending control through the payment key; staking rewards and wallet visibility are not guaranteed. Our own releases pay an enterprise address, which a wallet that tracks only base addresses may not list | **Open, low. Accepted and left documented** (owner's decision, 30 Oct): the amounts at stake are small and a new validator would move every policy. Fix if ever needed: store the full beneficiary address in the datum and require it exactly (a new validator) |
+| F5 | At exactly the deadline instant (lower = upper = deadline) both a release and a refund are valid. They are different transactions on one UTxO, so one wins | **Open, low. Accepted and left documented** (owner's decision, 30 Oct). Pinned by two tests. Fix if ever needed: make the release bound strict (`upper < deadline`) |
 | F6 | A bad or missing datum strands funds forever | **Inherent** to script addresses; mitigated off chain |
 | F7 | The beneficiary can only be a key hash: no script, multisig or DAO payout | Design limit |
 | F8 | A buyer can be told a payment failed when it settled (HTTP 402 after 61 s, escrow on chain) | Off-chain; the buyer clients now look for the escrow by its datum |
