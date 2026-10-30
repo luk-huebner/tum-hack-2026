@@ -1,0 +1,27 @@
+{"at":"2026-10-30T16:38:26.266Z","event":"start","dry":false,"allowPaid":true,"ausdCap":0.3,"intervalS":20,"beneficiary":"31a15aa9…","templates":["eth-usd","rain-below","tweet-likes:20"],"faultsInjected":{}}
+{"at":"2026-10-30T16:39:47.130Z","event":"found","ref":"fe03961fecfc23b57f36576cc4fd260f6422f1d05448943fba48057abbdeda38#0","rule":"Munich rainfall, 10 to 23 Oct 2026, below 20 mm","deadline":"2026-10-30T16:48:29.826Z"}
+{"at":"2026-10-30T16:39:50.406Z","event":"stop-checking","ref":"fe03961fecfc23b57f36576cc4fd260f6422f1d05448943fba48057abbdeda38#0","source":"meteo:munich","why":"static data: the answer will not change, so one check is enough","note":"nothing is lost: the buyer can refund after the deadline"}
+{"at":"2026-10-30T16:39:50.407Z","event":"scan","candidates":1,"sources":["meteo:munich"],"values":{"meteo:munich":26.2},"ready":0,"spentAusd":0.1,"dry":false}
+{"at":"2026-10-30T16:40:30.746Z","event":"found","ref":"1bf8f170dafdbcfdd8aa4c7d5f386af563ee3132faabd67da19ad45ce1b3c4b6#0","rule":"likes of tweet 20 at least 400000","deadline":"2026-10-30T16:49:49.981Z"}
+{"at":"2026-10-30T16:40:33.753Z","event":"next-check","ref":"1bf8f170dafdbcfdd8aa4c7d5f386af563ee3132faabd67da19ad45ce1b3c4b6#0","source":"tweet:20","inS":120,"why":"first estimate: look again in 2 minutes"}
+{"at":"2026-10-30T16:40:33.754Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T16:40:53.928Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T16:41:14.111Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T16:41:34.270Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T16:41:54.440Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T16:42:14.621Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T16:42:36.961Z","event":"next-check","ref":"1bf8f170dafdbcfdd8aa4c7d5f386af563ee3132faabd67da19ad45ce1b3c4b6#0","source":"tweet:20","inS":193,"why":"not approaching the threshold: back off, at most 5 minutes between checks; brought forward so that a last check happens a minute before the keeper must stop"}
+{"at":"2026-10-30T16:42:36.962Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:42:57.141Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:43:17.325Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:43:37.561Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:43:57.727Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:44:17.893Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:44:38.087Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:44:58.258Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:45:18.446Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:45:38.619Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":308791},"ready":0,"spentAusd":0.12,"dry":false}
+{"at":"2026-10-30T16:46:01.660Z","event":"next-check","ref":"1bf8f170dafdbcfdd8aa4c7d5f386af563ee3132faabd67da19ad45ce1b3c4b6#0","source":"tweet:20","inS":900,"why":"approaching at 717.5 per minute, about 124 min to go: check after half of it"}
+{"at":"2026-10-30T16:46:01.661Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":311239},"ready":0,"spentAusd":0.13,"dry":false}
+{"at":"2026-10-30T16:46:21.825Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":311239},"ready":0,"spentAusd":0.13,"dry":false}
+{"at":"2026-10-30T16:46:41.987Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"meteo:munich":26.2,"tweet:20":311239},"ready":0,"spentAusd":0.13,"dry":false}

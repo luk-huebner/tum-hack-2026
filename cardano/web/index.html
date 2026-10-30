@@ -145,9 +145,9 @@
         <text class="step" x="265" y="40" text-anchor="middle">5  or refunds the buyer after the deadline</text>
       </svg>
       <ol class="steps">
-        <li><strong>The buyer's agent asks for an escrow</strong> ("pay the seller if ETH/USD reaches 2000 before 14:00") and the service answers with a price and the exact policy. The buyer's client recomputes that policy itself and pays only if it matches field by field.</li>
+        <li><strong>The buyer's agent asks for an escrow</strong> ("pay the creator if the post reaches 300,000 likes before 14:00") and the service answers with a price and the exact policy. The buyer's client recomputes that policy itself and pays only if it matches field by field.</li>
         <li><strong>The payment lands in the contract.</strong> With Cardano's x402 "script" transfer method the payment output goes straight to our validator with the policy as its datum. No one holds it in between.</li>
-        <li><strong>A signed answer is the proof.</strong> The data provider signs "ETH/USD is 2246.9" (or a tweet's likes, or rainfall). The contract rebuilds the signed text, checks the signature, the question, the age and, for feeds that sign one, when the value was observed.</li>
+        <li><strong>A signed answer is the proof.</strong> The data provider signs "the post has 308,791 likes" (or the rainfall total, or any numbers an AirnodeHub source returns). The contract rebuilds the signed text, checks the signature, the question, the age and, for feeds that sign one, when the value was observed.</li>
         <li><strong>The seller's keeper collects.</strong> It finds policies that pay the seller, fetches the signed answer, and submits the release. Anyone could; the money can only go to the seller named in the policy.</li>
         <li><strong>Or the buyer is refunded.</strong> After the deadline only the buyer's key can take the money back, and not before.</li>
       </ol>
@@ -181,7 +181,7 @@
         <li>A signature proves what the data provider returned, not that it is true. Likes can be bought; an API can be wrong.</li>
         <li>It settles outcomes that data can verify: pay for the result, not for the effort. It does not judge the quality of an agent's work.</li>
         <li>There is no dispute process: if the data says the condition holds, the seller is paid.</li>
-        <li>The observation time of a value is checked only for feeds that sign one (the Nodary price). Rainfall and tweets sign none.</li>
+        <li>The observation time of a value is checked only for feeds that sign one (the free price feed we use as a test fixture). Rainfall and tweets sign none.</li>
         <li>Testnet only, not audited.</li>
       </ul>
     </div>
@@ -205,9 +205,9 @@
       <div class="row" id="releaseOptions">
         <label for="demoTemplate" style="margin:0;align-self:center">What the escrow waits for</label>
         <select id="demoTemplate" style="width:auto">
-          <option value="eth-usd">ETH/USD at least 2000 (free data)</option>
-          <option value="tweet-likes">Likes of tweet 20 at least 300,000 (0.01 aUSD per check)</option>
-          <option value="rain-below">Munich rainfall, 10 to 23 Oct 2026, below 30 mm (0.1 aUSD per check)</option>
+          <option value="tweet-likes">Pay the creator when a post reaches 300,000 likes (tweet 20; 0.01 aUSD per check)</option>
+          <option value="rain-below">Pay out when Munich rainfall, 10 to 23 Oct 2026, stays below 30 mm (0.1 aUSD, one check)</option>
+          <option value="eth-usd">Test fixture: a price feed (free data, used to test the machinery)</option>
         </select>
       </div>
       <p class="small" id="demoNote"></p>

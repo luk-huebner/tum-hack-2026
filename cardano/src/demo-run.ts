@@ -200,7 +200,7 @@ const execute = async (params: DemoParams, deps: DemoDeps, run: Run, add: (kind:
   }
   const wait = policy.deadlineMs + 3_000 - Date.now();
   if (wait > 0) {
-    add("wait", `The rule can never hold (nobody will see ETH/USD at ${value}), so the only exit is the refund. Waiting ${Math.ceil(wait / 60_000)} more minute(s) for the deadline.`);
+    add("wait", `The rule can never hold (its threshold is out of reach), so the only exit is the refund. Waiting ${Math.ceil(wait / 60_000)} more minute(s) for the deadline.`);
     await sleep(wait);
   }
   const fromMs = Math.max(Date.now() - 60_000, policy.deadlineMs + 1_000);

@@ -147,14 +147,10 @@
     },
     {
       "group": "Templates through the paid route",
-      "claim": "Three kinds of outcome run through the same contract and the same paid route: an ETH/USD price, the likes of a tweet, and Munich rainfall. Each was an x402 payment into the validator followed by a release by the seller's keeper, with its own signed data and no contract change.",
+      "claim": "Three kinds of outcome run through the same contract and the same paid route: the likes of a tweet, Munich rainfall, and (as a free test fixture, not a use case) a price feed. Each was an x402 payment into the validator followed by a release by the seller's keeper, with its own signed data and no contract change.",
       "status": "onchain",
-      "detail": "ETH/USD (free), tweet 20 at least 300,000 likes (308,791 seen, 0.01 aUSD), rainfall below 30 mm (26.2 mm seen, 0.1 aUSD). The like count had fallen since an earlier test, so likes are not monotonic.",
+      "detail": "Tweet 20 at least 300,000 likes (308,791 seen, 0.01 aUSD), rainfall below 30 mm (26.2 mm seen, 0.1 aUSD), and the price fixture (free). The like count had fallen since an earlier test, so likes are not monotonic.",
       "tx": [
-        {
-          "label": "price: release",
-          "hash": "a3b9da71121c030ec35bea1002c5e8119852fa7164e7d90e7cc06e16099527db"
-        },
         {
           "label": "likes: payment",
           "hash": "7d169440d20c5caaedcbd25e461594feb707597c91b3ca6dd56d4abb1fa11bcc"
@@ -170,6 +166,10 @@
         {
           "label": "rainfall: release",
           "hash": "d897e036800dbb2f5702d96482297efb6cc7d79825733d67dc7c7df6a7a78b40"
+        },
+        {
+          "label": "price fixture: release",
+          "hash": "a3b9da71121c030ec35bea1002c5e8119852fa7164e7d90e7cc06e16099527db"
         }
       ]
     },
@@ -226,6 +226,30 @@
         {
           "label": "escrow 3 (tweet): release after the restart",
           "hash": "93d9d6582bcc13d4bdd28471c3aa7e0fae10452d1f5e0bf6bac2fba83c397739"
+        }
+      ]
+    },
+    {
+      "group": "Paying for data",
+      "claim": "The seller's keeper does not poll a paid source on a timer. It plans each check from the cost, the kind of data and the last values: rainfall over a finished window was paid for once, the likes of a tweet three times at gaps it worked out (2, 3.2 and then 15 minutes, the last one past its stop time), 0.13 aUSD in all for two escrows that could never be released.",
+      "status": "onchain",
+      "detail": "Two escrows with unreachable rules were paid by x402 into the validator, left to the keeper and refunded after the deadline. The rule, a simulation against checking every minute and every five minutes, and the limits (invented histories, a crude two-point trend, no measured price of delay) are in POLLING.md.",
+      "tx": [
+        {
+          "label": "rainfall escrow: payment",
+          "hash": "fe03961fecfc23b57f36576cc4fd260f6422f1d05448943fba48057abbdeda38"
+        },
+        {
+          "label": "rainfall escrow: refund",
+          "hash": "20e884e9ffd886b2a471bb3d0b3dfbc53df00f5a9945a0a2157e561414f0afd5"
+        },
+        {
+          "label": "tweet escrow: payment",
+          "hash": "1bf8f170dafdbcfdd8aa4c7d5f386af563ee3132faabd67da19ad45ce1b3c4b6"
+        },
+        {
+          "label": "tweet escrow: refund",
+          "hash": "0504bffc977987662d3dbaf26631529c4895f3bec3f0e66d4c5972224a9aa417"
         }
       ]
     },

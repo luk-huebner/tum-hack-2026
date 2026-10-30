@@ -12,8 +12,9 @@
  * Limits and failure handling (every failure ends in a logged, retried or given-up state; a policy it gives up on is still
  * refundable by the buyer after the deadline):
  *   - no candidates, no fetch; one fetch per source per cycle however many candidates there are;
- *   - free sources are fetched every cycle; a source that costs aUSD (tweets, rainfall) only when AUTO_RELEASE_PAID is on,
- *     at most once a minute, and never beyond the aUSD cap for the life of the process;
+ *   - free sources are fetched every cycle; a source that costs aUSD (tweets, rainfall) only when AUTO_RELEASE_PAID is on, on a
+ *     schedule worked out from its cost (polling.ts): static data once, a trending counter by the predicted crossing, no trend
+ *     with a ceiling of 5 minutes, never twice a minute, and never beyond the aUSD cap for the life of the process;
  *   - a source that fails backs off on its own (interval x 2^failures, at most 300 s) without stopping the other sources;
  *   - a provider read that fails backs the whole cycle off the same way, and every provider call times out instead of hanging;
  *   - at most one release per cycle, then it waits for that transaction to confirm and for 45 s more before the next one
@@ -29,13 +30,13 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { hexOf, loadVector, paymentKeyHashHex, scriptAddress, sellerAddressBech32, sleep, waitForTip, waitForTx } from "./engine.js";
 import { type Client, type Source, type Check, bounded, checkAgainst, classify, fetchSigned, parseSource, policyViewOf, releaseTx, submitWindow, withRetry } from "./proof.js";
 import { fault, faultsLeft } from "./faults.js";
+import { FLOOR_MS, type Kind, type Sample, planNext } from "./polling.js";
 import { allSpecs } from "./templates.js";
 
 const outDir = new URL("../out/", import.meta.url);
 const logFile = new URL("autorelease-log.jsonl", outDir);
 const MIN_TIME_LEFT_MS = 3 * 60_000;
 const MAX_RELEASE_ATTEMPTS = 3;
-const MIN_PAID_FETCH_GAP_MS = 60_000;
 const GRACE_AFTER_FIRST_SEEN_MS = 90_000;
 const GRACE_AFTER_RELEASE_MS = 120_000;
 const COOLDOWN_AFTER_RELEASE_MS = 45_000;
@@ -45,8 +46,10 @@ export interface Candidate {
   ref: string;
   rule: string;
   deadline: string;
-  state: "watching" | "rule-not-met" | "releasing" | "retrying" | "released" | "expired" | "deadline-close" | "gave-up" | "waiting-for-budget";
+  state: "watching" | "rule-not-met" | "releasing" | "retrying" | "released" | "expired" | "deadline-close" | "gave-up" | "waiting-for-budget" | "settled-not-met";
   value?: number;
+  /** When the next paid check is planned. */
+  nextCheck?: string;
 }
 
 export interface WatchStatus {
@@ -78,6 +81,7 @@ export interface AutoReleaseOptions {
 
 interface Known {
   specId: string;
+  kind: Kind;
   describe: (value: number) => string;
   source: Source;
   signerHex: string;
@@ -91,7 +95,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
     const map = new Map<string, Known>();
     for (const spec of allSpecs()) {
       const vec = loadVector(spec.vectorName);
-      map.set(vec.requestHashHex, { specId: spec.id, describe: spec.describe, source: parseSource(spec.sourceSpec), signerHex: vec.pubkeyHex });
+      map.set(vec.requestHashHex, { specId: spec.id, kind: spec.kind, describe: spec.describe, source: parseSource(spec.sourceSpec), signerHex: vec.pubkeyHex });
     }
     return map;
   };
@@ -99,6 +103,9 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
   const firstSeen = new Map<string, number>();
   const submitted = new Map<string, { tx: string; at: number }>();
   const lastFetch = new Map<string, number>();
+  const samples = new Map<string, Sample[]>(); // the last few checks per policy: the trend comes from these
+  const nextCheckAt = new Map<string, number>();
+  const stopChecking = new Set<string>(); // static data that did not satisfy the rule: asking again cannot help
   const health = new Map<string, { failures: number; until: number }>();
   let stopped = false;
   let failures = 0;
@@ -156,7 +163,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
 
     const ruleOf = (m: (typeof mine)[number]) => m.known.describe(m.policy.threshold / 10 ** m.policy.scale);
     const gaveUp = (ref: string) => (attempts.get(ref) ?? 0) >= MAX_RELEASE_ATTEMPTS;
-    const open = mine.filter((m) => m.policy.deadlineMs - now >= MIN_TIME_LEFT_MS && !submitted.has(m.ref) && !gaveUp(m.ref));
+    const open = mine.filter((m) => m.policy.deadlineMs - now >= MIN_TIME_LEFT_MS && !submitted.has(m.ref) && !gaveUp(m.ref) && !stopChecking.has(m.ref));
     status.lastCycleAt = new Date(now).toISOString();
     status.faultsLeft = faultsLeft();
     status.candidates = mine
@@ -165,7 +172,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
         ref: m.ref,
         rule: ruleOf(m),
         deadline: new Date(m.policy.deadlineMs).toISOString(),
-        state: submitted.has(m.ref) ? "released" : gaveUp(m.ref) ? "gave-up" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : "watching",
+        state: submitted.has(m.ref) ? "released" : gaveUp(m.ref) ? "gave-up" : stopChecking.has(m.ref) ? "settled-not-met" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : "watching",
       }));
     if (open.length === 0) return;
     // The node's script evaluation can be blind to outputs that are seconds old, including this wallet's change from the release
@@ -190,13 +197,15 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
         log({ event: "source-backoff", source: spec, failures: h.failures, retryInS: Math.ceil((h.until - now) / 1000) });
         continue;
       }
+      // Candidates of this source whose planned check has come. A free source is checked every cycle; a paid one on its schedule.
+      if (source.costAusd > 0 && !group.some((g) => (nextCheckAt.get(g.ref) ?? 0) <= now)) continue;
       if (source.costAusd > 0) {
         if (dry || !allowPaid || spent + source.costAusd > ausdCap) {
           setState(group.map((g) => g.ref), "waiting-for-budget");
           log({ event: "paid-source-skipped", source: spec, why: dry ? "dry run" : !allowPaid ? "AUTO_RELEASE_PAID is off" : "aUSD cap reached", spentAusd: spent, capAusd: ausdCap });
           continue;
         }
-        if (now - (lastFetch.get(spec) ?? 0) < MIN_PAID_FETCH_GAP_MS) continue; // fetched less than a minute ago
+        if (now - (lastFetch.get(spec) ?? 0) < FLOOR_MS) continue; // never twice within a minute
       }
       let fetched;
       try {
@@ -221,6 +230,20 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
         const check = checkAgainst(m.policy, fetched.response);
         first ??= check.value;
         results.push({ m, check, response: fetched.response });
+        // plan the next paid check from what this one showed (polling.ts)
+        const at = Date.now();
+        const history = [...(samples.get(m.ref) ?? []), { at, value: check.value }].slice(-6);
+        samples.set(m.ref, history);
+        const plan = planNext({ now: at, deadlineMs: m.policy.deadlineMs, stopBeforeMs: MIN_TIME_LEFT_MS, costAusd: source.costAusd, budgetLeftAusd: ausdCap - spent, samples: history, threshold: m.policy.threshold / 10 ** m.policy.scale, cmp: m.policy.cmp, kind: m.known.kind, baseMs: intervalMs });
+        if (plan.delayMs === null) {
+          stopChecking.add(m.ref);
+          setState([m.ref], "settled-not-met");
+          log({ event: "stop-checking", ref: m.ref, source: spec, why: plan.reason, note: "nothing is lost: the buyer can refund after the deadline" });
+        } else if (source.costAusd > 0 && plan.delayMs > 0) {
+          nextCheckAt.set(m.ref, at + plan.delayMs);
+          status.candidates = status.candidates.map((c) => (c.ref === m.ref ? { ...c, nextCheck: new Date(at + plan.delayMs!).toISOString() } : c));
+          log({ event: "next-check", ref: m.ref, source: spec, inS: Math.round(plan.delayMs / 1000), why: plan.reason });
+        }
       }
       if (first !== undefined) status.lastValues[spec] = first;
     }
@@ -228,7 +251,8 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
     // the policy closest to its deadline first: it is the one that would run out of time
     const ready = results.filter((x) => x.check.sameRequest && x.check.ready).sort((a, b) => a.m.policy.deadlineMs - b.m.policy.deadlineMs);
     setState(ready.map((r) => r.m.ref), "releasing", (ref) => results.find((r) => r.m.ref === ref)?.check.value);
-    log({ event: "scan", candidates: open.length, sources: [...bySource.keys()], values: status.lastValues, ready: ready.length, spentAusd: spent, dry });
+    // only a cycle that actually fetched something is worth a log line; a cycle that waits for a planned check says nothing
+    if (results.length > 0) log({ event: "scan", candidates: open.length, fetched: [...new Set(results.map((r) => r.m.known.source.spec))], values: status.lastValues, ready: ready.length, spentAusd: spent, dry });
     if (ready.length === 0) return;
 
     const { m, check, response } = ready[0];

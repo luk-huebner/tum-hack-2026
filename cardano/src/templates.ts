@@ -12,6 +12,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import type { Cmp } from "./engine.js";
+import type { Kind } from "./polling.js";
 
 export type TemplateId = "eth-usd" | "tweet-likes" | "rain-below";
 export const TEMPLATE_IDS: TemplateId[] = ["eth-usd", "tweet-likes", "rain-below"];
@@ -33,6 +34,10 @@ export interface Spec {
   describe: (value: number) => string;
   /** Largest number a buyer may ask for. */
   max: number;
+  /** What kind of data this is, which decides how often it is worth paying to look again (polling.ts). */
+  kind: Kind;
+  /** A fixture exists to test the machinery with free data; it is not a use case we offer. */
+  fixture?: boolean;
 }
 
 const tweetsFile = new URL("../vectors/tweets.json", import.meta.url);
@@ -55,6 +60,8 @@ const ethUsd: Spec = {
   toThreshold: (v) => Math.round(v * 1e6),
   describe: (v) => `ETH/USD at least ${v}`,
   max: 999_999,
+  kind: "feed",
+  fixture: true,
 };
 
 const rainBelow: Spec = {
@@ -70,6 +77,7 @@ const rainBelow: Spec = {
   toThreshold: (v) => Math.round(v * 100),
   describe: (v) => `Munich rainfall, 10 to 23 Oct 2026, below ${v} mm`,
   max: 1000,
+  kind: "static",
 };
 
 const tweetLikes = (tweetId: string, vectorName: string): Spec => ({
@@ -85,6 +93,7 @@ const tweetLikes = (tweetId: string, vectorName: string): Spec => ({
   toThreshold: (v) => Math.round(v),
   describe: (v) => `likes of tweet ${tweetId} at least ${v}`,
   max: 2_000_000_000,
+  kind: "counter",
 });
 
 /** The spec behind an offer. Throws when the template needs a tweet that is not registered. */
