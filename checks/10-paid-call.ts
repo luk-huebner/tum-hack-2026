@@ -4,6 +4,9 @@
 //   node --env-file=.env checks/10-paid-call.ts nodary-price <feed, default ETH/USD>   (free)
 //   node --env-file=.env checks/10-paid-call.ts tweet-kpi <tweetId>   (projected: id, likes, replies, retweets, views)
 //   node --env-file=.env checks/10-paid-call.ts lunar-post <tweet|youtube-video|tiktok-video|reddit-post|instagram-post> <postId>
+//   node --env-file=.env checks/10-paid-call.ts lunar-post-kpi <youtube-video|tiktok-video|instagram-post|...> <postId>   (projected: id, views, likes, comments)
+//   node --env-file=.env checks/10-paid-call.ts lunar-creators   (the accounts LunarCrush ranks, with their networks)
+//   node --env-file=.env checks/10-paid-call.ts lunar-creator-posts <twitter|youtube|instagram|reddit|tiktok> <creatorId>
 //   node --env-file=.env checks/10-paid-call.ts meteo-rain  <lat> <lon> <startDate> <endDate>   (max 20 days)
 //   node --env-file=.env checks/10-paid-call.ts meteo-solar <lat> <lon> <startDate> <endDate>   (max 20 days)
 // Add --dry to print the request and the price without paying. Without PAYER_PRIVATE_KEY the call stops at the 402 and
@@ -56,6 +59,21 @@ const build = (): { slug: string; request: AirnodeV2Request } => {
     }
     case 'lunar-post':
       return { slug: 'lunarcrush', request: { operation: 'post', parameters: { post_type: rest[0], post_id: rest[1] } } };
+    case 'lunar-post-kpi':
+      // Contract-sized shape: the post's id and its counts, none of the text a creator can edit (title, description).
+      return {
+        slug: 'lunarcrush',
+        request: {
+          operation: 'post',
+          parameters: { post_type: rest[0], post_id: rest[1] },
+          responseProjection: { id: '/id', views: '/metrics/views', likes: '/metrics/likes', comments: '/metrics/comments' },
+        },
+      };
+    case 'lunar-creators':
+      // The only listing that names each account's network and id.
+      return { slug: 'lunarcrush', request: { operation: 'creatorsList', parameters: {} } };
+    case 'lunar-creator-posts':
+      return { slug: 'lunarcrush', request: { operation: 'creatorPosts', parameters: { network: rest[0], id: rest[1] } } };
     case 'meteo-rain':
     case 'meteo-solar': {
       const [lat, lon, start, end] = rest;

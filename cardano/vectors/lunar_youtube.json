@@ -1,0 +1,37 @@
+{
+  "airnode": "0xA868C4C235cA1108dB494FB573C0ffaA0b16A739",
+  "request": {
+    "operation": "post",
+    "parameters": {
+      "post_type": "youtube-video",
+      "post_id": "-CP1gxzpGhY"
+    },
+    "responseProjection": {
+      "id": "/id",
+      "views": "/metrics/views",
+      "likes": "/metrics/likes",
+      "comments": "/metrics/comments"
+    }
+  },
+  "data": "{\"comments\":6376,\"id\":\"-CP1gxzpGhY\",\"likes\":25750,\"views\":1090232}",
+  "timestamp": 1793381284,
+  "requestHashHex": "d5993025fd99eb4b77c9e066f23067eab7876016b5a17519ca17066a90522560",
+  "signatureHex": "ca5c2512b76ea0397a44f05e684e8ec8a85a60c77daf22281b654e00640df3225d84395472ac2a8ae05777b3d933d50106bf9b006259d5eb65f4772a3d98d689",
+  "pubkeyHex": "03bcf40d979bc8177862fd41e9343ff699a7dcf7a42ef4cd226d4bcf787c79986f",
+  "prefixHex": "7b22636f6d6d656e7473223a",
+  "separatorsHex": [
+    "2c226964223a222d43503167787a70476859222c226c696b6573223a",
+    "2c227669657773223a"
+  ],
+  "suffixHex": "7d",
+  "slotsText": [
+    "6376",
+    "25750",
+    "1090232"
+  ],
+  "slotsHex": [
+    "36333736",
+    "3235373530",
+    "31303930323332"
+  ]
+}
