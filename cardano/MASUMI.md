@@ -1,6 +1,6 @@
 # The outcome keeper as a Masumi agent
 
-Masumi settles whether an agent **delivered** a job (a result hash, a refund window, disputes). Pay-on-Proof settles against an **external fact** signed by a data provider (no dispute, automatic refund). The two fit together: a Masumi buyer hires the keeper through Masumi, and the keeper's job is to prove and release a conditional payment that sits in our contract. That makes outcome-based jobs possible for Masumi agents, for example "pay the creator when the post has 5,000 likes".
+Masumi settles whether an agent **delivered** a job (a result hash, a refund window, disputes). Pay-on-Proof settles against an **external fact** signed by a data provider (no dispute, a refund on the deadline that needs nobody's consent). The two fit together: a Masumi buyer hires the keeper through Masumi, and the keeper's job is to prove and release a conditional payment that sits in our contract. That makes outcome-based jobs possible for Masumi agents, for example "pay the creator when the post has 5,000 likes".
 
 ```
 buyer ──hire & pay (tUSDM)──▶ Masumi escrow ──job──▶ our keeper (this agent)

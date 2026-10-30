@@ -1,6 +1,6 @@
 # What we changed because someone challenged us
 
-Pay-on-Proof was built on 30 Oct 2026 at the TUM Blockchain & AI Hackathon (44 commits so far). This is the list of challenges we met, what we changed, and where the evidence is. Every row came from a person or from our own testing; none was planned in advance. The point of keeping it: the first version of the idea was not the best one, and we want to show how it moved.
+Pay-on-Proof was built on 30 Oct 2026 at the TUM Blockchain & AI Hackathon (more than 45 commits so far). This is the list of challenges we met, what we changed, and where the evidence is. Every row came from a person or from our own testing; none was planned in advance. The point of keeping it: the first version of the idea was not the best one, and we want to show how it moved.
 
 | # | The challenge | What we changed | Evidence |
 |---|---|---|---|
@@ -18,6 +18,7 @@ Pay-on-Proof was built on 30 Oct 2026 at the TUM Blockchain & AI Hackathon (44 c
 | 12 | API3's rule: "a way for judges to send responses" | A public judge site with no key on the host, 6 of 6 on the bench | `cardano/HOSTING.md` |
 | 13 | "Where is the agent in agentic commerce?" | An autonomous keeper (a budget, backoff, a log) and seven tools for an AI agent, with spending off by default | `cardano/MCP.md` |
 | 14 | **The Cardano team: API3 is not integrated with Cardano, and a rival to Masumi would have to be much better** | Not a rival, a bridge: the hired keeper is a Masumi agent that sells outcome-based jobs, with our contract settling the outcome. Built to Masumi's interface, tested against a stand-in, **not yet run against a real payment service** | `cardano/MASUMI.md` |
+| 15 | **A Cardano mentor: think of it as a service. Is it profitable, would there be premiums? No numbers needed, but show you thought about it and acknowledge losing money while you grow** | A page that separates what is free and open (the contract, the verifier, the bench) from the service (the keeper, paid only when it releases) and from premium tools, says what drives the cost of a job, and admits that today we lose money on every job | `SERVICE.md`, and a card in the console |
 
 **And our own mistakes, each fixed after it showed up:** the keeper released our public test bench (once early on, and a second time it was stopped just before it did; it now skips the bench whatever it is set to serve); a payment that had settled was reported to the buyer as failed (HTTP 402 after about 61 seconds; the clients now look for the escrow by its datum, and so does the tranche planner); the keeper once labelled a confirmed release as rejected after a network error (submit and confirm are now separate); it once bought data and then threw it away because of a cooldown (now checked first). Details in `PROOFS.md`.
 
