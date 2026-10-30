@@ -42,7 +42,9 @@ export const parseSource = (spec: string): Source => {
   const arg = rest.join(":");
   if (kind === "nodary" && /^[A-Za-z0-9~/_-]{1,20}$/.test(arg || "ETH/USD")) return { spec, args: ["nodary-price", arg || "ETH/USD"], costAusd: 0 };
   if (kind === "tweet" && /^\d{1,20}$/.test(arg)) return { spec, args: ["tweet-kpi", arg], costAusd: 0.01 };
-  throw new Error(`Unknown source "${spec}". Use nodary:<feed> or tweet:<id>`);
+  // the one rainfall request the contract knows how to rebuild: Munich, 10 to 23 Oct 2026, 14 daily values (0.1 aUSD)
+  if (kind === "meteo" && arg === "munich") return { spec, args: ["meteo-rain", "48.14", "11.58", "2026-10-10", "2026-10-23"], costAusd: 0.1 };
+  throw new Error(`Unknown source "${spec}". Use nodary:<feed>, tweet:<id> or meteo:munich`);
 };
 
 /** Fetches (or buys, if not free) one signed response through the paid-call script, which verifies signer and request hash. */

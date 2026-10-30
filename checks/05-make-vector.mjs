@@ -53,9 +53,12 @@ pub const suffix: ByteArray = ${bytes(hex(suffix))}
 
 pub const slots: List<ByteArray> = [${slots.map((s) => bytes(hex(s))).join(', ')}]
 `;
-const dir = new URL('../aiken/airnode_spike/lib/vectors/', import.meta.url);
-mkdirSync(dir, { recursive: true });
-writeFileSync(new URL(`${name}.ak`, dir), out);
+// --json-only: for vectors that only the off-chain scripts need (for example a tweet registered at run time)
+if (!process.argv.includes('--json-only')) {
+  const dir = new URL('../aiken/airnode_spike/lib/vectors/', import.meta.url);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(new URL(`${name}.ak`, dir), out);
+}
 
 // The same vector as JSON for the off-chain scripts (public data: a signed response and the key that signed it).
 const jsonDir = new URL('../cardano/vectors/', import.meta.url);

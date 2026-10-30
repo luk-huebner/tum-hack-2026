@@ -5,6 +5,8 @@
  *   tsx src/escrow-client.ts --build-only               also build and sign the payment transaction locally, send nothing
  *   tsx src/escrow-client.ts --at-least 2220 --minutes 40   pay 5 tADA: pay the seller if ETH/USD is at least 2220 before the
  *                                                       deadline, refund this wallet otherwise
+ *   tsx src/escrow-client.ts --template tweet-likes --tweet 20 --at-least 300000     the likes of a registered tweet
+ *   tsx src/escrow-client.ts --template rain-below --below 30                        Munich rainfall, 10 to 23 Oct 2026, in mm
  *
  * The refund party is this wallet (MNEMONIC) unless --refund is given. Afterwards the policy UTxO is at the validator under
  * the payment's transaction hash; the reference is printed and saved to out/escrow-ref.json.
@@ -23,7 +25,10 @@ config();
 
 const { values } = parseArgs({
   options: {
-    "at-least": { type: "string", default: "2000" },
+    template: { type: "string", default: "eth-usd" },
+    tweet: { type: "string" },
+    "at-least": { type: "string" },
+    below: { type: "string" },
     minutes: { type: "string", default: "40" },
     refund: { type: "string" },
     dry: { type: "boolean", default: false },
@@ -42,7 +47,13 @@ const need = (name: string): string => {
 
 const walletAddress: string = Address.toBech32(await makeClient("MNEMONIC").address());
 const buyerAddress: string = values.refund ?? walletAddress;
-const body = { refund: buyerAddress, atLeast: Number(values["at-least"]), deadlineMs: Date.now() + Number(values.minutes) * 60_000 };
+const base0 = { template: values.template, refund: buyerAddress, deadlineMs: Date.now() + Number(values.minutes) * 60_000 };
+const body =
+  values.template === "rain-below"
+    ? { ...base0, below: Number(values.below ?? "30") }
+    : values.template === "tweet-likes"
+      ? { ...base0, tweetId: values.tweet, atLeast: Number(values["at-least"] ?? "300000") }
+      : { ...base0, atLeast: Number(values["at-least"] ?? "2000") };
 const request = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
 
 type Requirement = { scheme: string; network: string; amount: string; asset: string; payTo: string; maxTimeoutSeconds: number; extra?: Record<string, unknown> };
@@ -64,7 +75,7 @@ const describe = (r: Requirement) => {
   console.log(`price list: ${Number(r.amount) / 1_000_000} tADA to ${r.payTo}`);
   console.log(`  transfer method ${String(extra.assetTransferMethod)}, script hash ${String(extra.scriptHash)}${extra.scriptHash === scriptHash ? " (our validator)" : " (NOT our validator)"}`);
   console.log(`  payTo is the validator address: ${r.payTo === Address.toBech32(scriptAddress)}`);
-  console.log(`  datum: ${datumHex.length / 2} bytes; rule ${policy.cmp === "Below" ? "below" : "at least"} ${policy.threshold / 10 ** policy.scale}, pays ${Number(policy.payout) / 1_000_000} tADA`);
+  console.log(`  template ${values.template}; datum: ${datumHex.length / 2} bytes; rule ${policy.cmp === "Below" ? "below" : "at least"} ${policy.threshold / 10 ** policy.scale}, pays ${Number(policy.payout) / 1_000_000} tADA`);
   console.log(`  refund party is this wallet: ${policy.refundToHex === ours}; deadline ${new Date(policy.deadlineMs).toISOString()}; max response age ${policy.maxAgeMs / 1000} s`);
   return policy;
 };
@@ -137,9 +148,9 @@ if (values.dry) {
       if (found) {
         const ref = `${txHash}#${Number(found.index)}`;
         mkdirSync(new URL("../out/", import.meta.url), { recursive: true });
-        writeFileSync(new URL("../out/escrow-ref.json", import.meta.url), JSON.stringify({ utxo: ref, source: "nodary:ETH/USD" }, null, 2));
+        writeFileSync(new URL("../out/escrow-ref.json", import.meta.url), JSON.stringify({ utxo: ref, template: values.template }, null, 2));
         console.log(`Policy UTxO at the validator: ${ref}`);
-        console.log(`Release it: tsx src/keeper.ts run --utxo ${ref} --submit     (or hire the keeper: tsx src/keep-client.ts --ref ${ref})`);
+        console.log(`The seller's keeper (service with AUTO_RELEASE=1) releases it when the data proves the rule; or hire the keeper: tsx src/keep-client.ts --ref ${ref}`);
         break;
       }
       await sleep(10_000);

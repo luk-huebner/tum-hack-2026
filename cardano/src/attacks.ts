@@ -22,7 +22,7 @@ const standing = JSON.parse(readFileSync(new URL(`../${values.standing}`, import
 const refOf = (name: string) => standing.find((s) => s.name === name)?.ref ?? (() => { throw new Error(`${name} is not in ${values.standing}`); })();
 const buyer = makeClient("MNEMONIC");
 const seller = makeClient("SELLER_MNEMONIC");
-const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
+let sellerPkh = paymentKeyHashHex(sellerAddressBech32()); // replaced below by the beneficiary the bench policy names
 const toKey = (pkh: string) => Address.fromHex(`60${pkh}`); // enterprise address: the contract only looks at the key hash
 const attackerPkh = "ab".repeat(28);
 
@@ -51,6 +51,7 @@ const stored = JSON.parse(readFileSync(new URL("../vectors/tamper/valid.json", i
 const stored48 = await findPolicyUtxo(buyer, refOf("bench-48h"));
 if (!stored48) throw new Error("bench-48h is spent or not visible");
 const policy48 = policyViewOf(stored48);
+sellerPkh = policy48.beneficiaryHex; // the controls must pay whoever the policy names (the bench names the buyer key, not the seller)
 const signedStored = loadVector("meteo").timestamp * 1000;
 const now = Date.now();
 const window48 = evaluationWindow(policy48, signedStored, now);

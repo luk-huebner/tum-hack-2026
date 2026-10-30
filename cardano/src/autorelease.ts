@@ -3,46 +3,52 @@
  * rule. Nobody starts a cycle and nobody names a policy: it finds them.
  *
  * Each cycle it lists the UTxOs at the validator and keeps the policies that (1) name the service's seller key as beneficiary,
- * (2) pin the Nodary ETH/USD request and signer it knows how to fetch, and (3) still have at least 3 minutes to their
- * deadline. If there are any it fetches ONE fresh signed response (free), checks every candidate against it, and releases the
- * first one whose rule holds. Policies that someone else would be paid by are never touched, and a release can only pay the
- * beneficiary the policy names.
+ * (2) pin a request and signer of one of the templates it knows how to fetch (templates.ts: ETH/USD, the likes of a registered
+ * tweet, Munich rainfall) and (3) still have at least 3 minutes to their deadline. For each source with candidates it fetches ONE
+ * fresh signed response, checks every candidate of that source against it, and releases the first policy whose rule holds.
+ * Policies that someone else would be paid by are never touched, and a release can only pay the beneficiary the policy names.
  *
  * Limits and failure handling:
- *   - no candidates, no fetch; one fetch per cycle however many candidates there are;
+ *   - no candidates, no fetch; one fetch per source per cycle however many candidates there are;
+ *   - free sources are fetched every cycle; a source that costs aUSD (tweets, rainfall) only when AUTO_RELEASE_PAID is on,
+ *     at most once a minute, and never beyond the aUSD cap for the life of the process;
  *   - a failed fetch or provider read backs off (interval x 2^failures, at most 300 s) and the loop carries on;
  *   - at most one release per cycle, then it waits for that transaction to confirm before the next one (they share a wallet);
  *   - a release that the chain refuses is retried on later cycles, 3 times per policy, then given up on and logged
  *     (a freshly settled UTxO can be invisible to the node's script evaluation for about half a minute);
  *   - every cycle is appended to out/autorelease-log.jsonl.
- * dry mode does everything except submit.
+ * dry mode does everything except submit (and does not buy paid data).
  */
 import { appendFileSync, mkdirSync } from "node:fs";
 import { hexOf, loadVector, paymentKeyHashHex, scriptAddress, sellerAddressBech32, sleep, waitForTip, waitForTx } from "./engine.js";
-import { type Client, checkAgainst, classify, fetchSigned, parseSource, policyViewOf, releaseTx, submitWindow, withRetry } from "./proof.js";
+import { type Client, type Source, type Check, checkAgainst, classify, fetchSigned, parseSource, policyViewOf, releaseTx, submitWindow, withRetry } from "./proof.js";
+import { allSpecs } from "./templates.js";
 
 const outDir = new URL("../out/", import.meta.url);
 const logFile = new URL("autorelease-log.jsonl", outDir);
-const SOURCE = "nodary:ETH/USD";
 const MIN_TIME_LEFT_MS = 3 * 60_000;
 const MAX_RELEASE_ATTEMPTS = 3;
+const MIN_PAID_FETCH_GAP_MS = 60_000;
 
 export interface Candidate {
   ref: string;
   rule: string;
   deadline: string;
-  state: "watching" | "rule-not-met" | "releasing" | "released" | "expired" | "deadline-close" | "gave-up";
+  state: "watching" | "rule-not-met" | "releasing" | "released" | "expired" | "deadline-close" | "gave-up" | "waiting-for-budget";
   value?: number;
 }
 
 export interface WatchStatus {
   enabled: true;
   dry: boolean;
+  allowPaid: boolean;
   startedAt: string;
   lastCycleAt?: string;
-  lastPrice?: number;
+  /** The latest value seen per source, for example "nodary:ETH/USD" or "tweet:20". */
+  lastValues: Record<string, number>;
   candidates: Candidate[];
   released: number;
+  ausdSpent: number;
   consecutiveFailures: number;
 }
 
@@ -50,19 +56,38 @@ export interface AutoReleaseOptions {
   client: Client;
   dry?: boolean;
   intervalMs?: number;
+  allowPaid?: boolean;
+  ausdCap?: number;
   onJob?: (entry: Record<string, unknown>) => void;
 }
 
+interface Known {
+  specId: string;
+  describe: (value: number) => string;
+  source: Source;
+  signerHex: string;
+}
+
 export const startAutoRelease = (options: AutoReleaseOptions) => {
-  const { client, dry = false, intervalMs = 20_000, onJob } = options;
-  const vec = loadVector("nodary-eth-usd");
+  const { client, dry = false, intervalMs = 20_000, allowPaid = false, ausdCap = 0.3, onJob } = options;
   const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
-  const source = parseSource(SOURCE);
+  // What the keeper can prove, keyed by the request hash a policy pins. Rebuilt every cycle: tweets can be registered at run time.
+  const knownRequests = (): Map<string, Known> => {
+    const map = new Map<string, Known>();
+    for (const spec of allSpecs()) {
+      const vec = loadVector(spec.vectorName);
+      map.set(vec.requestHashHex, { specId: spec.id, describe: spec.describe, source: parseSource(spec.sourceSpec), signerHex: vec.pubkeyHex });
+    }
+    return map;
+  };
   const attempts = new Map<string, number>();
   const done = new Set<string>();
+  const lastFetch = new Map<string, number>();
   let stopped = false;
   let failures = 0;
-  const status: WatchStatus = { enabled: true, dry, startedAt: new Date().toISOString(), candidates: [], released: 0, consecutiveFailures: 0 };
+  let spent = 0;
+  let cooldownUntil = 0;
+  const status: WatchStatus = { enabled: true, dry, allowPaid, startedAt: new Date().toISOString(), lastValues: {}, candidates: [], released: 0, ausdSpent: 0, consecutiveFailures: 0 };
 
   const log = (entry: Record<string, unknown>) => {
     try {
@@ -77,7 +102,8 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
   const cycle = async () => {
     const utxos = await withRetry(() => client.getUtxos(scriptAddress), 3);
     const now = Date.now();
-    const mine: { ref: string; utxo: (typeof utxos)[number]; policy: ReturnType<typeof policyViewOf> }[] = [];
+    const known = knownRequests();
+    const mine: { ref: string; utxo: (typeof utxos)[number]; policy: ReturnType<typeof policyViewOf>; known: Known }[] = [];
     for (const utxo of utxos) {
       let policy;
       try {
@@ -85,13 +111,15 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
       } catch {
         continue; // not a policy datum
       }
-      if (policy.beneficiaryHex !== sellerPkh || policy.requestHashHex !== vec.requestHashHex || policy.signerHex !== vec.pubkeyHex) continue;
-      mine.push({ ref: `${hexOf(utxo.transactionId.hash)}#${Number(utxo.index)}`, utxo, policy });
+      const k = known.get(policy.requestHashHex);
+      if (!k || policy.signerHex !== k.signerHex || policy.beneficiaryHex !== sellerPkh) continue;
+      mine.push({ ref: `${hexOf(utxo.transactionId.hash)}#${Number(utxo.index)}`, utxo, policy, known: k });
     }
 
+    const ruleOf = (m: (typeof mine)[number]) => m.known.describe(m.policy.threshold / 10 ** m.policy.scale);
     const describe = (m: (typeof mine)[number], state: Candidate["state"], value?: number): Candidate => ({
       ref: m.ref,
-      rule: `ETH/USD ${m.policy.cmp === "Below" ? "below" : "at least"} ${m.policy.threshold / 10 ** m.policy.scale}`,
+      rule: ruleOf(m),
       deadline: new Date(m.policy.deadlineMs).toISOString(),
       state,
       ...(value === undefined ? {} : { value }),
@@ -102,23 +130,53 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
       .filter((m) => m.policy.deadlineMs > now - 10 * 60_000) // keep recently expired ones visible for a while
       .map((m) => describe(m, done.has(m.ref) ? "released" : (attempts.get(m.ref) ?? 0) >= MAX_RELEASE_ATTEMPTS ? "gave-up" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : "watching"));
     if (open.length === 0) return;
+    // The node's script evaluation can be blind to outputs that are seconds old, including this wallet's change from the release
+    // before: a transaction built on it fails with the same generic "script evaluation failed" as a real refusal. Wait it out, and
+    // do so before buying any data, so that a paid response is never fetched only to be discarded.
+    if (Date.now() < cooldownUntil) {
+      log({ event: "cooldown", waitS: Math.ceil((cooldownUntil - Date.now()) / 1000), note: "the previous release was confirmed moments ago; no data is fetched until it has passed" });
+      return;
+    }
 
-    const fetched = await fetchSigned(source);
-    const response = fetched.response;
-    const checks = open.map((m) => ({ m, check: checkAgainst(m.policy, response) }));
-    const price = checks[0].check.value;
-    status.lastPrice = price;
-    status.candidates = status.candidates.map((c) => {
-      const hit = checks.find((x) => x.m.ref === c.ref);
-      return hit ? { ...c, state: hit.check.ready ? "releasing" : "rule-not-met", value: hit.check.value } : c;
-    });
-    const ready = checks.filter((x) => x.check.sameRequest && x.check.ready);
-    log({ event: "scan", candidates: open.length, price, ready: ready.length, dry });
+    // one fetch per source with candidates
+    const bySource = new Map<string, typeof open>();
+    for (const m of open) bySource.set(m.known.source.spec, [...(bySource.get(m.known.source.spec) ?? []), m]);
+    const results: { m: (typeof open)[number]; check: Check; response: Awaited<ReturnType<typeof fetchSigned>>["response"] }[] = [];
+    const setState = (refs: string[], state: Candidate["state"], valueOf?: (ref: string) => number | undefined) => {
+      status.candidates = status.candidates.map((c) => (refs.includes(c.ref) ? { ...c, state, ...(valueOf?.(c.ref) === undefined ? {} : { value: valueOf?.(c.ref) }) } : c));
+    };
+    for (const [spec, group] of bySource) {
+      const source = group[0].known.source;
+      if (source.costAusd > 0) {
+        const wait = MIN_PAID_FETCH_GAP_MS - (now - (lastFetch.get(spec) ?? 0));
+        if (dry || !allowPaid || spent + source.costAusd > ausdCap) {
+          setState(group.map((g) => g.ref), "waiting-for-budget");
+          log({ event: "paid-source-skipped", source: spec, why: dry ? "dry run" : !allowPaid ? "AUTO_RELEASE_PAID is off" : "aUSD cap reached", spentAusd: spent, capAusd: ausdCap });
+          continue;
+        }
+        if (wait > 0) continue; // fetched less than a minute ago
+      }
+      const fetched = await fetchSigned(source);
+      lastFetch.set(spec, Date.now());
+      spent = Math.round((spent + fetched.spentAusd) * 1e4) / 1e4;
+      status.ausdSpent = spent;
+      let first: number | undefined;
+      for (const m of group) {
+        const check = checkAgainst(m.policy, fetched.response);
+        first ??= check.value;
+        results.push({ m, check, response: fetched.response });
+      }
+      if (first !== undefined) status.lastValues[spec] = first;
+    }
+    setState(results.map((r) => r.m.ref), "rule-not-met", (ref) => results.find((r) => r.m.ref === ref)?.check.value);
+    const ready = results.filter((x) => x.check.sameRequest && x.check.ready);
+    setState(ready.map((r) => r.m.ref), "releasing", (ref) => results.find((r) => r.m.ref === ref)?.check.value);
+    log({ event: "scan", candidates: open.length, sources: [...bySource.keys()], values: status.lastValues, ready: ready.length, spentAusd: spent, dry });
     if (ready.length === 0) return;
 
-    const { m, check } = ready[0];
+    const { m, check, response } = ready[0];
     if (dry) {
-      log({ event: "would-release", ref: m.ref, value: check.value, threshold: check.threshold });
+      log({ event: "would-release", ref: m.ref, rule: ruleOf(m), value: check.value, threshold: check.threshold });
       return;
     }
     attempts.set(m.ref, (attempts.get(m.ref) ?? 0) + 1);
@@ -133,10 +191,11 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
       const tx = hexOf(submitted.hash);
       done.add(m.ref);
       status.released += 1;
-      log({ event: "released", ref: m.ref, tx, value: check.value, threshold: check.threshold, responseAgeS: Math.round((Date.now() - check.signedMs) / 1000) });
-      onJob?.({ route: "auto-release", ref: m.ref, outcome: "released", tx, value: check.value });
+      log({ event: "released", ref: m.ref, rule: ruleOf(m), tx, value: check.value, threshold: check.threshold, responseAgeS: Math.round((Date.now() - check.signedMs) / 1000) });
+      onJob?.({ route: "auto-release", ref: m.ref, outcome: "released", tx, value: check.value, rule: ruleOf(m) });
       const confirmed = await waitForTx(tx, 120_000); // the next release shares this wallet's inputs
       log({ event: confirmed ? "confirmed" : "confirmation-not-seen-yet", tx });
+      cooldownUntil = Date.now() + 45_000;
     } catch (error) {
       const verdict = classify(error);
       log({ event: "release-failed", ref: m.ref, attempt: attempts.get(m.ref), kind: verdict.verdict, error: String((error as Error).message).replace(/\s+/g, " ").slice(0, 140) });
@@ -145,7 +204,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
   };
 
   const loop = async () => {
-    log({ event: "start", dry, source: SOURCE, intervalS: intervalMs / 1000, beneficiary: `${sellerPkh.slice(0, 8)}…` });
+    log({ event: "start", dry, allowPaid, ausdCap, intervalS: intervalMs / 1000, beneficiary: `${sellerPkh.slice(0, 8)}…`, templates: allSpecs().map((s) => s.id) });
     while (!stopped) {
       let wait = intervalMs;
       try {

@@ -203,7 +203,8 @@ export const policyViewOf = (utxo: { datumOption?: unknown }): PolicyView => {
 
 export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const blockfrost = (path: string) => fetch(`${baseUrl}${path}`, { headers: { project_id: process.env.BLOCKFROST_PROJECT_ID ?? "" } });
+// a dropped connection must not hang a wait loop forever: every provider call gives up after 15 seconds and the loop tries again
+const blockfrost = (path: string) => fetch(`${baseUrl}${path}`, { headers: { project_id: process.env.BLOCKFROST_PROJECT_ID ?? "" }, signal: AbortSignal.timeout(15_000) });
 
 /** Polls until the transaction is in a block. */
 export const waitForTx = async (txHash: string, timeoutMs = 180_000): Promise<boolean> => {

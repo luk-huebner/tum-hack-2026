@@ -175,8 +175,10 @@ if (step === "lock") {
   const base = basePolicy(Date.now());
   const deadlineMs = Date.UTC(2026, 9, 31, 20, 0, 0);
   const benchCases = [
-    { name: "bench-48h", policy: { ...base, deadlineMs, maxAgeMs: 48 * HOUR } },
-    { name: "bench-5min", policy: { ...base, deadlineMs, maxAgeMs: 300_000 } },
+    // The beneficiary is the BUYER's key, not the seller's: the seller's keeper (autorelease.ts) releases every policy that pays the
+    // seller key and whose rule it can prove, and it once released the standing bench that way. The bench is for evaluating, not paying.
+    { name: "bench-48h", policy: { ...base, beneficiaryHex: buyerPkh, deadlineMs, maxAgeMs: 48 * HOUR } },
+    { name: "bench-5min", policy: { ...base, beneficiaryHex: buyerPkh, deadlineMs, maxAgeMs: 300_000 } },
   ];
   let tx = client.newTx();
   for (const c of benchCases) tx = tx.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(c.policy)) });

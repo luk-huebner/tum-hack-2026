@@ -22,9 +22,11 @@ import express, { type Request, type Response } from "express";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactCardanoScheme } from "@x402/cardano/exact/server";
-import { type SignedResponse, hexOf, makeClient, scriptHash, waitForTip } from "./engine.js";
+import { type SignedResponse, hexOf, loadVector, makeClient, paymentKeyHashHex, scriptAddress, scriptHash, sellerAddressBech32, waitForTip } from "./engine.js";
 import { startAutoRelease, type WatchStatus } from "./autorelease.js";
-import { ESCROW_LOVELACE, ESCROW_MAX_AGE_MS, offerExtra, parseOffer, validatorAddressBech32 } from "./escrow.js";
+import { type DemoParams, getRun, refusal, startDemoRun } from "./demo-run.js";
+import { ESCROW_LOVELACE, describeOffer, offerExtra, parseOffer, validatorAddressBech32 } from "./escrow.js";
+import { TEMPLATE_IDS, allSpecs } from "./templates.js";
 import {
   type Client,
   checkAgainst,
@@ -37,6 +39,7 @@ import {
   policyViewOf,
   releaseTx,
   submitWindow,
+  withRetry,
 } from "./proof.js";
 
 const payTo = process.env.SELLER_ADDRESS;
@@ -252,12 +255,13 @@ const escrowGate = (req: Request, res: Response, next: (error?: unknown) => void
 app.post("/api/escrow", escrowGate, (req: Request, res: Response) => {
   // Runs after the payment was verified and before it is settled: the facilitator submits the payment transaction next.
   const offer = parseOffer(req.body, Date.now()); // the gate above validated this same body a moment ago
-  recordJob({ route: "escrow", refund: offer.refund.slice(0, 18), atLeast: offer.atLeast, deadline: new Date(offer.deadlineMs).toISOString(), outcome: "payment-verified" });
+  recordJob({ route: "escrow", template: offer.template, rule: describeOffer(offer), refund: offer.refund.slice(0, 18), deadline: new Date(offer.deadlineMs).toISOString(), outcome: "payment-verified" });
   res.json({
     status: "accepted",
     lockedAt: validatorAddressBech32,
     payoutTada: Number(ESCROW_LOVELACE) / 1_000_000,
-    rule: `ETH/USD at least ${offer.atLeast}, signed by the Nodary Airnode, not older than ${ESCROW_MAX_AGE_MS / 1000} s`,
+    template: offer.template,
+    rule: `${describeOffer(offer)} (a signed AirnodeHub response at most 5 minutes old proves it)`,
     seller: "SELLER_ADDRESS (the beneficiary)",
     refundTo: offer.refund,
     refundAfter: new Date(offer.deadlineMs).toISOString(),
@@ -359,25 +363,104 @@ app.get("/api/info", (_req, res) => {
     validatorHash: scriptHash,
     validatorAddress: `70${scriptHash}`,
     paidRoute: { method: "POST", path: "/api/keep", priceTada: Number(PRICE_LOVELACE) / 1_000_000, payTo, chargedOnlyWhen: "the policy is released", sources: ALLOW_PAID_SOURCES ? "nodary:<feed>, tweet:<id>" : "nodary:<feed>" },
-    escrowRoute: { method: "POST", path: "/api/escrow", priceTada: Number(ESCROW_LOVELACE) / 1_000_000, payTo: validatorAddressBech32, transferMethod: "script (locked into the validator)" },
+    escrowRoute: { method: "POST", path: "/api/escrow", priceTada: Number(ESCROW_LOVELACE) / 1_000_000, payTo: validatorAddressBech32, transferMethod: "script (locked into the validator)", templates: TEMPLATE_IDS },
+    demoBuyer: process.env.DEMO_BUYER === "1",
     facilitator: facilitatorUrl,
   });
 });
 app.get("/api/jobs", (_req, res) => void res.json(jobs));
+
+// ---------------------------------------------------------------------------
+// Live demo runs (DEMO_BUYER=1 only): the buyer's side of the story with real preprod transactions, for the console
+
+const demoDeps = () => ({
+  serviceUrl: `http://127.0.0.1:${Number(process.env.SERVICE_PORT ?? 4022)}`,
+  watch: () => watcher?.status(),
+  jobs: () => jobs,
+});
+app.post("/api/demo/run", (req: Request, res: Response) => {
+  const b = (req.body ?? {}) as Record<string, unknown>;
+  const params: DemoParams = {
+    mode: b.mode === "refund" ? "refund" : "release",
+    template: typeof b.template === "string" ? b.template : "eth-usd",
+    value: Number(b.value),
+    ...(typeof b.tweetId === "string" ? { tweetId: b.tweetId } : {}),
+  };
+  const why = refusal(params, demoDeps());
+  if (why) return void res.status(409).json({ error: why });
+  if (params.mode === "release" && !(Number.isFinite(params.value) && params.value > 0)) return void res.status(400).json({ error: "value must be a positive number" });
+  res.json(startDemoRun(params, demoDeps()));
+});
+app.get("/api/demo/run/:id", (req: Request, res: Response) => {
+  const run = getRun(String(req.params.id));
+  if (!run) return void res.status(404).json({ error: "No such run" });
+  res.json(run);
+});
+
+/** Everything locked at the validator that follows the Pay-on-Proof policy layout, decoded, for the console's live board. */
+let boardCache: { at: number; rows: unknown[] } | undefined;
+app.get("/api/board", async (_req, res) => {
+  try {
+    if (!boardCache || Date.now() - boardCache.at > 10_000) {
+      const utxos = await withRetry(() => operator().getUtxos(scriptAddress), 3);
+      const known = new Map(allSpecs().map((spec) => [loadVector(spec.vectorName).requestHashHex, spec]));
+      const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
+      const now = Date.now();
+      const rows = utxos
+        .map((u) => {
+          let p;
+          try {
+            p = policyViewOf(u);
+          } catch {
+            return undefined;
+          }
+          const spec = known.get(p.requestHashHex);
+          const left = Math.round((p.deadlineMs - now) / 60_000);
+          return {
+            ref: `${hexOf(u.transactionId.hash)}#${Number(u.index)}`,
+            lockedTada: Number(u.assets.lovelace) / 1_000_000,
+            rule: spec ? spec.describe(p.threshold / 10 ** p.scale) : `a request this service does not know (${p.requestHashHex.slice(0, 8)}...)`,
+            template: spec?.template ?? "unknown",
+            deadline: new Date(p.deadlineMs).toISOString(),
+            minutesLeft: left,
+            state: left < 0 ? "deadline passed: refundable" : "open",
+            paysThisService: p.beneficiaryHex === sellerPkh,
+            observationCheck: p.obsSlot >= 0 ? `observation at most ${p.obsMaxAgeMs / 1000} s old` : "none",
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => Date.parse((b as { deadline: string }).deadline) - Date.parse((a as { deadline: string }).deadline))
+        .slice(0, 40);
+      boardCache = { at: now, rows };
+    }
+    res.json({ validatorHash: scriptHash, count: boardCache.rows.length, rows: boardCache.rows });
+  } catch (error) {
+    res.status(502).json({ error: `Could not read the validator: ${String((error as Error).message).slice(0, 120)}` });
+  }
+});
 app.get("/api/watch", (_req, res) => void res.json(watcher?.status() ?? { enabled: false }));
 app.get("/health", (_req, res) => void res.json({ ok: true }));
 app.use(express.static(webDir));
 
 let watcher: { status: () => WatchStatus } | undefined;
 const port = Number(process.env.SERVICE_PORT ?? 4022);
-app.listen(port, () => {
+// Live demo runs spend the demo buyer's test funds, so with DEMO_BUYER=1 the service answers this computer only.
+const listenArgs: [number, string?] = process.env.DEMO_BUYER === "1" ? [port, "127.0.0.1"] : [port];
+app.listen(...(listenArgs as [number]), () => {
   if (process.env.AUTO_RELEASE === "1" || process.env.AUTO_RELEASE === "dry") {
-    watcher = startAutoRelease({ client: operator(), dry: process.env.AUTO_RELEASE === "dry", onJob: recordJob });
+    watcher = startAutoRelease({
+      client: operator(),
+      dry: process.env.AUTO_RELEASE === "dry",
+      onJob: recordJob,
+      allowPaid: process.env.AUTO_RELEASE_PAID === "1", // tweet and rainfall sources cost aUSD per fetch
+      ausdCap: Number(process.env.AUTO_RELEASE_AUSD_CAP ?? "0.3"),
+    });
   }
   console.log(`Pay-on-Proof service on http://localhost:${port}`);
   console.log(`  judge page   GET  /            (free; verdicts only, nothing is ever sent to the chain)`);
   console.log(`  paid job     POST /api/keep    ${Number(PRICE_LOVELACE) / 1_000_000} tADA on ${NETWORK}, charged only when the policy is released`);
   console.log(`  escrow       POST /api/escrow  ${Number(ESCROW_LOVELACE) / 1_000_000} tADA locked into the validator (x402 script transfer method)`);
   console.log(`  auto-release ${process.env.AUTO_RELEASE === "1" ? "ON: releases policies that pay this service" : process.env.AUTO_RELEASE === "dry" ? "dry run: logs what it would release" : "off (set AUTO_RELEASE=1)"}`);
+  console.log(`  live runs    ${process.env.DEMO_BUYER === "1" ? "ON (DEMO_BUYER=1): the console can pay real test escrows; listening on localhost only" : "off (set DEMO_BUYER=1)"}`);
   console.log(`  facilitator  ${facilitatorUrl}`);
 });

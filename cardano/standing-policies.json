@@ -1,12 +1,12 @@
 [
   {
     "name": "bench-48h",
-    "ref": "53521b16498c0bd4ce7f7920433a6b9d34e7ad77bce5e974c25d66f7990b725d#0",
-    "note": "Open-Meteo rainfall, Munich, 14 days: pays 5 tADA if the sum is below 30 mm. Accepts a response up to 48 hours old."
+    "ref": "403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc#0",
+    "note": "Open-Meteo rainfall, Munich, 14 days: pays 5 tADA to the buyer key (not the seller, so the seller's keeper never releases it) if the sum is below 30 mm. Accepts a response up to 48 hours old."
   },
   {
     "name": "bench-5min",
-    "ref": "53521b16498c0bd4ce7f7920433a6b9d34e7ad77bce5e974c25d66f7990b725d#1",
+    "ref": "403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc#1",
     "note": "The same rule and request. Accepts only a response less than 5 minutes old."
   }
 ]

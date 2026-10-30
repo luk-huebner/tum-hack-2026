@@ -3,93 +3,264 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pay-on-Proof on Cardano</title>
+<title>Pay-on-Proof Console</title>
 <style>
   :root {
     --bg: #f6f7f9; --card: #ffffff; --ink: #14181f; --muted: #5a6472; --line: #dde1e7;
-    --accent: #1f4fd8; --ok: #0b6b3a; --ok-bg: #e3f4ea; --bad: #a3202a; --bad-bg: #fbe7e9; --warn: #8a5a00; --warn-bg: #fff1d6;
+    --accent: #1f4fd8; --accent-bg: #e6edff; --ok: #0b6b3a; --ok-bg: #e3f4ea; --bad: #a3202a; --bad-bg: #fbe7e9; --warn: #8a5a00; --warn-bg: #fff1d6;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0f1218; --card: #171b23; --ink: #e8ebf0; --muted: #9aa4b2; --line: #2b323d;
-      --accent: #7ba2ff; --ok: #6fd69a; --ok-bg: #12301f; --bad: #ff8d95; --bad-bg: #3a171b; --warn: #f2c46b; --warn-bg: #33270d;
+      --accent: #7ba2ff; --accent-bg: #1b2744; --ok: #6fd69a; --ok-bg: #12301f; --bad: #ff8d95; --bad-bg: #3a171b; --warn: #f2c46b; --warn-bg: #33270d;
     }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 20px 16px 64px; }
+  h1 { font-size: 1.7rem; margin: 0 0 6px; }
   h2 { font-size: 1.15rem; margin: 0 0 8px; }
+  h3 { font-size: 1rem; margin: 0 0 6px; }
   p { margin: 0 0 12px; }
-  .sub { color: var(--muted); margin-bottom: 20px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  a { color: var(--accent); }
+  .lead { font-size: 1.05rem; color: var(--muted); max-width: 70ch; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
   .meta { font: 0.8rem var(--mono); color: var(--muted); overflow-wrap: anywhere; }
-  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 12px 0 4px; }
-  select, textarea { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 0.8rem var(--mono); }
-  textarea { min-height: 170px; resize: vertical; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .small { font-size: 0.85rem; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .grid3 > div { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--bg); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 16px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  .tabs button { border: 1px solid transparent; background: none; color: var(--muted); border-radius: 6px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+  .panel[hidden] { display: none; }
   button { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #0b1020; } }
   button:disabled { opacity: 0.55; cursor: progress; }
-  button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 600; font-size: 0.85rem; }
-  .ACCEPTED { background: var(--ok-bg); color: var(--ok); }
+  button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 12px 0 4px; }
+  select, textarea { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 0.8rem var(--mono); }
+  textarea { min-height: 170px; resize: vertical; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 600; font-size: 0.82rem; white-space: nowrap; }
+  .ACCEPTED, .onchain { background: var(--ok-bg); color: var(--ok); }
   .REJECTED { background: var(--bad-bg); color: var(--bad); }
-  .EXPIRED, .ERROR { background: var(--warn-bg); color: var(--warn); }
+  .EXPIRED, .ERROR, .notrun { background: var(--warn-bg); color: var(--warn); }
+  .evaluation, .tests { background: var(--accent-bg); color: var(--accent); }
   #result { margin-top: 14px; display: none; }
   #result ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
-  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 10px; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; }
   code, pre { font-family: var(--mono); font-size: 0.82rem; }
   pre { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; overflow-x: auto; margin: 8px 0 0; }
-  .small { font-size: 0.85rem; color: var(--muted); }
-  @media (max-width: 560px) { th:nth-child(4), td:nth-child(4) { display: none; } }
+  ol.steps { padding-left: 22px; margin: 8px 0 0; }
+  ol.steps li { margin-bottom: 10px; }
+  svg.flow { width: 100%; height: auto; display: block; }
+  svg .box { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+  svg .core { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+  svg text { fill: var(--ink); font: 13px system-ui, sans-serif; }
+  svg text.sm { fill: var(--muted); font-size: 11.5px; }
+  svg text.step { fill: var(--accent); font-weight: 700; font-size: 12.5px; }
+  svg .arrow { stroke: var(--ink); stroke-width: 1.6; fill: none; marker-end: url(#head); }
+  svg .dashed { stroke-dasharray: 6 5; }
+  svg #head path { fill: var(--ink); }
+  .item { border-top: 1px solid var(--line); padding: 12px 0; }
+  .item:first-of-type { border-top: 0; }
+  .links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 0.85rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
+  .filters button[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+  @media (max-width: 640px) { .hide-sm { display: none; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>Pay-on-Proof on Cardano</h1>
-  <p class="sub">Money moves only when signed real-world data proves a condition agreed in advance. One Aiken validator checks an AirnodeHub response itself: who signed it, which request it answers, how old it is, and whether it meets the rule.</p>
-  <p class="meta" id="chain">Cardano preprod, testnet funds only</p>
+  <header>
+    <h1>Pay-on-Proof</h1>
+    <p class="lead">Money on Cardano moves only when signed real-world data proves a condition agreed in advance. One contract, any data source, nobody in the middle.</p>
+    <div class="chips">
+      <span class="pill">Cardano preprod</span>
+      <span class="pill" id="vchip">validator 58fb7eef…</span>
+      <span class="pill">55 contract tests</span>
+      <span class="pill">testnet funds only</span>
+    </div>
+  </header>
 
-  <section class="card" aria-labelledby="bench">
-    <h2 id="bench">Tamper bench</h2>
-    <p>Pick a policy, paste or edit a signed response, and send it to the contract. The answer is the validator's own script evaluation on the Cardano preprod node provider. <strong>Nothing is ever sent to the chain from this page.</strong></p>
+  <nav class="tabs" role="tablist" aria-label="Console sections">
+    <button role="tab" id="t-overview" aria-controls="p-overview" aria-selected="true">Overview</button>
+    <button role="tab" id="t-live" aria-controls="p-live" aria-selected="false">Live</button>
+    <button role="tab" id="t-bench" aria-controls="p-bench" aria-selected="false">Tamper bench</button>
+    <button role="tab" id="t-evidence" aria-controls="p-evidence" aria-selected="false">Evidence</button>
+  </nav>
 
-    <label for="policy">Policy</label>
-    <select id="policy"></select>
-    <p class="small" id="policyNote" style="margin-top:6px"></p>
-
-    <label for="resp">Signed response (the JSON an Airnode returns)</label>
-    <textarea id="resp" spellcheck="false" aria-describedby="respHelp"></textarea>
-    <p class="small" id="respHelp">Change a value, the timestamp, the request hash or the signature, then send it. Load an example with the buttons.</p>
-
-    <div class="row" id="examples" role="group" aria-label="Examples"></div>
-    <div class="row">
-      <button class="primary" id="send">Send to the contract</button>
-      <button id="runAll">Run the whole bench (6 steps)</button>
+  <!-- ======================= OVERVIEW ======================= -->
+  <section class="panel" id="p-overview" role="tabpanel" aria-labelledby="t-overview">
+    <div class="card">
+      <h2>What this is, in one minute</h2>
+      <div class="grid3">
+        <div><h3>The problem</h3><p class="small" style="color:var(--ink)">A buyer and a seller, often two software agents, do not trust each other. Paying first risks losing the money. Paying after delivery risks never being paid. A platform in the middle ends up as the judge.</p></div>
+        <div><h3>The idea</h3><p class="small" style="color:var(--ink)">The buyer's payment goes into a smart contract with the rule written in it: pay the seller if signed data proves the outcome before a deadline, otherwise refund the buyer.</p></div>
+        <div><h3>Why it holds</h3><p class="small" style="color:var(--ink)">The data comes from an AirnodeHub (API3) provider that signs its answer. The contract checks the signature, the question asked, how old the answer is and the value. Nobody can redirect the money.</p></div>
+      </div>
     </div>
 
-    <div id="result" role="status" aria-live="polite"></div>
-    <div id="benchOut"></div>
+    <div class="card">
+      <h2>How a payment moves</h2>
+      <svg class="flow" viewBox="0 0 900 340" role="img" aria-label="Flow: the buyer pays by x402 into the contract; signed data reaches the seller's keeper, which releases the money to the seller; after the deadline the buyer can take a refund.">
+        <defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker></defs>
+        <rect class="box" x="20" y="130" width="170" height="74" rx="10"/>
+        <text x="105" y="162" text-anchor="middle">Buyer's agent</text><text class="sm" x="105" y="182" text-anchor="middle">asks, then pays</text>
+
+        <rect class="core" x="365" y="108" width="200" height="118" rx="12"/>
+        <text x="465" y="142" text-anchor="middle" font-weight="700">The contract</text>
+        <text class="sm" x="465" y="164" text-anchor="middle">holds 5 tADA</text>
+        <text class="sm" x="465" y="182" text-anchor="middle">with the rule and deadline</text>
+        <text class="sm" x="465" y="200" text-anchor="middle">in its datum</text>
+
+        <rect class="box" x="710" y="130" width="170" height="74" rx="10"/>
+        <text x="795" y="162" text-anchor="middle">Seller</text><text class="sm" x="795" y="182" text-anchor="middle">paid on proof</text>
+
+        <rect class="box" x="150" y="264" width="210" height="62" rx="10"/>
+        <text x="255" y="290" text-anchor="middle">Signed data</text><text class="sm" x="255" y="309" text-anchor="middle">AirnodeHub (API3)</text>
+
+        <rect class="box" x="480" y="264" width="210" height="62" rx="10"/>
+        <text x="585" y="290" text-anchor="middle">Seller's keeper</text><text class="sm" x="585" y="309" text-anchor="middle">fetches and submits</text>
+
+        <path class="arrow" d="M192 167 L363 167"/>
+        <text class="step" x="277" y="154" text-anchor="middle">1  pays 5 tADA (x402)</text>
+
+        <path class="arrow" d="M362 295 L478 295"/>
+        <text class="step" x="420" y="283" text-anchor="middle">2  signed answer</text>
+
+        <path class="arrow" d="M560 262 L520 229"/>
+        <text class="step" x="635" y="248" text-anchor="start">3  releases with the answer</text>
+
+        <path class="arrow" d="M567 167 L708 167"/>
+        <text class="step" x="637" y="154" text-anchor="middle">4  pays the seller</text>
+
+        <path class="arrow dashed" d="M400 106 C 330 30, 200 30, 130 128"/>
+        <text class="step" x="265" y="40" text-anchor="middle">5  or refunds the buyer after the deadline</text>
+      </svg>
+      <ol class="steps">
+        <li><strong>The buyer's agent asks for an escrow</strong> ("pay the seller if ETH/USD reaches 2000 before 14:00") and the service answers with a price and the exact policy. The buyer's client recomputes that policy itself and pays only if it matches field by field.</li>
+        <li><strong>The payment lands in the contract.</strong> With Cardano's x402 "script" transfer method the payment output goes straight to our validator with the policy as its datum. No one holds it in between.</li>
+        <li><strong>A signed answer is the proof.</strong> The data provider signs "ETH/USD is 2246.9" (or a tweet's likes, or rainfall). The contract rebuilds the signed text, checks the signature, the question, the age and, for feeds that sign one, when the value was observed.</li>
+        <li><strong>The seller's keeper collects.</strong> It finds policies that pay the seller, fetches the signed answer, and submits the release. Anyone could; the money can only go to the seller named in the policy.</li>
+        <li><strong>Or the buyer is refunded.</strong> After the deadline only the buyer's key can take the money back, and not before.</li>
+      </ol>
+      <div class="row">
+        <button class="primary" data-go="live">See what is locked right now</button>
+        <button data-go="bench">Attack the contract yourself</button>
+        <button data-go="evidence">See the receipts</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Who can do what</h2>
+      <table>
+        <thead><tr><th>Who</th><th>Action</th><th>Allowed?</th></tr></thead>
+        <tbody>
+          <tr><td>Anyone</td><td>Release with a valid, fresh, matching answer, paying the seller in full</td><td><span class="chip ACCEPTED">yes</span></td></tr>
+          <tr><td>Anyone</td><td>Release but pay someone else, pay nobody, or pay a lovelace too little</td><td><span class="chip REJECTED">no</span></td></tr>
+          <tr><td>Anyone</td><td>Release two policies of one seller with a single payment</td><td><span class="chip REJECTED">no (a flaw we found in the first version, now fixed)</span></td></tr>
+          <tr><td>Anyone</td><td>Release with an edited value, another question, another signer, or an old answer</td><td><span class="chip REJECTED">no</span></td></tr>
+          <tr><td>Buyer</td><td>Refund after the deadline</td><td><span class="chip ACCEPTED">yes</span></td></tr>
+          <tr><td>Buyer</td><td>Refund before the deadline</td><td><span class="chip REJECTED">no</span></td></tr>
+          <tr><td>Seller or a stranger</td><td>Refund (not the buyer's key)</td><td><span class="chip REJECTED">no</span></td></tr>
+          <tr><td>A lying seller's server</td><td>Put another beneficiary, an easier rule or a longer deadline in the price list</td><td><span class="chip REJECTED">refused by the buyer's client</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>What it does not prove</h2>
+      <ul class="small" style="margin:0;padding-left:20px;color:var(--ink)">
+        <li>A signature proves what the data provider returned, not that it is true. Likes can be bought; an API can be wrong.</li>
+        <li>It settles outcomes that data can verify: pay for the result, not for the effort. It does not judge the quality of an agent's work.</li>
+        <li>There is no dispute process: if the data says the condition holds, the seller is paid.</li>
+        <li>The observation time of a value is checked only for feeds that sign one (the Nodary price). Rainfall and tweets sign none.</li>
+        <li>Testnet only, not audited.</li>
+      </ul>
+    </div>
   </section>
 
-  <section class="card" aria-labelledby="keeper">
-    <h2 id="keeper">Hire the keeper (x402 on Cardano)</h2>
-    <p>A keeper agent that does one job: for a locked policy it fetches a fresh signed response and, if the rule holds, releases the funds to the policy's beneficiary. You pay <strong id="price">2 tADA</strong> by x402 per request, and <strong>only when it releases</strong>. If the rule is not met, or anything fails, the payment is cancelled.</p>
-    <pre id="howto">npx tsx src/keep-client.ts --ref &lt;txHash&gt;#&lt;index&gt;</pre>
-    <p class="small">The service wallet pays the release fee and never holds the policy's funds. The response includes the signed evidence, which can be pasted into the bench above.</p>
-    <p class="small" id="watch"></p>
-    <h2 style="margin-top:16px;font-size:1rem">Recent jobs</h2>
-    <table id="jobs"><thead><tr><th>Time (UTC)</th><th>Outcome</th><th>Policy</th><th>Transaction</th></tr></thead><tbody></tbody></table>
+  <!-- ======================= LIVE ======================= -->
+  <section class="panel" id="p-live" role="tabpanel" aria-labelledby="t-live" hidden>
+    <div class="card">
+      <h2>What is locked at the contract right now</h2>
+      <p class="small">Read from Cardano preprod through the node provider. Each row is a policy: the rule that must hold, the money held, and the deadline.</p>
+      <div class="row"><button id="boardRefresh">Refresh</button><span class="small" id="boardMeta" style="align-self:center"></span></div>
+      <table id="board"><thead><tr><th>Rule</th><th>Locked</th><th class="hide-sm">Deadline (UTC)</th><th>State</th><th class="hide-sm">Pays</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card" id="demoCard" hidden>
+      <h2>Run it live</h2>
+      <p>This makes a real payment on Cardano preprod from the demo buyer wallet: <strong>5 tADA</strong> of test money, plus a small fee. Everything below happens on chain and every step is a real transaction.</p>
+      <div class="row">
+        <button class="primary" id="runRelease">Pay an escrow and watch it get released</button>
+        <button id="runRefund">Pay an escrow nobody can release, then refund it (about 8 minutes)</button>
+      </div>
+      <div class="row" id="releaseOptions">
+        <label for="demoTemplate" style="margin:0;align-self:center">What the escrow waits for</label>
+        <select id="demoTemplate" style="width:auto">
+          <option value="eth-usd">ETH/USD at least 2000 (free data)</option>
+          <option value="tweet-likes">Likes of tweet 20 at least 300,000 (0.01 aUSD per check)</option>
+          <option value="rain-below">Munich rainfall, 10 to 23 Oct 2026, below 30 mm (0.1 aUSD per check)</option>
+        </select>
+      </div>
+      <p class="small" id="demoNote"></p>
+      <ol class="steps" id="demoSteps" aria-live="polite"></ol>
+    </div>
+
+    <div class="card">
+      <h2>The seller's keeper</h2>
+      <p>A watcher inside the service. It looks for policies that pay the seller, fetches the signed answer for each, and releases the ones whose rule holds. It is switched off unless the service starts with <code>AUTO_RELEASE=1</code>.</p>
+      <p class="small" id="watch"></p>
+      <table id="cands"><thead><tr><th>Policy</th><th>Rule</th><th>State</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Recent jobs</h2>
+      <p class="small">Paid keeper requests (x402, 2 tADA, charged only on release), escrows accepted, and releases by the seller's keeper.</p>
+      <table id="jobs"><thead><tr><th>Time (UTC)</th><th>What</th><th>Outcome</th><th class="hide-sm">Transaction</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Hire the keeper (x402 on Cardano)</h2>
+      <p>For a locked policy it fetches a fresh signed answer and, if the rule holds, releases the money. You pay <strong id="price">2 tADA</strong> by x402 and <strong>only when it releases</strong>; if the rule is not met or anything fails, the payment is cancelled.</p>
+      <pre>npx tsx src/keep-client.ts --ref &lt;txHash&gt;#&lt;index&gt;</pre>
+    </div>
   </section>
 
-  <section class="card" aria-labelledby="limits">
-    <h2 id="limits">What this does not prove</h2>
-    <p class="small">A signature proves what the API returned, not that it is true. The contract does not check the data's own observation time, only when the Airnode signed. The rule is a sum of numeric slots compared with a threshold. Not audited; test funds only.</p>
+  <!-- ======================= TAMPER BENCH ======================= -->
+  <section class="panel" id="p-bench" role="tabpanel" aria-labelledby="t-bench" hidden>
+    <div class="card">
+      <h2>Tamper bench</h2>
+      <p>Pick a policy, paste or edit a signed response, and send it to the contract. The answer is the validator's own script evaluation on the Cardano preprod node provider. <strong>Nothing is ever sent to the chain from this page.</strong></p>
+      <label for="policy">Policy</label>
+      <select id="policy"></select>
+      <p class="small" id="policyNote" style="margin-top:6px"></p>
+      <label for="resp">Signed response (the JSON an Airnode returns)</label>
+      <textarea id="resp" spellcheck="false" aria-describedby="respHelp"></textarea>
+      <p class="small" id="respHelp">Change a value, the timestamp, the request hash or the signature, then send it. Load an example with the buttons.</p>
+      <div class="row" id="examples" role="group" aria-label="Examples"></div>
+      <div class="row">
+        <button class="primary" id="send">Send to the contract</button>
+        <button id="runAll">Run the whole bench (6 steps)</button>
+      </div>
+      <div id="result" role="status" aria-live="polite"></div>
+      <div id="benchOut"></div>
+    </div>
+  </section>
+
+  <!-- ======================= EVIDENCE ======================= -->
+  <section class="panel" id="p-evidence" role="tabpanel" aria-labelledby="t-evidence" hidden>
+    <div class="card">
+      <h2>What we have, and how we know</h2>
+      <p class="small" id="evNote"></p>
+      <div class="filters" id="evFilters" role="group" aria-label="Filter by kind of proof"></div>
+      <div id="evList"></div>
+    </div>
   </section>
 </main>
 
@@ -100,8 +271,139 @@ const api = async (path, body) => {
   return { status: r.status, data: await r.json().catch(() => ({})) };
 };
 const short = (s, n = 10) => (s && s.length > 2 * n ? s.slice(0, n) + '…' + s.slice(-6) : s || '');
-let cases = [];
+const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
+const scan = (hash) => 'https://preprod.cardanoscan.io/transaction/' + hash;
 
+// ---------------------------------------------------------------- tabs
+const TABS = ['overview', 'live', 'bench', 'evidence'];
+const loaded = {};
+function show(tab) {
+  if (!TABS.includes(tab)) tab = 'overview';
+  for (const t of TABS) {
+    $('t-' + t).setAttribute('aria-selected', String(t === tab));
+    $('p-' + t).hidden = t !== tab;
+  }
+  if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
+  if (tab === 'live') { loadBoard(); loadWatch(); loadJobs(); }
+  if (tab === 'evidence' && !loaded.evidence) { loaded.evidence = true; loadEvidence(); }
+  if (tab === 'bench' && !loaded.bench) { loaded.bench = true; loadPolicies(); loadCases(); }
+}
+for (const t of TABS) $('t-' + t).onclick = () => show(t);
+document.querySelectorAll('[data-go]').forEach((b) => { b.onclick = () => { show(b.dataset.go); window.scrollTo({ top: 0, behavior: 'smooth' }); }; });
+$('t-overview').parentElement.addEventListener('keydown', (e) => {
+  const i = TABS.findIndex((t) => $('t-' + t).getAttribute('aria-selected') === 'true');
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = (i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length; show(TABS[n]); $('t-' + TABS[n]).focus(); }
+});
+
+// ---------------------------------------------------------------- live
+async function loadBoard() {
+  const { status, data } = await api('/api/board');
+  const tb = document.querySelector('#board tbody'); tb.replaceChildren();
+  if (status >= 400) { const td = tb.insertRow().insertCell(); td.colSpan = 5; td.className = 'small'; td.textContent = data.error || 'Could not read the contract.'; return; }
+  $('boardMeta').textContent = data.count + ' policies at validator ' + short(data.validatorHash, 8) + ', read ' + new Date().toISOString().slice(11, 19) + ' UTC';
+  for (const r of data.rows) {
+    const tr = tb.insertRow();
+    const state = r.minutesLeft < 0 ? el('span', { className: 'chip notrun', textContent: 'deadline passed, refundable' }) : el('span', { className: 'chip onchain', textContent: 'open, ' + (r.minutesLeft > 120 ? Math.round(r.minutesLeft / 60) + ' h' : r.minutesLeft + ' min') + ' left' });
+    tr.insertCell().textContent = r.rule;
+    tr.insertCell().textContent = r.lockedTada + ' tADA';
+    const d = tr.insertCell(); d.className = 'hide-sm'; d.textContent = r.deadline.replace('T', ' ').slice(0, 16);
+    tr.insertCell().append(state);
+    const p = tr.insertCell(); p.className = 'hide-sm'; p.textContent = r.paysThisService ? 'this service (seller)' : 'someone else';
+  }
+  if (!data.rows.length) { const td = tb.insertRow().insertCell(); td.colSpan = 5; td.className = 'small'; td.textContent = 'Nothing is locked at the contract right now.'; }
+}
+$('boardRefresh').onclick = loadBoard;
+
+// ---- live runs (shown only when the service allows them)
+const DEMO_DEFAULTS = { 'eth-usd': { value: 2000 }, 'tweet-likes': { value: 300000, tweetId: '20' }, 'rain-below': { value: 30 } };
+let demoTimer;
+function drawRun(run) {
+  const list = $('demoSteps'); list.replaceChildren();
+  for (const s of run.steps) {
+    const li = el('li', {}, el('span', { className: 'chip ' + ({ ok: 'onchain', wait: 'evaluation', refused: 'REJECTED', info: 'notrun' }[s.kind] || 'notrun'), textContent: ({ ok: 'done', wait: 'working', refused: 'refused', info: 'note' }[s.kind]) }), ' ', s.at.slice(11, 19) + ' UTC  ' + s.text + ' ');
+    if (s.link) li.append(el('a', { href: s.link.url, target: '_blank', rel: 'noopener', textContent: s.link.label }));
+    list.append(li);
+  }
+  $('demoNote').textContent = run.status === 'running' ? run.title + ': running…' : run.title + ': ' + (run.status === 'done' ? 'finished.' : 'stopped.');
+}
+async function startRun(mode) {
+  $('runRelease').disabled = true; $('runRefund').disabled = true;
+  const template = $('demoTemplate').value;
+  const { status, data } = await api('/api/demo/run', { mode, template, ...DEMO_DEFAULTS[template] });
+  if (status >= 400) { $('demoNote').textContent = data.error || 'Could not start the run.'; $('runRelease').disabled = false; $('runRefund').disabled = false; return; }
+  clearInterval(demoTimer);
+  const poll = async () => {
+    const { data: run } = await api('/api/demo/run/' + data.id);
+    drawRun(run);
+    if (run.status !== 'running') { clearInterval(demoTimer); $('runRelease').disabled = false; $('runRefund').disabled = false; loadBoard(); loadJobs(); }
+  };
+  demoTimer = setInterval(poll, 2000); poll();
+}
+$('runRelease').onclick = () => startRun('release');
+$('runRefund').onclick = () => startRun('refund');
+api('/api/info').then(({ data }) => { if (data.demoBuyer) $('demoCard').hidden = false; });
+
+async function loadWatch() {
+  const { data: w } = await api('/api/watch');
+  const box = $('watch'); const tb = document.querySelector('#cands tbody'); tb.replaceChildren();
+  if (!w || !w.enabled) { box.textContent = 'The seller\'s keeper is off in this run of the service.'; const td = tb.insertRow().insertCell(); td.colSpan = 3; td.className = 'small'; td.textContent = '-'; return; }
+  const age = w.lastCycleAt ? Math.round((Date.now() - Date.parse(w.lastCycleAt)) / 1000) + ' s ago' : 'not yet';
+  const vals = w.lastValues && Object.keys(w.lastValues).length ? ' Latest values: ' + Object.entries(w.lastValues).map(([k, v]) => k + ' = ' + v).join(', ') + '.' : '';
+  box.textContent = 'On' + (w.dry ? ' (dry run: logs only)' : '') + '. Last check ' + age + '. Released so far: ' + w.released + '.' + vals + (w.allowPaid ? ' Paid sources allowed, ' + w.ausdSpent + ' aUSD spent.' : ' Paid sources (tweets, rainfall) are off.');
+  for (const c of w.candidates || []) {
+    const tr = tb.insertRow();
+    tr.insertCell().textContent = short(c.ref, 8);
+    tr.insertCell().textContent = c.rule;
+    tr.insertCell().textContent = c.state + (c.value !== undefined ? ' (value ' + c.value + ')' : '');
+  }
+  if (!(w.candidates || []).length) { const td = tb.insertRow().insertCell(); td.colSpan = 3; td.className = 'small'; td.textContent = 'No policy that pays this service is open.'; }
+}
+
+async function loadJobs() {
+  const { data: info } = await api('/api/info');
+  if (info.paidRoute) $('price').textContent = info.paidRoute.priceTada + ' tADA';
+  const { data: jobs } = await api('/api/jobs');
+  const tb = document.querySelector('#jobs tbody'); tb.replaceChildren();
+  for (const j of (Array.isArray(jobs) ? jobs : []).slice(0, 10)) {
+    const tr = tb.insertRow();
+    tr.insertCell().textContent = j.at.replace('T', ' ').slice(0, 19);
+    tr.insertCell().textContent = j.rule || j.route || (j.source ? 'keeper job' : '');
+    tr.insertCell().textContent = j.outcome;
+    const t = tr.insertCell(); t.className = 'hide-sm';
+    if (j.tx) t.append(el('a', { href: scan(j.tx), target: '_blank', rel: 'noopener', textContent: short(j.tx, 8) }));
+  }
+  if (!tb.rows.length) { const td = tb.insertRow().insertCell(); td.colSpan = 4; td.className = 'small'; td.textContent = 'No jobs in this run of the service yet.'; }
+}
+setInterval(() => { if (!$('p-live').hidden) { loadBoard(); loadWatch(); loadJobs(); } }, 15000);
+
+// ---------------------------------------------------------------- evidence
+const KINDS = { onchain: 'On chain', evaluation: 'Validator evaluation', tests: 'Contract tests', notrun: 'Not shown yet / limits' };
+async function loadEvidence() {
+  const r = await fetch('/evidence.json'); const ev = await r.json();
+  $('evNote').textContent = ev.note + ' Current validator ' + short(ev.validators.current.hash, 8) + ' (' + ev.validators.current.tests + ' tests); first version ' + short(ev.validators.first.hash, 8) + ' kept as evidence.';
+  let filter = 'all';
+  const draw = () => {
+    const list = $('evList'); list.replaceChildren();
+    let lastGroup = '';
+    for (const it of ev.items.filter((i) => filter === 'all' || i.status === filter)) {
+      if (it.group !== lastGroup) { list.append(el('h3', { textContent: it.group, style: 'margin-top:16px' })); lastGroup = it.group; }
+      const box = el('div', { className: 'item' });
+      box.append(el('span', { className: 'chip ' + it.status, textContent: KINDS[it.status] }), el('p', { textContent: ' ' + it.claim, style: 'display:inline;margin-left:6px' }), el('p', { className: 'small', textContent: it.detail, style: 'margin:6px 0 0' }));
+      if (it.tx.length) { const links = el('div', { className: 'links' }); for (const t of it.tx) links.append(el('a', { href: scan(t.hash), target: '_blank', rel: 'noopener', textContent: t.label + ' · ' + short(t.hash, 8) })); box.append(links); }
+      list.append(box);
+    }
+  };
+  const fl = $('evFilters');
+  for (const [k, label] of [['all', 'All'], ...Object.entries(KINDS)]) {
+    const b = el('button', { textContent: label }); b.setAttribute('aria-pressed', String(k === 'all'));
+    b.onclick = () => { filter = k; fl.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); draw(); };
+    fl.append(b);
+  }
+  draw();
+}
+
+// ---------------------------------------------------------------- tamper bench
+let cases = [];
 function hintLines(res) {
   const h = res.hints || {};
   const lines = [];
@@ -116,26 +418,13 @@ function hintLines(res) {
   }
   return lines;
 }
-
-function show(res) {
-  const box = $('result');
-  box.style.display = 'block';
-  box.replaceChildren();
-  const chip = document.createElement('span');
-  chip.className = 'chip ' + (res.verdict || 'ERROR');
-  chip.textContent = res.verdict || 'ERROR';
-  const detail = document.createElement('span');
-  detail.textContent = ' ' + (res.detail || res.error || '');
-  box.append(chip, detail);
+function showResult(res) {
+  const box = $('result'); box.style.display = 'block'; box.replaceChildren();
+  box.append(el('span', { className: 'chip ' + (res.verdict || 'ERROR'), textContent: res.verdict || 'ERROR' }), el('span', { textContent: ' ' + (res.detail || res.error || '') }));
   const lines = hintLines(res);
-  if (lines.length) {
-    const ul = document.createElement('ul');
-    for (const l of lines) { const li = document.createElement('li'); li.textContent = l; ul.append(li); }
-    box.append(ul);
-  }
-  if (res.tookMs) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'Evaluated in ' + (res.tookMs / 1000).toFixed(1) + ' s.'; box.append(p); }
+  if (lines.length) { const ul = el('ul'); for (const l of lines) ul.append(el('li', { textContent: l })); box.append(ul); }
+  if (res.tookMs) box.append(el('p', { className: 'small', textContent: 'Evaluated in ' + (res.tookMs / 1000).toFixed(1) + ' s.' }));
 }
-
 async function send(ref, text) {
   let parsed;
   try { parsed = JSON.parse(text); } catch { return { verdict: 'ERROR', detail: 'The response is not valid JSON.' }; }
@@ -143,96 +432,54 @@ async function send(ref, text) {
   if (status >= 400 && !data.verdict) return { verdict: 'ERROR', detail: data.error || 'Request failed (' + status + ')' };
   return data;
 }
-
 async function loadPolicies() {
   const { data } = await api('/api/policies');
-  $('chain').textContent = (data.validator?.network || 'Cardano preprod') + ', validator script hash ' + (data.validator?.hash || '') + ', testnet funds only';
-  const sel = $('policy');
-  sel.replaceChildren();
+  if (data.validator?.hash) $('vchip').textContent = 'validator ' + data.validator.hash.slice(0, 8) + '…';
+  const sel = $('policy'); sel.replaceChildren();
   for (const p of data.policies || []) {
-    const o = document.createElement('option');
-    o.value = p.ref;
-    o.textContent = p.name + (p.status === 'open' ? '' : ' (' + p.status + ')');
+    const o = el('option', { value: p.ref, textContent: p.name + (p.status === 'open' ? '' : ' (' + p.status + ')') });
     o.dataset.note = p.status === 'open' ? p.note + ' Rule: sum ' + p.rule + '; max age ' + p.maxAgeSeconds + ' s; open until ' + p.deadline.replace('T', ' ').slice(0, 16) + ' UTC.' : 'This policy is ' + p.status + '.';
     sel.append(o);
   }
   const note = () => { $('policyNote').textContent = sel.selectedOptions[0]?.dataset.note || ''; };
   sel.onchange = note; note();
 }
-
 async function loadCases() {
-  const { data } = await api('/api/cases');
-  cases = data;
-  const first = cases[0];
-  if (first) $('resp').value = JSON.stringify(first.response, null, 2);
+  const { data } = await api('/api/cases'); cases = data;
+  if (cases[0]) $('resp').value = JSON.stringify(cases[0].response, null, 2);
   const seen = new Set();
   for (const c of cases) {
     const key = c.file + c.policy;
     if (seen.has(key) || c.id === 'control-last') continue;
     seen.add(key);
-    const b = document.createElement('button');
-    b.textContent = c.label.replace(' (control)', '');
-    b.title = 'Expected: ' + c.expect + ' on ' + c.policy;
-    b.onclick = () => {
-      $('resp').value = JSON.stringify(c.response, null, 2);
-      for (const o of $('policy').options) if (o.value === c.ref) $('policy').value = o.value;
-      $('policy').onchange?.();
-    };
+    const b = el('button', { textContent: c.label.replace(' (control)', ''), title: 'Expected: ' + c.expect + ' on ' + c.policy });
+    b.onclick = () => { $('resp').value = JSON.stringify(c.response, null, 2); for (const o of $('policy').options) if (o.value === c.ref) $('policy').value = o.value; $('policy').onchange?.(); };
     $('examples').append(b);
   }
 }
-
 $('send').onclick = async () => {
   $('send').disabled = true; $('result').style.display = 'block'; $('result').textContent = 'Asking the validator…';
-  try { show(await send($('policy').value, $('resp').value)); } finally { $('send').disabled = false; }
+  try { showResult(await send($('policy').value, $('resp').value)); } finally { $('send').disabled = false; }
 };
-
 $('runAll').onclick = async () => {
   $('runAll').disabled = true; $('send').disabled = true;
   const out = $('benchOut'); out.replaceChildren();
-  const table = document.createElement('table');
-  table.innerHTML = '<thead><tr><th>Case</th><th>Policy</th><th>Expected</th><th>Verdict</th></tr></thead><tbody></tbody>';
-  out.append(table);
+  const table = el('table'); table.innerHTML = '<thead><tr><th>Case</th><th>Policy</th><th>Expected</th><th>Verdict</th></tr></thead><tbody></tbody>'; out.append(table);
   let matched = 0;
   for (const c of cases) {
-    const tr = document.createElement('tr');
-    for (const t of [c.label, c.policy, c.expect, 'asking…']) { const td = document.createElement('td'); td.textContent = t; tr.append(td); }
-    table.tBodies[0].append(tr);
+    const tr = table.tBodies[0].insertRow();
+    for (const t of [c.label, c.policy, c.expect, 'asking…']) tr.insertCell().textContent = t;
     const res = await send(c.ref, JSON.stringify(c.response));
-    const cell = tr.cells[3]; cell.replaceChildren();
-    const chip = document.createElement('span'); chip.className = 'chip ' + (res.verdict || 'ERROR'); chip.textContent = res.verdict || 'ERROR'; cell.append(chip);
+    const cell = tr.cells[3]; cell.replaceChildren(el('span', { className: 'chip ' + (res.verdict || 'ERROR'), textContent: res.verdict || 'ERROR' }));
     if (res.verdict === c.expect) matched += 1;
   }
-  const p = document.createElement('p'); p.className = 'small';
-  p.textContent = matched === cases.length ? 'All ' + cases.length + ' cases came out as expected: the two controls were accepted, the four tampered cases were refused by the validator.' : matched + ' of ' + cases.length + ' cases matched. If a control was refused, wait half a minute and run again before drawing conclusions (the evaluator can lag behind the chain).';
-  out.append(p);
+  out.append(el('p', { className: 'small', textContent: matched === cases.length ? 'All ' + cases.length + ' cases came out as expected: the two controls were accepted, the four tampered cases were refused by the validator.' : matched + ' of ' + cases.length + ' cases matched. If a control was refused, wait half a minute and run again before drawing conclusions (the evaluator can lag behind the chain).' }));
   $('runAll').disabled = false; $('send').disabled = false;
 };
 
-async function loadWatch() {
-  const { data: w } = await api('/api/watch');
-  const el = $('watch');
-  if (!w || !w.enabled) { el.textContent = 'Seller keeper (auto-release): off.'; return; }
-  const open = (w.candidates || []).filter((c) => c.state === 'watching' || c.state === 'rule-not-met' || c.state === 'releasing');
-  const age = w.lastCycleAt ? Math.round((Date.now() - Date.parse(w.lastCycleAt)) / 1000) + ' s ago' : 'not yet';
-  el.textContent = 'Seller keeper (auto-release' + (w.dry ? ', dry run' : '') + '): watching ' + open.length + ' escrow(s) that pay this service; last check ' + age + (w.lastPrice ? '; ETH/USD ' + w.lastPrice : '') + '; released so far: ' + w.released + '.';
-}
-
-async function loadInfo() {
-  const { data } = await api('/api/info');
-  if (data.paidRoute) $('price').textContent = data.paidRoute.priceTada + ' tADA';
-  const { data: jobs } = await api('/api/jobs');
-  const tb = document.querySelector('#jobs tbody'); tb.replaceChildren();
-  for (const j of (Array.isArray(jobs) ? jobs : []).slice(0, 8)) {
-    const tr = document.createElement('tr');
-    const cells = [j.at.replace('T', ' ').slice(0, 19), j.outcome, short(j.ref, 8), j.tx ? short(j.tx, 8) : ''];
-    for (const t of cells) { const td = document.createElement('td'); td.textContent = t; tr.append(td); }
-    tb.append(tr);
-  }
-  if (!tb.rows.length) { const tr = tb.insertRow(); const td = tr.insertCell(); td.colSpan = 4; td.className = 'small'; td.textContent = 'No jobs yet.'; }
-}
-
-loadPolicies(); loadCases(); loadInfo(); loadWatch(); setInterval(loadInfo, 15000); setInterval(loadWatch, 10000);
+// ---------------------------------------------------------------- start
+api('/api/info').then(({ data }) => { if (data.validatorHash) $('vchip').textContent = 'validator ' + data.validatorHash.slice(0, 8) + '…'; });
+show((location.hash || '#overview').slice(1));
 </script>
 </body>
 </html>

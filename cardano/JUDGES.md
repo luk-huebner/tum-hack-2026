@@ -1,11 +1,11 @@
 # Judge tamper bench (Cardano preprod)
 
-Two policies are locked at the validator (script hash `58fb7eef...62ea`, Cardano preprod) and stay open until Sat 31 Oct 2026, 20:00 UTC. The first version of the validator (`a9e4420c...`, which had the double-satisfaction flaw in TRUST.md) has its own pair of bench policies, listed in `standing-policies-v1.json`; run the attacks against both with `attacks.ts` to see the difference. Each pays 5 tADA to the beneficiary if an AirnodeHub response, signed by the **Open-Meteo Airnode** `0xee510FFb986299529fE987bfD163D6c89067D767` for the pinned request (Munich rainfall, 10 to 23 Oct 2026, 14 daily values), sums to **less than 30.00 mm**.
+Two policies are locked at the validator (script hash `58fb7eef...62ea`, Cardano preprod) and stay open until Sat 31 Oct 2026, 20:00 UTC. The first version of the validator (`a9e4420c...`, which had the double-satisfaction flaw in TRUST.md) has its own pair of bench policies, listed in `standing-policies-v1.json`; run the attacks against both with `attacks.ts` to see the difference. Each pays 5 tADA to the beneficiary (the buyer wallet's key: not the seller's, so the seller's keeper never releases the bench) if an AirnodeHub response, signed by the **Open-Meteo Airnode** `0xee510FFb986299529fE987bfD163D6c89067D767` for the pinned request (Munich rainfall, 10 to 23 Oct 2026, 14 daily values), sums to **less than 30.00 mm**.
 
 | Policy | UTxO | Accepts a response up to |
 |---|---|---|
-| bench-48h | `53521b16498c0bd4ce7f7920433a6b9d34e7ad77bce5e974c25d66f7990b725d#0` | 48 hours old (so the stored real response works until Sun 1 Nov 10:22 UTC) |
-| bench-5min | `53521b16498c0bd4ce7f7920433a6b9d34e7ad77bce5e974c25d66f7990b725d#1` | 5 minutes old |
+| bench-48h | `403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc#0` | 48 hours old (so the stored real response works until Sun 1 Nov 10:22 UTC) |
+| bench-5min | `403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc#1` | 5 minutes old |
 
 The contract does all the checking: pinned signer key, pinned request hash, the signed text rebuilt byte for byte from the submitted values, the clock (not signed in the future, not older than the policy allows, after the data window settled, before the deadline), then the rule. The script here checks nothing.
 
@@ -35,7 +35,7 @@ The wallet only pays fees and collateral. Test ADA: https://docs.cardano.org/car
 ## The five cases
 
 ```bash
-B=53521b16498c0bd4ce7f7920433a6b9d34e7ad77bce5e974c25d66f7990b725d
+B=403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc
 npx tsx src/judge.ts --utxo $B#0 --response vectors/tamper/valid.json           # real response            -> ACCEPTED
 npx tsx src/judge.ts --utxo $B#0 --response vectors/tamper/edited.json          # one value edited         -> REJECTED
 npx tsx src/judge.ts --utxo $B#1 --response vectors/tamper/valid.json           # too old (5-minute policy) -> REJECTED

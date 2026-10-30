@@ -1,0 +1,253 @@
+{
+  "updated": "2026-10-30",
+  "note": "Every entry names where it was shown. On chain means a transaction on Cardano preprod; evaluation means the node provider ran the validator on a transaction that was never sent; tests means a contract test in CI.",
+  "validators": {
+    "current": {
+      "hash": "58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea",
+      "bytes": 2317,
+      "tests": 55
+    },
+    "first": {
+      "hash": "a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c",
+      "bytes": 1832,
+      "tests": 39,
+      "note": "had the double-satisfaction flaw; kept as evidence"
+    }
+  },
+  "items": [
+    {
+      "group": "The contract",
+      "claim": "One validator checks the signer, the request, the age and the rule, then pays the beneficiary. 55 contract tests pass, including the four tamper cases API3 asks for.",
+      "status": "tests",
+      "detail": "Current validator, script hash 58fb7eef. CI run 41079363081.",
+      "tx": []
+    },
+    {
+      "group": "The contract",
+      "claim": "We attacked our own first version and found a real flaw: two policies with the same beneficiary could be released with one payment, and the submitter kept the second payout. The fix allows one policy per release and the same attack is now refused.",
+      "status": "evaluation",
+      "detail": "Same response, same wallet, same transaction: ACCEPTED by the first validator, REJECTED by the current one. Nothing was sent.",
+      "tx": []
+    },
+    {
+      "group": "x402 on Cardano",
+      "claim": "A buyer's x402 payment goes straight into the validator with the policy as its datum (Cardano's script transfer method).",
+      "status": "onchain",
+      "detail": "Current validator: 5 tADA payment, HTTP 200 after 52 s; the client first recomputed the whole datum and found it matched.",
+      "tx": [
+        {
+          "label": "payment into the validator",
+          "hash": "5d3488232e4944a7600c69c07558f448e9750fd5468126d80c44ff077b970923"
+        }
+      ]
+    },
+    {
+      "group": "x402 on Cardano",
+      "claim": "The seller's own keeper found that escrow and released it about 40 seconds later with no further command. 5 tADA reached the seller; the observation-time check passed on chain.",
+      "status": "onchain",
+      "detail": "Current validator. The keeper finds policies that pay it, fetches a signed price, checks it and releases.",
+      "tx": [
+        {
+          "label": "release by the seller's keeper",
+          "hash": "aba3ded929b15142c0804a09c449c8027d11a43bf522c33a80d7531e6868bd94"
+        }
+      ]
+    },
+    {
+      "group": "x402 on Cardano",
+      "claim": "The refund works: a refund 343 seconds before the deadline was refused by the validator, and after the deadline the buyer got the money back.",
+      "status": "onchain",
+      "detail": "First validator; the refund code path is unchanged in the current one. The early refund was an evaluation.",
+      "tx": [
+        {
+          "label": "escrow payment",
+          "hash": "78cf5df6b6bd98b5e9a57c6d470eaefd67db578e07a7e6de8e6962a5abbcc849"
+        },
+        {
+          "label": "refund after the deadline",
+          "hash": "1057e1d9deb8981a292da4e13f87a6d4122f1c374283d0c6f589fccdbf6e0d1d"
+        }
+      ]
+    },
+    {
+      "group": "x402 on Cardano",
+      "claim": "A paid keeper job: the buyer pays 2 tADA by x402, and is charged only if the keeper releases. A refused request left both balances unchanged.",
+      "status": "onchain",
+      "detail": "First validator. HTTP 200 after 91 s; a request for the wrong source returned 422 and charged nothing.",
+      "tx": [
+        {
+          "label": "x402 payment (2 tADA)",
+          "hash": "51188ed459c7bf8a59160e0f8ede352251bfdc1b57524784c85f6e68cb146ffb"
+        },
+        {
+          "label": "release of 5 tADA",
+          "hash": "1678080ab54aee6c3f799775247b624b37da21eb4ec4a3ad6431c78a0f979d84"
+        }
+      ]
+    },
+    {
+      "group": "x402 on Cardano",
+      "claim": "The very first paid x402 request on Cardano preprod (the Cardano track's gate), through the official template.",
+      "status": "onchain",
+      "detail": "A placeholder route; it proved the facilitator and our wallets work.",
+      "tx": [
+        {
+          "label": "x402 payment (2 tADA)",
+          "hash": "88b9fb664a8c8ffb0d1704de049df3c243ae5a90f39e3ebc8b10d39b597d15dd"
+        }
+      ]
+    },
+    {
+      "group": "Real signed data",
+      "claim": "A real signed Open-Meteo rainfall response (14 daily values for Munich, sum 26.2 mm) released a policy that pays below 30 mm.",
+      "status": "onchain",
+      "detail": "First validator.",
+      "tx": [
+        {
+          "label": "release with the real response",
+          "hash": "0a2b24ddef14da2d29369d3fbb3e4d771d321e2519dbbc1d07e544aef3e64649"
+        }
+      ]
+    },
+    {
+      "group": "Real signed data",
+      "claim": "A response signed 16 seconds earlier released a policy that accepts only 5 minutes: the age limit really binds.",
+      "status": "onchain",
+      "detail": "First validator. 0.1 aUSD paid on Base Sepolia for the fresh response.",
+      "tx": [
+        {
+          "label": "release 16 s after signing",
+          "hash": "b266fc382a1c89ca4bebdf44d273f5601424e20341a1124305f245f7c3caa12b"
+        }
+      ]
+    },
+    {
+      "group": "Real signed data",
+      "claim": "The same contract, a second industry: a signed tweet response (likes) released a Creator Pay policy; an edited count and an unmet KPI were refused.",
+      "status": "onchain",
+      "detail": "First validator; the contract was not changed for it.",
+      "tx": [
+        {
+          "label": "release of the 300,000-likes policy",
+          "hash": "08796403a39fb51a1d04f35ff6aa857b52ab9eff32dc8667cba1ae32d0c8d161"
+        }
+      ]
+    },
+    {
+      "group": "Real signed data",
+      "claim": "The keeper agent: scheduled cycles, a spending cap, backoff after failures and a log line per cycle. Two releases, and one run that waited 22 cycles through three failed fetches without releasing, as it should.",
+      "status": "onchain",
+      "detail": "First validator, free Nodary price data.",
+      "tx": [
+        {
+          "label": "keeper release",
+          "hash": "a1c04de9d5637e0d80e70c00300ba8d2ba08f13df37aabc93f6160d70616d944"
+        }
+      ]
+    },
+    {
+      "group": "Templates through the paid route",
+      "claim": "Three kinds of outcome run through the same contract and the same paid route: an ETH/USD price, the likes of a tweet, and Munich rainfall. Each was an x402 payment into the validator followed by a release by the seller's keeper, with its own signed data and no contract change.",
+      "status": "onchain",
+      "detail": "ETH/USD (free), tweet 20 at least 300,000 likes (308,791 seen, 0.01 aUSD), rainfall below 30 mm (26.2 mm seen, 0.1 aUSD). The like count had fallen since an earlier test, so likes are not monotonic.",
+      "tx": [
+        {
+          "label": "price: release",
+          "hash": "a3b9da71121c030ec35bea1002c5e8119852fa7164e7d90e7cc06e16099527db"
+        },
+        {
+          "label": "likes: payment",
+          "hash": "7d169440d20c5caaedcbd25e461594feb707597c91b3ca6dd56d4abb1fa11bcc"
+        },
+        {
+          "label": "likes: release",
+          "hash": "f214d830f2d39ed849c441fe478e073b6abc49906704b185d924f2f610417665"
+        },
+        {
+          "label": "rainfall: payment",
+          "hash": "847b40e6a388ba462c0ddcd1908fc63908cea9b3fcac071a68296fed801fef55"
+        },
+        {
+          "label": "rainfall: release",
+          "hash": "d897e036800dbb2f5702d96482297efb6cc7d79825733d67dc7c7df6a7a78b40"
+        }
+      ]
+    },
+    {
+      "group": "Templates through the paid route",
+      "claim": "Run from the console: an escrow that nobody can release was paid, an early refund was refused by the contract, and after the deadline the buyer's key refunded it.",
+      "status": "onchain",
+      "detail": "Current validator, from the \"Run it live\" panel.",
+      "tx": [
+        {
+          "label": "escrow payment",
+          "hash": "51855b9bfe4516530aaf02c082c6e42011407751a37c49a23eb2883a2d9f481e"
+        },
+        {
+          "label": "refund after the deadline",
+          "hash": "593d05f66bfb1417a95b9a008f53daefb1275ccd70dff44cf464fd429feb5901"
+        }
+      ]
+    },
+    {
+      "group": "Mistakes we made and fixed",
+      "claim": "The seller's keeper released our own standing judge bench: it names the seller as beneficiary and pins a request the keeper had just learned to prove. The bench now names the buyer's key. We also fixed a wasted paid fetch and a provider call that could hang.",
+      "status": "onchain",
+      "detail": "Two releases of 5 tADA to our own seller key, 0.2 aUSD spent. Nothing was lost but the bench, which was re-locked.",
+      "tx": [
+        {
+          "label": "bench released by mistake (1)",
+          "hash": "346e7c496d59cd0928cf127b7334deba9da2ff1eec5ab90fbff0287c42309003"
+        },
+        {
+          "label": "bench released by mistake (2)",
+          "hash": "0693dbcaa73acf21dacf7cd22323cd50773326609e8532c2a5ae6c6c4a70a8c0"
+        },
+        {
+          "label": "bench re-locked",
+          "hash": "403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc"
+        }
+      ]
+    },
+    {
+      "group": "Attacks refused",
+      "claim": "The tamper bench: one real response is accepted, and an edited value, a stale response, a response to a different request and a foreign signer are all refused. Run it on the Tamper bench tab.",
+      "status": "evaluation",
+      "detail": "Six steps with a control before and after. The bench policies are locked on the current validator.",
+      "tx": [
+        {
+          "label": "bench lock (two standing policies)",
+          "hash": "403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc"
+        }
+      ]
+    },
+    {
+      "group": "Attacks refused",
+      "claim": "Nobody can redirect the money: releasing without paying the beneficiary, paying an attacker, or underpaying by one lovelace are all refused; wrong refunders (no signer, an attacker, the beneficiary) are refused.",
+      "status": "evaluation",
+      "detail": "Thirteen release cases and five refund cases, controls first and last. Anyone may submit a correct release.",
+      "tx": []
+    },
+    {
+      "group": "Attacks refused",
+      "claim": "A lying seller cannot slip a bad datum past the buyer: the client recomputes the whole policy and refuses on any difference. 54 dishonest price lists over three templates, all refused.",
+      "status": "tests",
+      "detail": "The facilitator does not look at the datum, so this check is the buyer's last line of defence.",
+      "tx": []
+    },
+    {
+      "group": "Not shown yet",
+      "claim": "Several escrows at once, a watcher restart, the rule-not-met case on the escrow route, a stale observation on chain, and a public judge URL.",
+      "status": "notrun",
+      "detail": "On the build list. (The three templates are shown above.)",
+      "tx": []
+    },
+    {
+      "group": "Not shown yet",
+      "claim": "A signature proves what the API returned, not that it is true. There is no dispute process. Observation time is checked only for feeds that sign one (the Nodary price). Not audited.",
+      "status": "notrun",
+      "detail": "These are limits, not tasks. See TRUST.md.",
+      "tx": []
+    }
+  ]
+}

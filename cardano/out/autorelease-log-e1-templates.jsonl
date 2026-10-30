@@ -1,0 +1,11 @@
+{"at":"2026-10-30T15:44:54.711Z","event":"start","dry":false,"allowPaid":true,"ausdCap":0.4,"intervalS":20,"beneficiary":"31a15aa9…","templates":["eth-usd","rain-below","tweet-likes:20"]}
+{"at":"2026-10-30T15:46:18.431Z","event":"scan","candidates":1,"sources":["tweet:20"],"values":{"tweet:20":308791},"ready":1,"spentAusd":0.01,"dry":false}
+{"at":"2026-10-30T15:46:39.578Z","event":"released","ref":"7d169440d20c5caaedcbd25e461594feb707597c91b3ca6dd56d4abb1fa11bcc#0","rule":"likes of tweet 20 at least 300000","tx":"f214d830f2d39ed849c441fe478e073b6abc49906704b185d924f2f610417665","value":308791,"threshold":300000,"responseAgeS":26}
+{"at":"2026-10-30T15:47:35.323Z","event":"confirmed","tx":"f214d830f2d39ed849c441fe478e073b6abc49906704b185d924f2f610417665"}
+{"at":"2026-10-30T15:48:18.448Z","event":"scan","candidates":1,"sources":["meteo:munich"],"values":{"tweet:20":308791,"meteo:munich":26.2},"ready":1,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T15:48:18.449Z","event":"cooldown","ref":"847b40e6a388ba462c0ddcd1908fc63908cea9b3fcac071a68296fed801fef55#0","waitS":2,"note":"the previous release was confirmed moments ago"}
+{"at":"2026-10-30T15:48:38.606Z","event":"scan","candidates":1,"sources":["meteo:munich"],"values":{"tweet:20":308791,"meteo:munich":26.2},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T15:48:58.789Z","event":"scan","candidates":1,"sources":["meteo:munich"],"values":{"tweet:20":308791,"meteo:munich":26.2},"ready":0,"spentAusd":0.11,"dry":false}
+{"at":"2026-10-30T15:49:20.699Z","event":"scan","candidates":1,"sources":["meteo:munich"],"values":{"tweet:20":308791,"meteo:munich":26.2},"ready":1,"spentAusd":0.21,"dry":false}
+{"at":"2026-10-30T15:49:47.310Z","event":"released","ref":"847b40e6a388ba462c0ddcd1908fc63908cea9b3fcac071a68296fed801fef55#0","rule":"Munich rainfall, 10 to 23 Oct 2026, below 30 mm","tx":"d897e036800dbb2f5702d96482297efb6cc7d79825733d67dc7c7df6a7a78b40","value":26.2,"threshold":30,"responseAgeS":30}
+{"at":"2026-10-30T15:57:43.426Z","event":"confirmation-not-seen-yet","tx":"d897e036800dbb2f5702d96482297efb6cc7d79825733d67dc7c7df6a7a78b40"}
