@@ -61,12 +61,15 @@ const offerSchema = {
   below: { type: "number", description: 'The threshold for a rule "below" (rainfall in mm).' },
   minutes: { type: "number", description: "The deadline in minutes from now (5 to 4320). If the rule has not held by then, the buyer can take the money back." },
   refund: { type: "string", description: "The buyer's preprod address (addr_test1...) that gets the money back. Defaults to BUYER_ADDRESS in the environment." },
+  payee: { type: "string", description: "Who is paid when the rule holds (a preprod address, for example the creator). Defaults to the seller." },
+  measureAfterMinutes: { type: "number", description: "Count only data signed after this many minutes from now (for example the last hour of a campaign), so that a boost in the middle does not count. At least 10 minutes before the deadline." },
 };
 
 const buildOffer = (args: Record<string, unknown>) => {
   const refund = typeof args.refund === "string" && args.refund ? args.refund : need("BUYER_ADDRESS");
   const minutes = Number(args.minutes ?? 30);
-  return parseOffer({ ...args, refund, deadlineMs: Date.now() + minutes * 60_000 }, Date.now());
+  const measureAfterMs = args.measureAfterMinutes === undefined ? undefined : Date.now() + Number(args.measureAfterMinutes) * 60_000;
+  return parseOffer({ ...args, refund, deadlineMs: Date.now() + minutes * 60_000, ...(measureAfterMs === undefined ? {} : { measureAfterMs }) }, Date.now());
 };
 
 interface Tool {
@@ -134,7 +137,7 @@ const tools: Tool[] = [
       const policy = offerPolicy(offer);
       return text({
         rule: describeOffer(offer),
-        pays: `${Number(ESCROW_LOVELACE) / 1_000_000} tADA to the seller when the rule is proven by a signed response at most ${policy.maxAgeMs / 1000} s old`,
+        pays: `${Number(ESCROW_LOVELACE) / 1_000_000} tADA to ${offer.payee ? `${offer.payee.slice(0, 20)}...` : "the seller"} when the rule is proven by a signed response at most ${policy.maxAgeMs / 1000} s old`,
         otherwise: `the buyer (${offer.refund.slice(0, 20)}...) can take it back after ${new Date(offer.deadlineMs).toISOString()}`,
         validator: scriptHash,
         nothingPaid: true,
@@ -180,6 +183,8 @@ const tools: Tool[] = [
       if (offer.sourceId) cli.push("--source", offer.sourceId);
       cli.push(args.below !== undefined ? "--below" : "--at-least", String(args.below ?? args.atLeast));
       if (typeof args.refund === "string" && args.refund) cli.push("--refund", args.refund);
+      if (offer.payee) cli.push("--payee", offer.payee);
+      if (args.measureAfterMinutes !== undefined) cli.push("--measure-after-minutes", String(args.measureAfterMinutes));
       locked += 1;
       try {
         const { stdout } = await tsx("src/escrow-client.ts", cli);

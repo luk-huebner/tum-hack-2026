@@ -163,6 +163,8 @@ export interface PolicyView {
   beneficiaryHex: string;
   refundToHex: string;
   payout: bigint;
+  /** A response signed before this time does not count (the policy measures only after it). */
+  settleAfterMs: number;
   deadlineMs: number;
   maxAgeMs: number;
   threshold: number;
@@ -185,6 +187,7 @@ export const policyViewOf = (utxo: { datumOption?: unknown }): PolicyView => {
     beneficiaryHex: hex(fields[13]),
     refundToHex: hex(fields[14]),
     payout: BigInt(fields[15] as bigint),
+    settleAfterMs: Number(fields[10]),
     deadlineMs: Number(fields[11]),
     maxAgeMs: Number(fields[12]),
     threshold: Number(fields[9]),

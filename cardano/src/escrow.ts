@@ -19,6 +19,7 @@ export const ESCROW_LOVELACE = 5_000_000n; // the price of the route, and the am
 export const ESCROW_MAX_AGE_MS = 300_000; // a release must use a response signed in the last 5 minutes
 const MIN_LEAD_MS = 5 * 60_000; // the deadline must be at least this far away when the offer is made
 const MAX_LEAD_MS = 72 * 3_600_000;
+const MIN_WINDOW_MS = 10 * 60_000; // a measurement window (measureAfter to deadline) shorter than this cannot be used
 
 /**
  * What a buyer asks for: pay the seller when the template's rule holds (`value` is its threshold in the template's own unit:
@@ -31,6 +32,10 @@ export interface EscrowOffer {
   value: number;
   tweetId?: string; // template tweet-likes
   sourceId?: string; // template source
+  /** Count only a measurement signed after this time (POSIX ms): "the likes at the end of the campaign", not a boost in the middle of it. */
+  measureAfterMs?: number;
+  /** Who is paid when the rule holds (a key-controlled preprod address). Default: the seller (SELLER_ADDRESS). In Creator Pay it is the creator. */
+  payee?: string;
 }
 
 /** The tweet id or source id that the template needs to find its spec. */
@@ -62,11 +67,42 @@ export const parseOffer = (body: unknown, nowMs: number): EscrowOffer => {
   if (!Number.isSafeInteger(deadlineMs) || deadlineMs < nowMs + MIN_LEAD_MS || deadlineMs > nowMs + MAX_LEAD_MS) {
     throw new Error("deadlineMs must be a unix time in milliseconds between 5 minutes and 72 hours from now");
   }
-  return { template, refund, deadlineMs, value, ...(tweetId === undefined ? {} : { tweetId }), ...(sourceId === undefined ? {} : { sourceId }) };
+  let payee: string | undefined;
+  if (b.payee !== undefined) {
+    payee = String(b.payee).trim();
+    let payeeCredential: string | undefined;
+    try {
+      payeeCredential = Address.fromBech32(payee).paymentCredential?._tag;
+    } catch {
+      // reported below
+    }
+    if (!payee.startsWith("addr_test1") || payeeCredential !== "KeyHash") throw new Error("payee must be a preprod address (addr_test1...) controlled by a key, not a script");
+  }
+  let measureAfterMs: number | undefined;
+  if (b.measureAfterMs !== undefined) {
+    measureAfterMs = Number(b.measureAfterMs);
+    // the keeper stops 3 minutes before the deadline and a release waits for the chain, so the window must be wide enough to use
+    if (!Number.isSafeInteger(measureAfterMs) || measureAfterMs < nowMs - 60_000 || measureAfterMs > deadlineMs - MIN_WINDOW_MS) {
+      throw new Error("measureAfterMs must be a unix time in milliseconds, not in the past and at least 10 minutes before the deadline");
+    }
+  }
+  return {
+    template,
+    refund,
+    deadlineMs,
+    value,
+    ...(tweetId === undefined ? {} : { tweetId }),
+    ...(sourceId === undefined ? {} : { sourceId }),
+    ...(measureAfterMs === undefined ? {} : { measureAfterMs }),
+    ...(payee === undefined ? {} : { payee }),
+  };
 };
 
 /** A sentence for the offer's rule. */
-export const describeOffer = (offer: EscrowOffer): string => specFor(offer.template, instanceOf(offer)).describe(offer.value);
+export const describeOffer = (offer: EscrowOffer): string =>
+  specFor(offer.template, instanceOf(offer)).describe(offer.value) +
+  (offer.measureAfterMs === undefined ? "" : `, counting only data signed after ${new Date(offer.measureAfterMs).toISOString()}`) +
+  (offer.payee === undefined ? "" : `, paid to ${offer.payee.slice(0, 18)}...`);
 
 /** The policy datum for an offer. The seller (SELLER_ADDRESS) is paid; the buyer's address is the refund party. */
 export const offerPolicy = (offer: EscrowOffer): Policy => {
@@ -83,10 +119,10 @@ export const offerPolicy = (offer: EscrowOffer): Policy => {
     slotTo: spec.slotTo,
     cmp: spec.cmp,
     threshold: spec.toThreshold(offer.value),
-    settleAfterMs: vec.timestamp * 1000 - 3_600_000,
+    settleAfterMs: offer.measureAfterMs ?? vec.timestamp * 1000 - 3_600_000,
     deadlineMs: offer.deadlineMs,
     maxAgeMs: ESCROW_MAX_AGE_MS,
-    beneficiaryHex: paymentKeyHashHex(sellerAddressBech32()),
+    beneficiaryHex: paymentKeyHashHex(offer.payee ?? sellerAddressBech32()),
     refundToHex: paymentKeyHashHex(offer.refund),
     payout: ESCROW_LOVELACE,
     obsSlot: spec.obs?.slot ?? -1,

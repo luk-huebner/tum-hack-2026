@@ -42,6 +42,8 @@ Add this to `claude_desktop_config.json` (use your own path; the server reads `c
 
 Needed in `cardano/.env` for the read-only tools: `BLOCKFROST_PROJECT_ID`, `SELLER_ADDRESS`, `BUYER_ADDRESS` (a public preprod address). For spending also `MNEMONIC` and the running service (`npm run service`).
 
+`preview_escrow` and `lock_escrow` also take `payee` (who is paid, for example the creator) and `measureAfterMinutes` (count only data signed after that many minutes from now).
+
 Things to ask an agent: "What can I put a conditional payment on?", "Show me what is locked at the contract", "Preview paying the seller if the meme post gets 5 likes within 30 minutes", "Here is a signed response; would the contract accept it? Now change one value and ask again."
 
 ## Test

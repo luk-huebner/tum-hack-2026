@@ -10,6 +10,8 @@
  *   tsx src/escrow-client.ts --template tweet-likes --tweet 20 --at-least 300000     the likes of a registered tweet
  *   tsx src/escrow-client.ts --template rain-below --below 30                        Munich rainfall, 10 to 23 Oct 2026, in mm
  *   tsx src/escrow-client.ts --template source --source yt-views-brian-cohen --at-least 1100000   any registered source (register-source.ts)
+ *   ... --payee addr_test1...                                                       pay this address (the creator) instead of the seller
+ *   ... --minutes 120 --measure-after-minutes 90                                    count only data signed in the last 30 minutes (the end of the campaign)
  *
  * The refund party is this wallet (MNEMONIC) unless --refund is given. Afterwards the policy UTxO is at the validator under
  * the payment's transaction hash; the reference is printed and saved to out/escrow-ref.json.
@@ -35,6 +37,8 @@ const { values } = parseArgs({
     "at-least": { type: "string" },
     below: { type: "string" },
     minutes: { type: "string", default: "40" },
+    "measure-after-minutes": { type: "string" },
+    payee: { type: "string" },
     refund: { type: "string" },
     dry: { type: "boolean", default: false },
     "build-only": { type: "boolean", default: false },
@@ -53,7 +57,14 @@ const need = (name: string): string => {
 
 const walletAddress: string = Address.toBech32(await makeClient("MNEMONIC").address());
 const buyerAddress: string = values.refund ?? walletAddress;
-const base0 = { template: values.template, refund: buyerAddress, deadlineMs: Date.now() + Number(values.minutes) * 60_000 };
+const base0 = {
+  template: values.template,
+  refund: buyerAddress,
+  deadlineMs: Date.now() + Number(values.minutes) * 60_000,
+  // count only data signed after this time (the end of a campaign, not a boost in the middle of it)
+  ...(values.payee === undefined ? {} : { payee: values.payee }),
+  ...(values["measure-after-minutes"] === undefined ? {} : { measureAfterMs: Date.now() + Number(values["measure-after-minutes"]) * 60_000 }),
+};
 const body =
   values.template === "rain-below"
     ? { ...base0, below: Number(values.below ?? "30") }

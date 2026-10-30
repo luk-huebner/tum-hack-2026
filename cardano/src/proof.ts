@@ -121,7 +121,9 @@ export interface Check {
   met: boolean;
   /** The observation-time check of the policy (always true when the policy has none). */
   observationOk: boolean;
-  /** The rule holds AND the observation is fresh: what the validator will accept as far as the data goes. */
+  /** The response was signed at or after the policy's measurement time (settle_after): earlier ones do not count. */
+  settled: boolean;
+  /** The rule holds AND the observation is fresh AND the measurement time has come: what the validator will accept as far as the data goes. */
   ready: boolean;
   signedMs: number;
 }
@@ -143,7 +145,8 @@ export const checkAgainst = (policy: PolicyView, response: SignedResponse): Chec
     scaledThreshold: policy.threshold,
     met,
     observationOk,
-    ready: met && observationOk,
+    settled: signedMs >= policy.settleAfterMs,
+    ready: met && observationOk && signedMs >= policy.settleAfterMs,
     signedMs,
   };
 };

@@ -47,6 +47,8 @@ After that, with no other change:
 | `meme-tweet-likes` | likes of the team's Cardano and API3 meme post on X (any tweet works through TwitterAPI.io) | 30 Oct, two paid fetches (0.02 aUSD); an escrow on it was paid and released on chain (`PROOFS.md`) |
 | `yt-views-brian-cohen` | views of a YouTube video through LunarCrush | 30 Oct, from a response already bought; eight contract tests with the same shape pass in CI; no escrow run on chain |
 
+For a creator's post, `src/creator-intake.ts` writes the spec for you and pins the author (`CREATOR_PAY.md`).
+
 ## Limits
 
 - Only numbers that follow a colon in an object are readable (not numbers inside arrays). A response with arrays needs a projection that picks single elements.

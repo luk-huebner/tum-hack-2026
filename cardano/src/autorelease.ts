@@ -46,7 +46,7 @@ export interface Candidate {
   ref: string;
   rule: string;
   deadline: string;
-  state: "watching" | "rule-not-met" | "releasing" | "retrying" | "released" | "expired" | "deadline-close" | "gave-up" | "waiting-for-budget" | "settled-not-met";
+  state: "watching" | "rule-not-met" | "releasing" | "retrying" | "released" | "expired" | "deadline-close" | "gave-up" | "waiting-for-budget" | "settled-not-met" | "waiting-for-window";
   value?: number;
   /** When the next paid check is planned. */
   nextCheck?: string;
@@ -78,6 +78,8 @@ export interface AutoReleaseOptions {
   ausdCap?: number;
   /** Booth mode (AUTO_RELEASE_FAST=1): paid counters are checked every cycle instead of on the cost-derived schedule. */
   fast?: boolean;
+  /** Extra addresses whose policies this keeper also releases (Creator Pay: the creators it serves). The seller's own are always served. */
+  payees?: string[];
   onJob?: (entry: Record<string, unknown>) => void;
 }
 
@@ -90,8 +92,10 @@ interface Known {
 }
 
 export const startAutoRelease = (options: AutoReleaseOptions) => {
-  const { client, dry = false, intervalMs = 20_000, allowPaid = false, ausdCap = 0.3, fast = false, onJob } = options;
+  const { client, dry = false, intervalMs = 20_000, allowPaid = false, ausdCap = 0.3, fast = false, payees = [], onJob } = options;
   const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
+  // Whose money this keeper releases: the seller, and the allow-listed payees. It spends its own fee either way, so the list is the limit.
+  const served = new Set([sellerPkh, ...payees.map((a) => paymentKeyHashHex(a))]);
   // What the keeper can prove, keyed by the request hash a policy pins. Rebuilt every cycle: tweets can be registered at run time.
   const knownRequests = (): Map<string, Known> => {
     const map = new Map<string, Known>();
@@ -141,7 +145,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
         continue; // not a policy datum
       }
       const k = known.get(policy.requestHashHex);
-      if (!k || policy.signerHex !== k.signerHex || policy.beneficiaryHex !== sellerPkh) continue;
+      if (!k || policy.signerHex !== k.signerHex || !served.has(policy.beneficiaryHex)) continue;
       mine.push({ ref: `${hexOf(utxo.transactionId.hash)}#${Number(utxo.index)}`, utxo, policy, known: k });
     }
     const onChain = new Set(mine.map((m) => m.ref));
@@ -149,6 +153,11 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
       if (!firstSeen.has(m.ref)) {
         firstSeen.set(m.ref, now);
         log({ event: "found", ref: m.ref, rule: m.known.describe(m.policy.threshold / 10 ** m.policy.scale), deadline: new Date(m.policy.deadlineMs).toISOString() });
+        // A policy that counts only a measurement taken after some time: do not pay for data before then, it could not release.
+        if (m.policy.settleAfterMs > now) {
+          nextCheckAt.set(m.ref, m.policy.settleAfterMs + 2_000);
+          log({ event: "waiting-for-window", ref: m.ref, measuresAfter: new Date(m.policy.settleAfterMs).toISOString(), note: "no paid check before then: an earlier response would be refused" });
+        }
       }
     }
     for (const [ref, s] of submitted) {
@@ -174,7 +183,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
         ref: m.ref,
         rule: ruleOf(m),
         deadline: new Date(m.policy.deadlineMs).toISOString(),
-        state: submitted.has(m.ref) ? "released" : gaveUp(m.ref) ? "gave-up" : stopChecking.has(m.ref) ? "settled-not-met" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : "watching",
+        state: submitted.has(m.ref) ? "released" : gaveUp(m.ref) ? "gave-up" : stopChecking.has(m.ref) ? "settled-not-met" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : m.policy.settleAfterMs > now ? "waiting-for-window" : "watching",
       }));
     if (open.length === 0) return;
     // The node's script evaluation can be blind to outputs that are seconds old, including this wallet's change from the release

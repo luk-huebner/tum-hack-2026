@@ -288,6 +288,7 @@ app.listen(...(listenArgs as [number]), () => {
       intervalMs: Number(process.env.AUTO_RELEASE_INTERVAL_S ?? "20") * 1000,
       onJob: recordJob,
       allowPaid: process.env.AUTO_RELEASE_PAID === "1", // tweet and rainfall sources cost aUSD per fetch
+      payees: (process.env.AUTO_RELEASE_PAYEES ?? "").split(",").map((a) => a.trim()).filter(Boolean), // creators this keeper also pays out (addr_test1..., comma separated)
       fast: process.env.AUTO_RELEASE_FAST === "1", // booth mode: paid counters every cycle (set AUTO_RELEASE_INTERVAL_S=3 and a larger AUTO_RELEASE_AUSD_CAP)
       ausdCap: Number(process.env.AUTO_RELEASE_AUSD_CAP ?? "0.3"),
     });
