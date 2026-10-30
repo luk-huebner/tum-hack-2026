@@ -54,7 +54,7 @@ const windowMin = Number(values.window);
 const nAfter = Number(values.after);
 const nHold = Number(values.hold);
 if (![atLeast, campaign, hold, windowMin, nAfter, nHold].every(Number.isFinite)) fail("every number must be a number");
-if (!(Number.isInteger(nAfter) && nAfter >= 1 && Number.isInteger(nHold) && nHold >= 1 && nAfter + nHold <= 6)) fail("--after and --hold must be whole numbers of at least 1, at most 6 escrows in all");
+if (!(Number.isInteger(nAfter) && nAfter >= 0 && Number.isInteger(nHold) && nHold >= 1 && nAfter + nHold <= 6)) fail("--hold must be a whole number of at least 1, --after a whole number of at least 0 (0 locks the retention part alone), at most 6 escrows in all");
 if (hold < campaign + windowMin) fail(`the retention measurement (${hold} minutes) must come after the campaign window ends (${campaign + windowMin} minutes)`);
 if (windowMin < 10) fail("--window must be at least 10 minutes: the keeper needs time to measure and release");
 
@@ -112,6 +112,14 @@ for (const [i, t] of plan.entries()) {
     refs.push(ref);
     console.log(`  ${i + 1}/${plan.length} ${t.label}: ${ref}`);
   } catch (error) {
+    // A slow settlement can come back as HTTP 402 although the escrow is there; the client then finds it by its datum and says so.
+    const said = String((error as { stdout?: string; stderr?: string }).stdout ?? "") + String((error as { stderr?: string }).stderr ?? "");
+    const found = /the escrow is at the validator as (\S+?)[.\s|]/.exec(said)?.[1];
+    if (found) {
+      refs.push(found);
+      console.log(`  ${i + 1}/${plan.length} ${t.label}: ${found}  (the answer said 402; the escrow was found at the validator by its datum)`);
+      continue;
+    }
     console.error(`  ${i + 1}/${plan.length} ${t.label} FAILED: ${String((error as { stdout?: string; message: string }).stdout ?? (error as Error).message).split("\n").filter(Boolean).slice(-3).join(" | ").slice(0, 300)}`);
     console.error(`  stopped; ${refs.length} escrow(s) were locked: ${refs.join(" ") || "none"}. An x402 payment that settles slowly can look like a failure: look at the board before paying again.`);
     process.exit(1);

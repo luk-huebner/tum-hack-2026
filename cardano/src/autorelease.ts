@@ -26,7 +26,7 @@
  *   - every event is appended to out/autorelease-log.jsonl.
  * dry mode does everything except submit (and does not buy paid data).
  */
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { hexOf, loadVector, paymentKeyHashHex, scriptAddress, sellerAddressBech32, sleep, waitForTip, waitForTx } from "./engine.js";
 import { type Client, type Source, type Check, bounded, checkAgainst, classify, fetchSigned, parseSource, policyViewOf, releaseTx, submitWindow, withRetry } from "./proof.js";
 import { fault, faultsLeft } from "./faults.js";
@@ -91,9 +91,14 @@ interface Known {
   signerHex: string;
 }
 
+const standingFile = new URL("../standing-policies.json", import.meta.url);
+
 export const startAutoRelease = (options: AutoReleaseOptions) => {
   const { client, dry = false, intervalMs = 20_000, allowPaid = false, ausdCap = 0.3, fast = false, payees = [], onJob } = options;
   const sellerPkh = paymentKeyHashHex(sellerAddressBech32());
+  const benchRefs = new Set<string>(
+    existsSync(standingFile) ? (JSON.parse(readFileSync(standingFile, "utf8")) as { ref: string }[]).map((s) => s.ref) : [],
+  );
   // Whose money this keeper releases: the seller, and the allow-listed payees. It spends its own fee either way, so the list is the limit.
   const served = new Set([sellerPkh, ...payees.map((a) => paymentKeyHashHex(a))]);
   // What the keeper can prove, keyed by the request hash a policy pins. Rebuilt every cycle: tweets can be registered at run time.
@@ -144,6 +149,8 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
       } catch {
         continue; // not a policy datum
       }
+      // The judge bench is a public fixture: never release it, whoever the keeper is configured to serve (it once was, twice).
+      if (benchRefs.has(`${hexOf(utxo.transactionId.hash)}#${Number(utxo.index)}`)) continue;
       const k = known.get(policy.requestHashHex);
       if (!k || policy.signerHex !== k.signerHex || !served.has(policy.beneficiaryHex)) continue;
       mine.push({ ref: `${hexOf(utxo.transactionId.hash)}#${Number(utxo.index)}`, utxo, policy, known: k });
