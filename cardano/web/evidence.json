@@ -5,7 +5,7 @@
     "current": {
       "hash": "58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea",
       "bytes": 2317,
-      "tests": 55
+      "tests": 65
     },
     "first": {
       "hash": "a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c",
@@ -17,9 +17,9 @@
   "items": [
     {
       "group": "The contract",
-      "claim": "One validator checks the signer, the request, the age and the rule, then pays the beneficiary. 55 contract tests pass, including the four tamper cases API3 asks for.",
+      "claim": "One validator checks the signer, the request, the age and the rule, then pays the beneficiary. 65 contract tests pass, including the four tamper cases API3 asks for.",
       "status": "tests",
-      "detail": "Current validator, script hash 58fb7eef. CI run 41079363081.",
+      "detail": "Current validator, script hash 58fb7eef. CI run 41090389165.",
       "tx": []
     },
     {

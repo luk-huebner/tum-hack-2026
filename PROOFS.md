@@ -271,3 +271,11 @@ The seller's keeper was changed to fail safely (see the header of `cardano/src/a
 Costs: three 5 tADA payments to the seller key (our own), about 1.5 tADA in fees, 0.03 aUSD. Logs: `cardano/out/autorelease-log-e2-run1.jsonl` (until the kill) and `autorelease-log-e2-run2.jsonl` (the whole file).
 
 **Not tested:** the provider being unreachable for minutes (the injected cycle faults and the 15 s call timeouts stand in for it), the facilitator being down, the lossy-connection test (`escrow-client.ts --drop-response`) after its fix (it did not trigger in this run because it checked the wrong place for the payment header; the natural 402-while-settled case above covered the same hazard), several watchers on one wallet, and a release whose transaction is dropped from the mempool (the 6-minute "sent but not spent" retry is coded, not exercised).
+
+## Audit preparation (30 Oct 2026, about 16:30 UTC)
+
+`AUDIT.md` holds the threat model, a checklist of classic Cardano flaws, the findings log, execution cost and questions for a reviewer. New in this step:
+
+- **Ten more contract tests** (65 of 65 pass, CI run `41090389165`; the script hash is unchanged, `58fb7eef...`, because tests are not part of the compiled validator). They pin down: a payment to a script credential with the beneficiary's hash does not count; a payment with another stake credential does count (a known limitation); the policy's own input may come after wallet inputs; an input at another script does not break the one-policy rule; a refund puts no condition on outputs; at the exact deadline instant both a release and a refund are valid, and one millisecond later only the refund is; a missing datum halts both redeemers.
+- **Execution cost measured on chain** (Blockfrost redeemer data for the real transactions): a release uses 321,622 to 1,058,208 memory units (1.8% to 6.0% of the 17,500,000 limit) and 160,609,110 to 369,090,640 steps (1.6% to 3.7% of the limit); a refund uses 49,567 memory (0.3%) and 17,652,677 steps (0.2%). The 14-slot rainfall sum is the most expensive case.
+- **Not done:** property-based tests (the pinned stdlib has no fuzzer module), formal verification, any external review.
