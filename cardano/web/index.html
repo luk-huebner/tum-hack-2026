@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pay-on-Proof on Cardano</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #14181f; --muted: #5a6472; --line: #dde1e7;
+    --accent: #1f4fd8; --ok: #0b6b3a; --ok-bg: #e3f4ea; --bad: #a3202a; --bad-bg: #fbe7e9; --warn: #8a5a00; --warn-bg: #fff1d6;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1218; --card: #171b23; --ink: #e8ebf0; --muted: #9aa4b2; --line: #2b323d;
+      --accent: #7ba2ff; --ok: #6fd69a; --ok-bg: #12301f; --bad: #ff8d95; --bad-bg: #3a171b; --warn: #f2c46b; --warn-bg: #33270d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 0 0 8px; }
+  p { margin: 0 0 12px; }
+  .sub { color: var(--muted); margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  .meta { font: 0.8rem var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 12px 0 4px; }
+  select, textarea { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 0.8rem var(--mono); }
+  textarea { min-height: 170px; resize: vertical; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #0b1020; } }
+  button:disabled { opacity: 0.55; cursor: progress; }
+  button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 600; font-size: 0.85rem; }
+  .ACCEPTED { background: var(--ok-bg); color: var(--ok); }
+  .REJECTED { background: var(--bad-bg); color: var(--bad); }
+  .EXPIRED, .ERROR { background: var(--warn-bg); color: var(--warn); }
+  #result { margin-top: 14px; display: none; }
+  #result ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  code, pre { font-family: var(--mono); font-size: 0.82rem; }
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; overflow-x: auto; margin: 8px 0 0; }
+  .small { font-size: 0.85rem; color: var(--muted); }
+  @media (max-width: 560px) { th:nth-child(4), td:nth-child(4) { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pay-on-Proof on Cardano</h1>
+  <p class="sub">Money moves only when signed real-world data proves a condition agreed in advance. One Aiken validator checks an AirnodeHub response itself: who signed it, which request it answers, how old it is, and whether it meets the rule.</p>
+  <p class="meta" id="chain">Cardano preprod, testnet funds only</p>
+
+  <section class="card" aria-labelledby="bench">
+    <h2 id="bench">Tamper bench</h2>
+    <p>Pick a policy, paste or edit a signed response, and send it to the contract. The answer is the validator's own script evaluation on the Cardano preprod node provider. <strong>Nothing is ever sent to the chain from this page.</strong></p>
+
+    <label for="policy">Policy</label>
+    <select id="policy"></select>
+    <p class="small" id="policyNote" style="margin-top:6px"></p>
+
+    <label for="resp">Signed response (the JSON an Airnode returns)</label>
+    <textarea id="resp" spellcheck="false" aria-describedby="respHelp"></textarea>
+    <p class="small" id="respHelp">Change a value, the timestamp, the request hash or the signature, then send it. Load an example with the buttons.</p>
+
+    <div class="row" id="examples" role="group" aria-label="Examples"></div>
+    <div class="row">
+      <button class="primary" id="send">Send to the contract</button>
+      <button id="runAll">Run the whole bench (6 steps)</button>
+    </div>
+
+    <div id="result" role="status" aria-live="polite"></div>
+    <div id="benchOut"></div>
+  </section>
+
+  <section class="card" aria-labelledby="keeper">
+    <h2 id="keeper">Hire the keeper (x402 on Cardano)</h2>
+    <p>A keeper agent that does one job: for a locked policy it fetches a fresh signed response and, if the rule holds, releases the funds to the policy's beneficiary. You pay <strong id="price">2 tADA</strong> by x402 per request, and <strong>only when it releases</strong>. If the rule is not met, or anything fails, the payment is cancelled.</p>
+    <pre id="howto">npx tsx src/keep-client.ts --ref &lt;txHash&gt;#&lt;index&gt;</pre>
+    <p class="small">The service wallet pays the release fee and never holds the policy's funds. The response includes the signed evidence, which can be pasted into the bench above.</p>
+    <h2 style="margin-top:16px;font-size:1rem">Recent jobs</h2>
+    <table id="jobs"><thead><tr><th>Time (UTC)</th><th>Outcome</th><th>Policy</th><th>Transaction</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <section class="card" aria-labelledby="limits">
+    <h2 id="limits">What this does not prove</h2>
+    <p class="small">A signature proves what the API returned, not that it is true. The contract does not check the data's own observation time, only when the Airnode signed. The rule is a sum of numeric slots compared with a threshold. Not audited; test funds only.</p>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const api = async (path, body) => {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+  return { status: r.status, data: await r.json().catch(() => ({})) };
+};
+const short = (s, n = 10) => (s && s.length > 2 * n ? s.slice(0, n) + '…' + s.slice(-6) : s || '');
+let cases = [];
+
+function hintLines(res) {
+  const h = res.hints || {};
+  const lines = [];
+  if (res.verdict === 'ACCEPTED') lines.push('Nothing was sent. The same response would release ' + res.policy.payoutTada + ' tADA to the policy\'s beneficiary.');
+  if (res.verdict === 'REJECTED') {
+    lines.push('Hints below are worked out by this page, not by the contract.');
+    if (h.sameRequest === false) lines.push('The response answers a different request than this policy pins.');
+    if (h.tooOld) lines.push('The response is ' + h.ageSeconds + ' s old; this policy accepts at most ' + h.maxAgeSeconds + ' s.');
+    if (h.sameRequest !== false && h.ruleHolds === false) lines.push('The submitted values sum to ' + h.sum + '; the policy needs a sum ' + res.policy.rule + '.');
+    if (h.sameRequest !== false && !h.tooOld && h.ruleHolds !== false) lines.push('Request, age and the rule all look fine, so the refusal comes from the signature or the signed text: the data was changed after signing, or the signer is not the Airnode the policy pins.');
+  }
+  return lines;
+}
+
+function show(res) {
+  const box = $('result');
+  box.style.display = 'block';
+  box.replaceChildren();
+  const chip = document.createElement('span');
+  chip.className = 'chip ' + (res.verdict || 'ERROR');
+  chip.textContent = res.verdict || 'ERROR';
+  const detail = document.createElement('span');
+  detail.textContent = ' ' + (res.detail || res.error || '');
+  box.append(chip, detail);
+  const lines = hintLines(res);
+  if (lines.length) {
+    const ul = document.createElement('ul');
+    for (const l of lines) { const li = document.createElement('li'); li.textContent = l; ul.append(li); }
+    box.append(ul);
+  }
+  if (res.tookMs) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'Evaluated in ' + (res.tookMs / 1000).toFixed(1) + ' s.'; box.append(p); }
+}
+
+async function send(ref, text) {
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { return { verdict: 'ERROR', detail: 'The response is not valid JSON.' }; }
+  const { status, data } = await api('/api/judge', { ref, response: parsed });
+  if (status >= 400 && !data.verdict) return { verdict: 'ERROR', detail: data.error || 'Request failed (' + status + ')' };
+  return data;
+}
+
+async function loadPolicies() {
+  const { data } = await api('/api/policies');
+  $('chain').textContent = (data.validator?.network || 'Cardano preprod') + ', validator script hash ' + (data.validator?.hash || '') + ', testnet funds only';
+  const sel = $('policy');
+  sel.replaceChildren();
+  for (const p of data.policies || []) {
+    const o = document.createElement('option');
+    o.value = p.ref;
+    o.textContent = p.name + (p.status === 'open' ? '' : ' (' + p.status + ')');
+    o.dataset.note = p.status === 'open' ? p.note + ' Rule: sum ' + p.rule + '; max age ' + p.maxAgeSeconds + ' s; open until ' + p.deadline.replace('T', ' ').slice(0, 16) + ' UTC.' : 'This policy is ' + p.status + '.';
+    sel.append(o);
+  }
+  const note = () => { $('policyNote').textContent = sel.selectedOptions[0]?.dataset.note || ''; };
+  sel.onchange = note; note();
+}
+
+async function loadCases() {
+  const { data } = await api('/api/cases');
+  cases = data;
+  const first = cases[0];
+  if (first) $('resp').value = JSON.stringify(first.response, null, 2);
+  const seen = new Set();
+  for (const c of cases) {
+    const key = c.file + c.policy;
+    if (seen.has(key) || c.id === 'control-last') continue;
+    seen.add(key);
+    const b = document.createElement('button');
+    b.textContent = c.label.replace(' (control)', '');
+    b.title = 'Expected: ' + c.expect + ' on ' + c.policy;
+    b.onclick = () => {
+      $('resp').value = JSON.stringify(c.response, null, 2);
+      for (const o of $('policy').options) if (o.value === c.ref) $('policy').value = o.value;
+      $('policy').onchange?.();
+    };
+    $('examples').append(b);
+  }
+}
+
+$('send').onclick = async () => {
+  $('send').disabled = true; $('result').style.display = 'block'; $('result').textContent = 'Asking the validator…';
+  try { show(await send($('policy').value, $('resp').value)); } finally { $('send').disabled = false; }
+};
+
+$('runAll').onclick = async () => {
+  $('runAll').disabled = true; $('send').disabled = true;
+  const out = $('benchOut'); out.replaceChildren();
+  const table = document.createElement('table');
+  table.innerHTML = '<thead><tr><th>Case</th><th>Policy</th><th>Expected</th><th>Verdict</th></tr></thead><tbody></tbody>';
+  out.append(table);
+  let matched = 0;
+  for (const c of cases) {
+    const tr = document.createElement('tr');
+    for (const t of [c.label, c.policy, c.expect, 'asking…']) { const td = document.createElement('td'); td.textContent = t; tr.append(td); }
+    table.tBodies[0].append(tr);
+    const res = await send(c.ref, JSON.stringify(c.response));
+    const cell = tr.cells[3]; cell.replaceChildren();
+    const chip = document.createElement('span'); chip.className = 'chip ' + (res.verdict || 'ERROR'); chip.textContent = res.verdict || 'ERROR'; cell.append(chip);
+    if (res.verdict === c.expect) matched += 1;
+  }
+  const p = document.createElement('p'); p.className = 'small';
+  p.textContent = matched === cases.length ? 'All ' + cases.length + ' cases came out as expected: the two controls were accepted, the four tampered cases were refused by the validator.' : matched + ' of ' + cases.length + ' cases matched. If a control was refused, wait half a minute and run again before drawing conclusions (the evaluator can lag behind the chain).';
+  out.append(p);
+  $('runAll').disabled = false; $('send').disabled = false;
+};
+
+async function loadInfo() {
+  const { data } = await api('/api/info');
+  if (data.paidRoute) $('price').textContent = data.paidRoute.priceTada + ' tADA';
+  const { data: jobs } = await api('/api/jobs');
+  const tb = document.querySelector('#jobs tbody'); tb.replaceChildren();
+  for (const j of (Array.isArray(jobs) ? jobs : []).slice(0, 8)) {
+    const tr = document.createElement('tr');
+    const cells = [j.at.replace('T', ' ').slice(0, 19), j.outcome, short(j.ref, 8), j.tx ? short(j.tx, 8) : ''];
+    for (const t of cells) { const td = document.createElement('td'); td.textContent = t; tr.append(td); }
+    tb.append(tr);
+  }
+  if (!tb.rows.length) { const tr = tb.insertRow(); const td = tr.insertCell(); td.colSpan = 4; td.className = 'small'; td.textContent = 'No jobs yet.'; }
+}
+
+loadPolicies(); loadCases(); loadInfo(); setInterval(loadInfo, 15000);
+</script>
+</body>
+</html>

@@ -15,7 +15,11 @@
     "demo": "tsx src/demo.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit",
-    "ci": "npm run typecheck"
+    "ci": "npm run typecheck",
+    "service": "tsx src/service.ts",
+    "keep": "tsx src/keep-client.ts",
+    "judge": "tsx src/judge.ts",
+    "keeper": "tsx src/keeper.ts"
   },
   "dependencies": {
     "@evolution-sdk/evolution": "0.5.14",

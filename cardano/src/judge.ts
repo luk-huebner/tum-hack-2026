@@ -12,17 +12,8 @@
  */
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { Address } from "@evolution-sdk/evolution";
-import {
-  type SignedResponse,
-  hexOf,
-  lovelace,
-  makeClient,
-  policyViewOf,
-  releaseDataFromResponse,
-  script,
-  scriptAddress,
-} from "./engine.js";
+import { type SignedResponse, hexOf, makeClient } from "./engine.js";
+import { checkAgainst, evaluateRelease, evaluationWindow, findPolicyUtxo, policyViewOf, releaseTx } from "./proof.js";
 
 const { values } = parseArgs({ options: { utxo: { type: "string" }, response: { type: "string" }, submit: { type: "boolean", default: false } } });
 if (!values.utxo || !values.response) {
@@ -30,12 +21,10 @@ if (!values.utxo || !values.response) {
   process.exit(1);
 }
 
-const [txHash, indexText] = values.utxo.split("#");
 const response = JSON.parse(readFileSync(values.response, "utf8")) as SignedResponse;
 const client = makeClient("MNEMONIC");
 
-const utxos = await client.getUtxos(scriptAddress);
-const utxo = utxos.find((u) => hexOf(u.transactionId.hash) === txHash && Number(u.index) === Number(indexText));
+const utxo = await findPolicyUtxo(client, values.utxo);
 if (!utxo) {
   console.log(`No policy UTxO ${values.utxo} at the validator address (spent, or a typo).`);
   process.exit(1);
@@ -43,27 +32,22 @@ if (!utxo) {
 
 const policy = policyViewOf(utxo);
 const now = Date.now();
-const ageSeconds = Math.round(now / 1000 - Number(response.timestamp));
+const check = checkAgainst(policy, response);
 console.log(`policy: pays ${policy.payout} lovelace if the sum is ${policy.cmp === "Below" ? "below" : "at least"} ${policy.threshold / 10 ** policy.scale}; max response age ${policy.maxAgeMs / 1000} s; release before ${new Date(policy.deadlineMs).toISOString()}`);
-console.log(`response: signed by ${response.airnode} for request ${response.requestHash.slice(0, 12)}..., ${ageSeconds} s old`);
+console.log(`response: signed by ${response.airnode} for request ${response.requestHash.slice(0, 12)}..., ${Math.round((now - check.signedMs) / 1000)} s old`);
 
-try {
-  const built = await client
-    .newTx()
-    .collectFrom({ inputs: [utxo], redeemer: releaseDataFromResponse(response) })
-    .attachScript({ script })
-    // The contract only checks the beneficiary's payment key hash, so an enterprise address (header 0x60) is enough.
-    .payToAddress({ address: Address.fromHex(`60${policy.beneficiaryHex}`), assets: lovelace(policy.payout) })
-    .setValidity({ from: BigInt(now - 60_000), to: BigInt(Math.min(now + 15 * 60_000, policy.deadlineMs - 1_000)) })
-    .build();
-  if (!values.submit) {
-    console.log("ACCEPTED: the validator ran to completion on this response. Nothing was sent (add --submit to release the funds).");
-  } else {
+// The interval starts after the response was signed and ends where the policy's age rule allows (see evaluationWindow).
+if (!values.submit) {
+  const result = await evaluateRelease(client, utxo, policy, response, now);
+  if (result.verdict === "ACCEPTED") console.log("ACCEPTED: the validator ran to completion on this response. Nothing was sent (add --submit to release the funds).");
+  else console.log(`${result.verdict}: ${result.detail}`);
+  if (result.verdict !== "ACCEPTED" && process.env.JUDGE_DEBUG) console.log(JSON.stringify(result));
+} else {
+  try {
+    const built = await releaseTx(client, utxo, policy, response, evaluationWindow(policy, check.signedMs, now));
     const submitted = await built.signAndSubmit();
     console.log(`ACCEPTED and released: https://preprod.cardanoscan.io/transaction/${hexOf(submitted.hash)}`);
+  } catch (error) {
+    console.log(`NOT RELEASED: ${String((error as Error)?.message ?? error).replace(/\s+/g, " ").slice(0, 200)}`);
   }
-} catch (error) {
-  const message = String((error as Error)?.message ?? error).replace(/\s+/g, " ").slice(0, 200);
-  console.log(`REJECTED: ${message}`);
-  if (process.env.JUDGE_DEBUG) console.log(JSON.stringify(error, Object.getOwnPropertyNames(error as object), 1).replace(/\s+/g, " ").slice(0, 2500));
 }

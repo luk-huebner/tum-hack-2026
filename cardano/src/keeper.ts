@@ -19,12 +19,10 @@
  */
 import { spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { Address } from "@evolution-sdk/evolution";
 import {
   type Policy,
-  type SignedResponse,
   hexOf,
   inlineDatum,
   loadVector,
@@ -32,18 +30,14 @@ import {
   makeClient,
   paymentKeyHashHex,
   policyData,
-  policyViewOf,
-  releaseDataFromResponse,
-  script,
   scriptAddress,
   sellerAddressBech32,
-  slotsFromData,
   sleep,
   waitForTip,
   waitForTx,
 } from "./engine.js";
+import { checkAgainst, fetchSigned, findPolicyUtxo, parseSource, policyViewOf, releaseTx, repoRoot, submitWindow, withRetry } from "./proof.js";
 
-const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 const outDir = new URL("../out/", import.meta.url);
 const logFile = new URL("keeper-log.jsonl", outDir);
 const policyFile = new URL("keeper-policy.json", outDir);
@@ -64,50 +58,15 @@ const { positionals, values } = parseArgs({
   },
 });
 
-// ---------------------------------------------------------------------------
-// Sources: which signed response to buy
-
-interface Source {
-  spec: string;
-  args: string[];
-  costAusd: number;
-}
-
-const parseSource = (spec: string): Source => {
-  const [kind, ...rest] = spec.split(":");
-  const arg = rest.join(":");
-  if (kind === "nodary") return { spec, args: ["nodary-price", arg || "ETH/USD"], costAusd: 0 };
-  if (kind === "tweet" && arg) return { spec, args: ["tweet-kpi", arg], costAusd: 0.01 };
-  throw new Error(`Unknown source "${spec}". Use nodary:<feed> or tweet:<id>`);
-};
-
-/** Buys (or fetches, if free) one signed response through the paid-call script, which verifies signer and request hash. */
-const fetchSigned = (source: Source): { response: SignedResponse; file: string; spentAusd: number } => {
-  const run = spawnSync(process.execPath, ["--env-file=.env", "checks/10-paid-call.ts", ...source.args], { cwd: repoRoot, encoding: "utf8", timeout: 60_000 });
-  const saved = /saved (\S+\.json)/.exec(run.stderr)?.[1];
-  if (run.status !== 0 || !saved) throw new Error(`fetch failed: ${(run.stderr || "no output").trim().split("\n").slice(-2).join(" | ").slice(0, 200)}`);
-  const file = saved.replace(/^\/(\w:)/, "$1");
-  return { response: JSON.parse(readFileSync(file, "utf8")), file, spentAusd: run.stderr.includes("payment settled") ? source.costAusd : 0 };
-};
-
 const log = (entry: Record<string, unknown>) => {
   mkdirSync(outDir, { recursive: true });
   appendFileSync(logFile, `${JSON.stringify({ at: new Date().toISOString(), ...entry })}\n`);
   console.log(Object.entries(entry).map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`).join("  "));
 };
 
-/** Provider reads drop on a bad connection; try a few times before giving up. */
-const retry = async <T>(label: string, fn: () => Promise<T>, attempts = 5): Promise<T> => {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt >= attempts) throw error;
-      log({ event: "retry", label, attempt, error: String((error as Error).message).slice(0, 80) });
-      await sleep(5000 * attempt);
-    }
-  }
-};
+/** Provider reads drop on a bad connection; try a few times, logging each retry. */
+const retry = <T>(label: string, fn: () => Promise<T>) =>
+  withRetry(fn, 5, (attempt, error) => log({ event: "retry", label, attempt, error: String((error as Error).message).slice(0, 80) }));
 
 const decimalsOf = (text: string) => (text.includes(".") ? text.split(".")[1].length : 0);
 
@@ -116,7 +75,7 @@ const mode = positionals[0];
 
 if (mode === "lock") {
   const source = parseSource(values.source ?? "nodary:ETH/USD");
-  const { file, response } = fetchSigned(source);
+  const { file, response } = await fetchSigned(source);
   const made = spawnSync(process.execPath, ["checks/05-make-vector.mjs", file, "keeper"], { cwd: repoRoot, encoding: "utf8" });
   if (made.status !== 0) throw new Error(`vector failed: ${made.stderr.slice(-300)}`);
   const vec = loadVector("keeper");
@@ -166,8 +125,7 @@ if (mode === "lock") {
   const ref = values.utxo ?? saved?.utxo;
   const source = parseSource(values.source ?? saved?.source ?? "nodary:ETH/USD");
   if (!ref) throw new Error("No policy. Run `tsx src/keeper.ts lock` first, or pass --utxo <txHash>#<index>");
-  const [txHash, index] = ref.split("#");
-  const utxo = (await retry("getUtxos", () => client.getUtxos(scriptAddress))).find((u) => hexOf(u.transactionId.hash) === txHash && Number(u.index) === Number(index));
+  const utxo = await retry("getUtxos", () => findPolicyUtxo(client, ref));
   if (!utxo) throw new Error(`Policy ${ref} not found at the validator (spent, or not visible yet)`);
   const policy = policyViewOf(utxo);
 
@@ -185,7 +143,7 @@ if (mode === "lock") {
 
     let fetched;
     try {
-      fetched = fetchSigned(source);
+      fetched = await fetchSigned(source);
     } catch (error) {
       failures += 1;
       const wait = Math.min(300, baseInterval * 2 ** failures);
@@ -197,33 +155,24 @@ if (mode === "lock") {
     failures = 0;
     spent = Math.round((spent + fetched.spentAusd) * 1e4) / 1e4;
     const { response } = fetched;
-    if (response.requestHash.replace(/^0x/, "") !== policy.requestHashHex) {
+    const check = checkAgainst(policy, response);
+    if (!check.sameRequest) {
       log({ cycle, event: "wrong-request", got: response.requestHash.slice(0, 14) });
       outcome = "the response answers a different request than the policy pins";
       break;
     }
-    const slots = slotsFromData(response.data).slice(policy.slotFrom, policy.slotTo);
-    const value = slots.reduce((sum, slot) => sum + Math.round(Number(slot) * 10 ** policy.scale), 0);
-    const met = policy.cmp === "AtLeast" ? value >= policy.threshold : value < policy.threshold;
-    const ratio = Math.abs(policy.threshold - value) / Math.max(1, policy.threshold);
+    const { met, signedMs } = check;
+    const ratio = Math.abs(check.scaledThreshold - check.scaledValue) / Math.max(1, check.scaledThreshold);
     const wait = Math.max(10, Math.min(120, ratio < 0.0005 ? baseInterval / 2 : baseInterval));
-    const signedMs = Number(response.timestamp) * 1000;
-    log({ cycle, value: value / 10 ** policy.scale, threshold: policy.threshold / 10 ** policy.scale, met, ageS: Math.round((Date.now() - signedMs) / 1000), spentAusd: spent, ...(met ? {} : { nextInS: wait }) });
+    log({ cycle, value: check.value, threshold: check.threshold, met, ageS: Math.round((Date.now() - signedMs) / 1000), spentAusd: spent, ...(met ? {} : { nextInS: wait }) });
 
     if (!met) { await sleep(wait * 1000); continue; }
     if (!values.submit) { outcome = "rule met (dry run, nothing released)"; break; }
 
     try {
-      const from = signedMs + 2_000;
-      const to = Math.min(signedMs + policy.maxAgeMs - 20_000, policy.deadlineMs - 1_000);
-      await waitForTip(from + 2_000);
-      const built = await client
-        .newTx()
-        .collectFrom({ inputs: [utxo], redeemer: releaseDataFromResponse(response) })
-        .attachScript({ script })
-        .payToAddress({ address: Address.fromHex(`60${policy.beneficiaryHex}`), assets: lovelace(policy.payout) })
-        .setValidity({ from: BigInt(from), to: BigInt(to) })
-        .build();
+      const window = submitWindow(policy, signedMs);
+      await waitForTip(window.from + 2_000);
+      const built = await releaseTx(client, utxo, policy, response, window);
       const released = await built.signAndSubmit();
       const hash = hexOf(released.hash);
       log({ cycle, event: "released", tx: hash, responseAgeS: Math.round((Date.now() - signedMs) / 1000) });

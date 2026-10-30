@@ -11,8 +11,9 @@ Every item below has a transaction hash in [PROOFS.md](PROOFS.md).
 - **The validator verifies an Airnode attestation on Cardano.** Plutus V3, 1,832 bytes. 39 Aiken tests pass in CI, including API3's four required tamper cases.
 - **Release, refund and live flow on preprod.** A real signed Open-Meteo response released a policy; a response signed 16 seconds earlier released a policy that accepts only 5 minutes; a refund after the deadline needs the funder's signature.
 - **Two industries, one contract.** Rainfall (Open-Meteo, 14 values summed) and tweet likes (TwitterAPI.io, a KPI) run on the same unchanged validator. An edited count (the forged screenshot) and an unmet KPI are rejected.
-- **A judge tamper bench.** Anyone can run a signed response against a locked policy and get ACCEPTED or REJECTED from the validator's own evaluation: [cardano/JUDGES.md](cardano/JUDGES.md).
+- **A judge tamper bench, as a web page and a command.** Send any signed response to a locked policy and get ACCEPTED or REJECTED from the validator's own evaluation; the page runs the six-step bench (two controls, four tampered cases) in one click and never sends a transaction: [cardano/JUDGES.md](cardano/JUDGES.md).
 - **A keeper agent.** It runs on a schedule with a spending cap, adapts its waiting time, backs off on failures, logs every cycle, and releases a policy when the data satisfies it: [cardano/src/keeper.ts](cardano/src/keeper.ts).
+- **A paid keeper job (x402, 2 tADA) is built but not yet run end to end.** `POST /api/keep` in `cardano/src/service.ts` fetches a fresh signed response for a policy and releases it if the rule holds; the payment is settled only when it releases. The 402 price list works; a paid run is still to be done and recorded in PROOFS.md.
 - **A paid x402 request on Cardano preprod** (the Cardano gate), from the official template with a fix for a TTL rejection.
 
 ## How it works
@@ -34,6 +35,8 @@ To release, anyone (a user, a keeper, an agent) submits the signature, the times
 | `aiken/airnode_spike/` | the validator, the engine library and the tests (real signed responses as vectors) |
 | `aiken/blueprint/plutus.json` | the compiled validator, built by CI |
 | `cardano/src/engine.ts` | datum and redeemer encoding, script address, helpers |
+| `cardano/src/proof.ts` | shared helpers: buy a signed response, check it against a policy, release window, verdict classification |
+| `cardano/src/service.ts`, `keep-client.ts`, `web/index.html` | the service (judge page and paid keeper route), its x402 client, the page |
 | `cardano/src/engine-demo.ts`, `live.ts`, `creator-demo.ts`, `judge.ts`, `keeper.ts` | the on-chain demos |
 | `cardano/vectors/` | real signed responses and the tamper files |
 | `checks/` | scripts for prices, signed vectors, paid AirnodeHub calls, wallets, aUSD minting |

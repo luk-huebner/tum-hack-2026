@@ -1,0 +1,12 @@
+[
+  {
+    "name": "bench-48h",
+    "ref": "4ec3a5dd555f794d3f8ea4ad730282701bc71a6e6e94518ddea875bc6d1d973e#0",
+    "note": "Open-Meteo rainfall, Munich, 14 days: pays 5 tADA if the sum is below 30 mm. Accepts a response up to 48 hours old."
+  },
+  {
+    "name": "bench-5min",
+    "ref": "4ec3a5dd555f794d3f8ea4ad730282701bc71a6e6e94518ddea875bc6d1d973e#1",
+    "note": "The same rule and request. Accepts only a response less than 5 minutes old."
+  }
+]
