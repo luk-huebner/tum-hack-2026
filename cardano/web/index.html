@@ -82,6 +82,7 @@
     <p>A keeper agent that does one job: for a locked policy it fetches a fresh signed response and, if the rule holds, releases the funds to the policy's beneficiary. You pay <strong id="price">2 tADA</strong> by x402 per request, and <strong>only when it releases</strong>. If the rule is not met, or anything fails, the payment is cancelled.</p>
     <pre id="howto">npx tsx src/keep-client.ts --ref &lt;txHash&gt;#&lt;index&gt;</pre>
     <p class="small">The service wallet pays the release fee and never holds the policy's funds. The response includes the signed evidence, which can be pasted into the bench above.</p>
+    <p class="small" id="watch"></p>
     <h2 style="margin-top:16px;font-size:1rem">Recent jobs</h2>
     <table id="jobs"><thead><tr><th>Time (UTC)</th><th>Outcome</th><th>Policy</th><th>Transaction</th></tr></thead><tbody></tbody></table>
   </section>
@@ -207,6 +208,15 @@ $('runAll').onclick = async () => {
   $('runAll').disabled = false; $('send').disabled = false;
 };
 
+async function loadWatch() {
+  const { data: w } = await api('/api/watch');
+  const el = $('watch');
+  if (!w || !w.enabled) { el.textContent = 'Seller keeper (auto-release): off.'; return; }
+  const open = (w.candidates || []).filter((c) => c.state === 'watching' || c.state === 'rule-not-met' || c.state === 'releasing');
+  const age = w.lastCycleAt ? Math.round((Date.now() - Date.parse(w.lastCycleAt)) / 1000) + ' s ago' : 'not yet';
+  el.textContent = 'Seller keeper (auto-release' + (w.dry ? ', dry run' : '') + '): watching ' + open.length + ' escrow(s) that pay this service; last check ' + age + (w.lastPrice ? '; ETH/USD ' + w.lastPrice : '') + '; released so far: ' + w.released + '.';
+}
+
 async function loadInfo() {
   const { data } = await api('/api/info');
   if (data.paidRoute) $('price').textContent = data.paidRoute.priceTada + ' tADA';
@@ -221,7 +231,7 @@ async function loadInfo() {
   if (!tb.rows.length) { const tr = tb.insertRow(); const td = tr.insertCell(); td.colSpan = 4; td.className = 'small'; td.textContent = 'No jobs yet.'; }
 }
 
-loadPolicies(); loadCases(); loadInfo(); setInterval(loadInfo, 15000);
+loadPolicies(); loadCases(); loadInfo(); loadWatch(); setInterval(loadInfo, 15000); setInterval(loadWatch, 10000);
 </script>
 </body>
 </html>

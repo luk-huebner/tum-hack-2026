@@ -6,3 +6,4 @@ checks/out/*.json
 aiken/build/
 *.log
 cardano/out/service-jobs.jsonl
+cardano/out/autorelease-log.jsonl

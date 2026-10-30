@@ -8,6 +8,8 @@
  *                    transfer method. The buyer names the refund address, a price threshold and a deadline; the datum
  *                    is built here (escrow.ts), the seller is the beneficiary. Nothing is sent to the chain by this
  *                    process: the buyer's payment transaction is submitted by the facilitator when it settles.
+ *   (watcher)        optional, AUTO_RELEASE=1 (or "dry"): the seller's keeper (autorelease.ts) finds policies on the validator
+ *                    that pay this service and releases them when the data proves the rule, with no request from anyone.
  *   POST /api/judge  free. Takes a signed response and a policy and answers with the validator's own verdict. It never
  *                    sends a transaction. The page at / drives it for the tamper test.
  *
@@ -21,6 +23,7 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactCardanoScheme } from "@x402/cardano/exact/server";
 import { type SignedResponse, hexOf, makeClient, scriptHash, waitForTip } from "./engine.js";
+import { startAutoRelease, type WatchStatus } from "./autorelease.js";
 import { ESCROW_LOVELACE, ESCROW_MAX_AGE_MS, offerExtra, parseOffer, validatorAddressBech32 } from "./escrow.js";
 import {
   type Client,
@@ -360,14 +363,20 @@ app.get("/api/info", (_req, res) => {
   });
 });
 app.get("/api/jobs", (_req, res) => void res.json(jobs));
+app.get("/api/watch", (_req, res) => void res.json(watcher?.status() ?? { enabled: false }));
 app.get("/health", (_req, res) => void res.json({ ok: true }));
 app.use(express.static(webDir));
 
+let watcher: { status: () => WatchStatus } | undefined;
 const port = Number(process.env.SERVICE_PORT ?? 4022);
 app.listen(port, () => {
+  if (process.env.AUTO_RELEASE === "1" || process.env.AUTO_RELEASE === "dry") {
+    watcher = startAutoRelease({ client: operator(), dry: process.env.AUTO_RELEASE === "dry", onJob: recordJob });
+  }
   console.log(`Pay-on-Proof service on http://localhost:${port}`);
   console.log(`  judge page   GET  /            (free; verdicts only, nothing is ever sent to the chain)`);
   console.log(`  paid job     POST /api/keep    ${Number(PRICE_LOVELACE) / 1_000_000} tADA on ${NETWORK}, charged only when the policy is released`);
   console.log(`  escrow       POST /api/escrow  ${Number(ESCROW_LOVELACE) / 1_000_000} tADA locked into the validator (x402 script transfer method)`);
+  console.log(`  auto-release ${process.env.AUTO_RELEASE === "1" ? "ON: releases policies that pay this service" : process.env.AUTO_RELEASE === "dry" ? "dry run: logs what it would release" : "off (set AUTO_RELEASE=1)"}`);
   console.log(`  facilitator  ${facilitatorUrl}`);
 });

@@ -15,6 +15,7 @@ Every item below has a transaction hash in [PROOFS.md](PROOFS.md).
 - **A keeper agent.** It runs on a schedule with a spending cap, adapts its waiting time, backs off on failures, logs every cycle, and releases a policy when the data satisfies it: [cardano/src/keeper.ts](cardano/src/keeper.ts).
 - **A paid keeper job on Cardano (x402, 2 tADA).** `POST /api/keep` in `cardano/src/service.ts` fetches a fresh signed response for a locked policy and releases it if the rule holds. The buyer is charged only when it releases: one paid run released 5 tADA (payment `51188ed4…6ffb`, release `1678080a…9d84`), and a refused request left both balances unchanged. See PROOFS.md.
 - **An x402 payment locked straight into the validator.** `POST /api/escrow` uses the Cardano x402 `script` transfer method: the buyer's 5 tADA payment output goes to the validator with a policy datum (seller paid if ETH/USD reaches a price, buyer refunded after the deadline). One run on preprod: payment `d903edc3…b292`, then released by the keeper (`076de3e1…6430`), 5 tADA to the seller. The same route also refunded the buyer after the deadline (`1057e1d9…0d1d`), and refused a refund before it. See PROOFS.md.
+- **A seller's keeper that finds and releases policies on its own (built; dry run only).** With `AUTO_RELEASE=1` the service scans the validator for policies that name its seller key as beneficiary, fetches one fresh signed Nodary response per cycle, and releases the first policy whose rule holds (`cardano/src/autorelease.ts`). Backoff, a retry cap and a log per cycle are in. The dry run scans the validator without errors; no live release by the watcher has been run yet.
 - **A paid x402 request on Cardano preprod** (the Cardano gate), from the official template with a fix for a TTL rejection.
 
 ## How it works
@@ -36,6 +37,7 @@ To release, anyone (a user, a keeper, an agent) submits the signature, the times
 | `aiken/airnode_spike/` | the validator, the engine library and the tests (real signed responses as vectors) |
 | `aiken/blueprint/plutus.json` | the compiled validator, built by CI |
 | `cardano/src/engine.ts` | datum and redeemer encoding, script address, helpers |
+| `cardano/src/autorelease.ts` | the seller's keeper: finds policies that pay the service and releases them |
 | `cardano/src/proof.ts` | shared helpers: buy a signed response, check it against a policy, release window, verdict classification |
 | `cardano/src/service.ts`, `keep-client.ts`, `escrow.ts`, `escrow-client.ts`, `web/index.html` | the service (judge page, paid keeper route, escrow route), its x402 clients, the page |
 | `cardano/src/engine-demo.ts`, `live.ts`, `creator-demo.ts`, `judge.ts`, `keeper.ts`, `refund.ts` | the on-chain demos; `refund.ts` refunds any policy to its refund party after the deadline |
