@@ -170,6 +170,22 @@ if (step === "lock") {
   console.log(`Explorer: https://preprod.cardanoscan.io/transaction/${hash}`);
   console.log(`script address ${Address.toBech32(scriptAddress)}`);
   await recordLock(hash);
+} else if (step === "bench") {
+  // Two standing policies for the judges' tamper bench, both open until Sat 31 Oct 20:00 UTC (the judging is Sat 15:00 to 17:00 Munich time).
+  const base = basePolicy(Date.now());
+  const deadlineMs = Date.UTC(2026, 9, 31, 20, 0, 0);
+  const benchCases = [
+    { name: "bench-48h", policy: { ...base, deadlineMs, maxAgeMs: 48 * HOUR } },
+    { name: "bench-5min", policy: { ...base, deadlineMs, maxAgeMs: 300_000 } },
+  ];
+  let tx = client.newTx();
+  for (const c of benchCases) tx = tx.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(c.policy)) });
+  const submitted = await (await tx.build()).signAndSubmit();
+  const hash = hexOf(submitted.hash);
+  console.log(`bench lock submitted: ${hash}`);
+  console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
+  const utxos = (await client.getUtxos(scriptAddress)).filter((u) => hexOf(u.transactionId.hash) === hash).sort((a, b) => Number(a.index) - Number(b.index));
+  benchCases.forEach((c, i) => console.log(`  ${c.name}: ${hash}#${utxos[i] ? Number(utxos[i].index) : "?"}`));
 } else if (step === "adopt") {
   const hash = process.argv[3];
   if (!hash) throw new Error("usage: tsx src/engine-demo.ts adopt <txHash>");

@@ -123,3 +123,89 @@ export const lovelace = (n: bigint) => Assets.fromLovelace(n);
 export const inlineDatum = (data: ReturnType<typeof policyData>) => new InlineDatum.InlineDatum({ data });
 
 export const cborHexOf = (data: ReturnType<typeof policyData>): string => Data.toCBORHex(data);
+
+// ---------------------------------------------------------------------------
+// Responses submitted by anyone (a judge, a keeper bot, an agent)
+
+export interface SignedResponse {
+  airnode: string;
+  requestHash: string;
+  timestamp: string | number;
+  data: string;
+  signature: string;
+}
+
+/**
+ * The numeric values of a signed flat object such as {"d00":6.90,"d01":0.10}. Nothing is checked here on purpose:
+ * the contract rebuilds the signed text from these values and rejects anything that does not match the signature.
+ */
+export const slotsFromData = (data: string): string[] => [...data.matchAll(/(?<=:)-?\d+(?:\.\d+)?(?=[,}])/g)].map((m) => m[0]);
+
+/** Airnode signatures are 65 bytes (r, s, v); Plutus verifies the 64-byte compact form. */
+export const compactSignatureHex = (signature: string): string => signature.replace(/^0x/, "").slice(0, 128);
+
+export const releaseDataFromResponse = (r: SignedResponse) =>
+  releaseData(
+    Number(r.timestamp),
+    slotsFromData(r.data).map((slot) => Buffer.from(slot, "utf8").toString("hex")),
+    compactSignatureHex(r.signature),
+  );
+
+export interface PolicyView {
+  beneficiaryHex: string;
+  refundToHex: string;
+  payout: bigint;
+  deadlineMs: number;
+  maxAgeMs: number;
+  threshold: number;
+  scale: number;
+  cmp: Cmp;
+}
+
+/** Reads the policy back from a locked UTxO's inline datum, so a caller needs nothing but the UTxO reference. */
+export const policyViewOf = (utxo: { datumOption?: unknown }): PolicyView => {
+  const fields = (utxo.datumOption as { data?: { fields?: unknown[] } } | undefined)?.data?.fields;
+  if (!fields) throw new Error("The UTxO has no readable inline datum");
+  const hex = (b: unknown) => Buffer.from(b as Uint8Array).toString("hex");
+  return {
+    beneficiaryHex: hex(fields[13]),
+    refundToHex: hex(fields[14]),
+    payout: BigInt(fields[15] as bigint),
+    deadlineMs: Number(fields[11]),
+    maxAgeMs: Number(fields[12]),
+    threshold: Number(fields[9]),
+    scale: Number(fields[5]),
+    cmp: Number((fields[8] as { index: bigint }).index) === 0 ? "Below" : "AtLeast",
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Waiting on the chain. Both loops use timers, which keep the process alive.
+
+export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const blockfrost = (path: string) => fetch(`${baseUrl}${path}`, { headers: { project_id: process.env.BLOCKFROST_PROJECT_ID ?? "" } });
+
+/** Polls until the transaction is in a block. */
+export const waitForTx = async (txHash: string, timeoutMs = 180_000): Promise<boolean> => {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if ((await blockfrost(`/txs/${txHash}`)).ok) return true;
+    await sleep(5000);
+  }
+  return false;
+};
+
+/**
+ * The node validates a transaction against its own latest slot, which trails the wall clock by up to a minute on preprod.
+ * A transaction that starts "in the past" can still be refused as OutsideValidityIntervalUTxO, so wait for the chain tip.
+ */
+export const waitForTip = async (minMs: number, timeoutMs = 240_000): Promise<void> => {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const response = await blockfrost("/blocks/latest");
+    if (response.ok && ((await response.json()) as { time: number }).time * 1000 >= minMs) return;
+    await sleep(5000);
+  }
+  throw new Error("The chain tip did not reach the start of the validity interval in time");
+};

@@ -55,3 +55,18 @@ Explorer prefix: https://preprod.cardanoscan.io/transaction/
 | Valid response, valid policy (control) | Builds |
 
 Notes: the rejections are evaluation failures reported by the provider (Blockfrost), not failed transactions on chain, and the provider's message is generic ("Script evaluation failed"). Each case differs from the control in one input only. The first refund attempts failed for timing reasons, not network ones: the ledger rounds a validity start down to a whole slot (so the start must be a second after the deadline), and the node validates against its own latest slot, which trails the clock (so the script now waits for the chain tip to pass the start).
+
+## Judge bench (Cardano preprod, 30 Oct 2026, about 13:00 Munich time)
+
+Two standing policies for the tamper test, locked in `4ec3a5dd555f794d3f8ea4ad730282701bc71a6e6e94518ddea875bc6d1d973e` (output 0: accepts a response up to 48 hours old; output 1: up to 5 minutes), open until 31 Oct 20:00 UTC. Run with `tsx src/judge.ts` (see `cardano/JUDGES.md`). Results, with the valid response run before and after the tamper cases as a control:
+
+| Case | Policy | Outcome |
+|---|---|---|
+| Real response, valid (control, first) | 48 h | ACCEPTED |
+| One value edited | 48 h | REJECTED |
+| Real response to a different request (a YouTube video, signed by the LunarCrush Airnode) | 48 h | REJECTED |
+| Same request and data, signed by a throwaway key | 48 h | REJECTED |
+| Real response, 79 minutes old | 5 min | REJECTED |
+| Real response, valid (control, last) | 48 h | ACCEPTED |
+
+**A first run of these cases was thrown away.** Run straight after the lock confirmed, even the valid control was rejected, so the four rejections in that run could not be trusted: the evaluator had not yet seen the fresh output. The table above is the rerun, bracketed by two accepted controls.
