@@ -148,3 +148,17 @@ The buyer wallet fell from 9922.327158 to 9916.864713 tADA: 5 tADA moved to the 
 Before paying, without sending anything: the price list decoded to the intended policy, and a payment transaction built and signed locally carried exactly that datum on the validator output.
 
 Not shown: the buyer's **refund** from a policy created this way (the validator and the datum shape are the ones whose refund was tested earlier, but not this UTxO), the rule-not-met case on this route, and what the facilitator does with a wrong datum (it does not check the datum, only that `payTo` is the declared script). The refund party is whatever address the buyer declares. The release here was a separate keeper run; the service does not yet watch its own escrows and release them.
+
+## Refund from an x402-locked policy (30 Oct 2026, about 14:17 to 14:30 UTC)
+
+The same route with a 7-minute deadline (`--minutes 7`): ETH/USD at least 2000, refund party the buyer wallet, 5 tADA.
+
+| Step | Result |
+|---|---|
+| **x402 payment into the validator**, HTTP 200 after 39.0 s | `78cf5df6b6bd98b5e9a57c6d470eaefd67db578e07a7e6de8e6962a5abbcc849`, block 5353466, fee 0.178129 tADA. Policy UTxO `78cf5df6…c849#0`, 5.0 tADA with inline datum |
+| **A refund 343 s before the deadline** (`tsx src/refund.ts --utxo … --early`, evaluation only, 30 s after the payment) | REJECTED by the validator (script evaluation failed). Nothing was sent |
+| **Refund after the deadline** (`tsx src/refund.ts --utxo … --submit --wait`; validity starts one second after the deadline, signed by the buyer key) | `1057e1d9deb8981a292da4e13f87a6d4122f1c374283d0c6f589fccdbf6e0d1d`, block 5353493, fee 0.259923 tADA. Koios: one output of 4.740077 tADA to the buyer address (the 5.0 tADA locked, minus the fee, which the refund tx took from the locked amount) |
+
+The buyer wallet went from 9916.864713 to 9916.426661 tADA: the two fees (0.178129 + 0.259923) and nothing else. The same UTxO was refused before the deadline and refunded after it, so the refusal is not an evaluator that could not see the UTxO.
+
+So both exits of a policy created by an x402 payment are shown: release to the seller (previous section) and refund to the buyer after the deadline. Not shown: the rule-not-met case on this route, and a refund attempted by someone other than the refund party (the validator requires the refund party's signature; that case is covered by the contract tests, not run on chain for this UTxO).
