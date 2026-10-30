@@ -5,3 +5,4 @@ node_modules/
 checks/out/*.json
 aiken/build/
 *.log
+cardano/out/service-jobs.jsonl

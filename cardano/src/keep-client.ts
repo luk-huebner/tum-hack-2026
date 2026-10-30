@@ -85,12 +85,15 @@ async function hire() {
   console.log(JSON.stringify(rest, null, 2));
   if (evidence) console.log("The signed evidence is in the response body; it can be pasted into the bench page.");
 
+  if (!response.ok) {
+    // A refusal carries no payment receipt: the keeper answers 4xx or 5xx and the facilitator never settles.
+    console.log("\nNot charged: the payment is settled only when the keeper succeeds.");
+    process.exitCode = 1;
+    return;
+  }
   const receipt = new x402HTTPClient(client).getPaymentSettleResponse((name) => response.headers.get(name));
-  if (response.ok && receipt?.transaction) {
+  if (receipt?.transaction) {
     console.log(`\nPaid 2 tADA: https://preprod.cardanoscan.io/transaction/${receipt.transaction}`);
     if (typeof body.explorer === "string") console.log(`Release:    ${body.explorer}`);
-  } else if (!response.ok) {
-    console.log("\nNot charged: the payment is settled only when the keeper succeeds.");
-    process.exit(1);
   }
 }

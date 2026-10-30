@@ -114,3 +114,22 @@ Runs 1 and 2 crossed the threshold in the first cycle, because the price moved u
 | 3 | lock `aca78b2bb163a745a7c1fd22f23f26bf4b177f2850f75b5eb02cb9fb6df2e530`, ETH/USD at least 2239.21 (price at lock 2235.21) | 22 cycles in about 9 minutes (12:23 to 12:32 UTC, log `keeper-log-run3.jsonl`). The price stayed between 2234.12 and 2237.49, so the rule never held and **nothing was released**, which is the correct outcome. Three fetches failed (cycles 2, 6, 7); the keeper backed off 40 s, 40 s and 80 s and carried on. Spending stayed at 0 aUSD. After cycle 22 the log has no line for 39 minutes, then `stop: policy deadline close`. The cause is not known: either the laptop slept or a fetch hung, since the fetch had no timeout. A 60 s timeout was added afterwards, so a hung fetch now counts as a failed cycle. That fix is not tested against a real hang. The policy is still locked and refundable by the funder after its deadline |
 
 What the keeper runs do not show: a paid source in the loop (the tweet source costs 0.01 aUSD per cycle and was never run in a loop), an unattended run of hours, or any judgment beyond a threshold rule.
+
+## Paid keeper job: x402 payment on Cardano preprod, release by the validator (30 Oct 2026, about 14:00 UTC)
+
+The service (`cardano/src/service.ts`) charges 2 tADA by x402 for `POST /api/keep` and settles the payment only if the keeper releases the policy. Test policy: ETH/USD at least 2220.165 (price when locked 2225.165), 5 tADA, accepts a response up to 300 s old, free Nodary source.
+
+| Step | Receipt |
+|---|---|
+| Lock the policy (buyer wallet) | `2af6326b3530712c25312db60478fd02d97037e2d2d04f52d068a36233dc05dd#0` |
+| `tsx src/keep-client.ts --ref 2af6326b…05dd#0`: HTTP 200 after 91.0 s | the keeper fetched a signed Nodary response (70 s old at release, price 2225.025), waited for the chain tip, released |
+| **x402 payment**, buyer to seller address, 2.0 tADA, fee 0.168405 tADA | `51188ed459c7bf8a59160e0f8ede352251bfdc1b57524784c85f6e68cb146ffb`, block 5353430 |
+| **Release** by the service wallet, 5 tADA to the policy's beneficiary, fee 0.283201 tADA | `1678080ab54aee6c3f799775247b624b37da21eb4ec4a3ad6431c78a0f979d84`, block 5353430 |
+
+Both confirmed on Koios in the same block. The beneficiary here is our own seller key, so the 5 tADA stayed inside our wallets.
+
+**A request that is refused is not charged.** The same endpoint was called for the Open-Meteo bench policy with the Nodary source, which answers a different request than the policy pins. The service answered HTTP 422 after 1.9 s with `"charged": false`. The buyer and seller balances read the same before and after (9922.327158 and 18.716799 tADA, checked again 45 s later) and no payment transaction exists. This was tested for the wrong-request refusal only; the rule-not-met refusal takes the same code path (a 409) but was not run. The client crashed after the refusal because it tried to read a payment receipt that does not exist; fixed.
+
+**Fresh response on the 5-minute bench policy.** A response bought for 0.1 aUSD (`0xcaeebff9db9863a69450c55a8a3d69d0c61508a099e69dd20c7ac23ef8efd6d5`, Base Sepolia) and 12 s old was ACCEPTED by `bench-5min`, both through `judge.ts` and through the page. This is the case the old fixed validity window would have refused; the old code was not re-run to confirm that.
+
+Limits: the service ran on a laptop; the 91 s probably consists mostly of waiting for the preprod chain tip (not measured separately); the service does not wait for the release to be confirmed before answering; the paid route has been run once for a release.

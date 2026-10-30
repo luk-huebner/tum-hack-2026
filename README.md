@@ -13,7 +13,7 @@ Every item below has a transaction hash in [PROOFS.md](PROOFS.md).
 - **Two industries, one contract.** Rainfall (Open-Meteo, 14 values summed) and tweet likes (TwitterAPI.io, a KPI) run on the same unchanged validator. An edited count (the forged screenshot) and an unmet KPI are rejected.
 - **A judge tamper bench, as a web page and a command.** Send any signed response to a locked policy and get ACCEPTED or REJECTED from the validator's own evaluation; the page runs the six-step bench (two controls, four tampered cases) in one click and never sends a transaction: [cardano/JUDGES.md](cardano/JUDGES.md).
 - **A keeper agent.** It runs on a schedule with a spending cap, adapts its waiting time, backs off on failures, logs every cycle, and releases a policy when the data satisfies it: [cardano/src/keeper.ts](cardano/src/keeper.ts).
-- **A paid keeper job (x402, 2 tADA) is built but not yet run end to end.** `POST /api/keep` in `cardano/src/service.ts` fetches a fresh signed response for a policy and releases it if the rule holds; the payment is settled only when it releases. The 402 price list works; a paid run is still to be done and recorded in PROOFS.md.
+- **A paid keeper job on Cardano (x402, 2 tADA).** `POST /api/keep` in `cardano/src/service.ts` fetches a fresh signed response for a locked policy and releases it if the rule holds. The buyer is charged only when it releases: one paid run released 5 tADA (payment `51188ed4…6ffb`, release `1678080a…9d84`), and a refused request left both balances unchanged. See PROOFS.md.
 - **A paid x402 request on Cardano preprod** (the Cardano gate), from the official template with a fix for a TTL rejection.
 
 ## How it works
