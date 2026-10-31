@@ -16,7 +16,7 @@ import { explorer, latestTransactions, reconcile, trackExternal } from "./tx-tra
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { execFile } from "node:child_process";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Router, type Request, type Response } from "express";
@@ -218,6 +218,20 @@ const workspaceOf = (req: Request): string | undefined => {
   return isWorkspaceKey(key) ? ownerHashOf(key) : undefined;
 };
 
+/**
+ * The team access code. When CREATORPAY_ACCESS_CODE is set, creating a campaign needs it (header x-access-code). A creator who holds an
+ * invite link needs no code: the link only exists for a campaign that was created with it, and a submission can only spend for that campaign.
+ */
+export const accessAllowed = (expected: string | undefined, provided: unknown): boolean => {
+  if (!expected) return true;
+  if (typeof provided !== "string" || provided === "") return false;
+  const digest = (v: string) => createHash("sha256").update(v).digest();
+  return timingSafeEqual(digest(expected), digest(provided));
+};
+const accessOk = (req: Request) => accessAllowed(process.env.CREATORPAY_ACCESS_CODE, req.header("x-access-code"));
+const denyAccess = (req: Request, res: Response) =>
+  void res.status(401).json({ error: req.header("x-access-code") ? "That access code is not right." : "A team access code is needed to create campaigns." });
+
 // ---------------------------------------------------------------------------
 // Paying one escrow by x402 from the brand's wallet (the same path as escrow-client.ts and the console's live runs)
 
@@ -371,6 +385,49 @@ const submit = async (campaign: Campaign, postUrl: string, payee: string, deps: 
   add(campaign.status === "live" ? "ok" : "refused", campaign.status === "live" ? "Live. The keeper now checks the signed like count every few seconds and releases each milestone the moment it is proven." : "No escrow could be locked.");
 };
 
+/** A lock that failed (a dropped connection, a slow facilitator) is tried again with a deadline of at least 30 minutes from now. */
+export const retryDeadline = (originalMs: number, nowMs: number) => Math.max(Number.isFinite(originalMs) ? originalMs : 0, nowMs + 30 * 60_000);
+
+/** Pays again only the escrows of this campaign that are in the state "failed": the campaign's own terms, nothing extra. */
+const retryFailed = async (campaign: Campaign, deps: CampaignDeps) => {
+  const sub = campaign.submission!;
+  const add = (kind: Step["kind"], line: string, link?: Step["link"]) => {
+    campaign.steps.push({ at: new Date().toISOString(), kind, text: line, ...(link ? { link } : {}) });
+    save();
+  };
+  const refund = await brandAddress();
+  const deadlineMs = retryDeadline(sub.deadline ? Date.parse(sub.deadline) : 0, Date.now());
+  const measureAfterMs = campaign.measureLastMinutes === undefined ? undefined : deadlineMs - campaign.measureLastMinutes * 60_000;
+  add("info", `Trying again the milestones that could not be locked. They get a new deadline: ${new Date(deadlineMs).toISOString()}.`);
+  for (const escrow of campaign.escrows.filter((e) => e.state === "failed")) {
+    escrow.state = "locking";
+    delete escrow.error;
+    add("info", `${escrowName(escrow)}: the brand pays 5 tADA into the contract again.`);
+    try {
+      const locked = await lockEscrow(
+        deps.serviceUrl,
+        {
+          template: "source",
+          sourceId: sub.sourceId,
+          ...(escrow.kind === "posting" ? { presence: true } : { atLeast: escrow.threshold }),
+          refund,
+          payee: sub.payee,
+          deadlineMs,
+          ...(escrow.kind === "posting" || measureAfterMs === undefined ? {} : { measureAfterMs: Math.max(measureAfterMs, Date.now()) }),
+        },
+        add,
+      );
+      Object.assign(escrow, { state: "locked", ref: locked.ref, payTx: locked.payTx });
+      add("ok", `${escrowName(escrow)} is locked at the contract.`, { label: "payment transaction", url: scan(locked.payTx) });
+    } catch (error) {
+      Object.assign(escrow, { state: "failed", error: String((error as Error).message).slice(0, 200) });
+      add("refused", `${escrowName(escrow)} could not be locked: ${escrow.error}`);
+    }
+  }
+  campaign.status = campaign.escrows.some((e) => e.state === "locked" || e.state === "released") ? "live" : "failed";
+  save();
+};
+
 // ---------------------------------------------------------------------------
 // Releases reported by the keeper (service.ts forwards every job here)
 
@@ -432,6 +489,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     res.json({
       network: "Cardano preprod",
       live: LIVE,
+      accessRequired: Boolean(process.env.CREATORPAY_ACCESS_CODE),
       refusal: refusal(deps) ?? null,
       validatorHash: scriptHash,
       validatorAddress: validatorAddressBech32,
@@ -456,6 +514,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
   });
 
   router.post("/api/cp/campaigns", (req: Request, res: Response) => {
+    if (!accessOk(req)) return denyAccess(req, res);
     if (campaigns.length >= MAX_CAMPAIGNS) return void res.status(429).json({ error: "Too many campaigns on this server" });
     let terms;
     try {
@@ -468,6 +527,31 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     campaigns.push(campaign);
     save();
     res.json(view(campaign));
+  });
+
+  /** Tries again the escrows of a campaign that failed to lock. Pays only those, from the brand wallet, under the campaign's own terms. */
+  router.post("/api/cp/campaigns/:id/retry", (req: Request, res: Response) => {
+    const c = byId(String(req.params.id));
+    if (!c) return void res.status(404).json({ error: "No such campaign" });
+    if (!c.submission || !c.escrows.some((e) => e.state === "failed") || !["live", "failed"].includes(c.status)) {
+      return void res.status(409).json({ error: "Nothing to retry: no milestone failed to lock." });
+    }
+    const w = deps.watcher();
+    if (!LIVE || !w || !w.status().allowPaid) return void res.status(409).json({ error: "Live submissions are off on this server." });
+    if (busy) return void res.status(409).json({ error: "Another submission is being processed; try again in a minute." });
+    busy = c.id;
+    c.status = "locking";
+    save();
+    void retryFailed(c, deps)
+      .catch((error) => {
+        c.status = c.escrows.some((e) => e.state === "locked" || e.state === "released") ? "live" : "failed";
+        c.steps.push({ at: new Date().toISOString(), kind: "refused", text: `Stopped: ${String((error as Error).message).replace(/\s+/g, " ").slice(0, 240)}` });
+        save();
+      })
+      .finally(() => {
+        busy = undefined;
+      });
+    res.json(view(c));
   });
 
   router.post("/api/cp/campaigns/:id/submit", (req: Request, res: Response) => {
@@ -503,6 +587,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
 
   /** Many influencers, one set of terms: one campaign per creator under a shared groupId. Rows that cannot be created are skipped and reported. */
   router.post("/api/cp/campaigns/bulk", (req: Request, res: Response) => {
+    if (!accessOk(req)) return denyAccess(req, res);
     const b = (req.body ?? {}) as Record<string, unknown>;
     const rows = Array.isArray(b.creators) ? b.creators : [];
     if (rows.length === 0) return void res.status(400).json({ error: "creators must be a list of X handles (or { handle } objects)" });

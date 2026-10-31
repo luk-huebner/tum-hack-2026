@@ -94,7 +94,7 @@ app.use(express.json({ limit: "64kb" }));
 if (process.env.CORS_ORIGIN) {
   app.use((req, res, next) => {
     res.setHeader("access-control-allow-origin", process.env.CORS_ORIGIN as string);
-    res.setHeader("access-control-allow-headers", "content-type, x-workspace-key");
+    res.setHeader("access-control-allow-headers", "content-type, x-workspace-key, x-access-code");
     res.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
     if (req.method === "OPTIONS") return void res.sendStatus(204);
     next();

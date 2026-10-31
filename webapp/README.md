@@ -65,6 +65,12 @@ The **budget split per creator** is a posting payment (paid as soon as the post 
 
 On a campaign page a milestone with a green tick is paid, a clock is "not yet" (with likes of the threshold so far), and a red cross appears only after the campaign's deadline has passed without the milestone being reached. The units of one milestone are one row.
 
+## Team access code and retrying a failed lock
+
+- With `CREATORPAY_ACCESS_CODE` set (in `cardano/.env`), **creating a campaign** (single or bulk) needs the code: the Brand page shows a "Team access code" field and sends it as `x-access-code`; the browser remembers it once it worked. Reading, the Verify bench and the engine page need nothing, and **a creator who opens an invite link needs no code**: the link only exists for a campaign that was created with it, and a submission can only pay for that campaign. Without the variable the service is open, as in local development. The code is compared in constant time and never sent to a client.
+- `GET /api/cp/config` has `accessRequired` so the page knows when to ask.
+- `POST /api/cp/campaigns/:id/retry` pays again only the escrows of that campaign that failed to lock (a dropped connection, a slow facilitator), with a deadline of at least 30 minutes from now. The campaign page shows a "Retry the failed milestone" button for it. It refuses when nothing failed, when a submission is running, or when live submissions are off.
+
 ## Who sees what (no accounts yet)
 
 - A campaign opens from its **link** (`/c/<id>`): the id is random, so the link is the secret the brand sends to the creator.

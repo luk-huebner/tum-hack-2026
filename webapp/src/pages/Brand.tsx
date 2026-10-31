@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { ArrowRight, Download, Info, Plus, Trash2, Upload, Users, X } from "lucide-react";
 import { useConfig } from "../App";
-import { api, describeError, scanAddress, type Campaign } from "../api";
+import { api, describeError, getAccessCode, scanAddress, setAccessCode, type Campaign } from "../api";
 import { Badge, CopyButton, ErrorNote, Hash, SectionTitle, dateTimeOf } from "../components/ui";
 import { MAX_CREATORS, extractHandleColumn, parseCreatorList } from "../lib/csv";
 
@@ -133,6 +133,7 @@ export default function Brand() {
   const [created, setCreated] = useState<string[]>([]);
   const [skipped, setSkipped] = useState<{ row: number; handle: string; reason: string }[]>([]);
   const [creatorsText, setCreatorsText] = useState("");
+  const [access, setAccess] = useState(getAccessCode);
   const [importNote, setImportNote] = useState<string>();
   const [posting, setPosting] = useState({ on: true, units: 1, label: "Post goes live" });
   const [busy, setBusy] = useState(false);
@@ -199,6 +200,8 @@ export default function Brand() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (problem) return setError(problem);
+    if (config?.accessRequired && !access.trim()) return setError("Enter the team access code.");
+    setAccessCode(access.trim());
     setBusy(true);
     setError(undefined);
     try {
@@ -396,6 +399,13 @@ export default function Brand() {
             </span>
           </label>
 
+          {config?.accessRequired && (
+            <div>
+              <label className="label" htmlFor="access">Team access code</label>
+              <input id="access" type="password" autoComplete="off" className="input" placeholder="Ask your team" value={access} onChange={(e) => setAccess(e.target.value)} />
+              <p className="hint">Needed to create campaigns on this service. A creator who opens an invite link does not need it.</p>
+            </div>
+          )}
           {error && <ErrorNote>{error}</ErrorNote>}
           <button className="btn-primary w-full py-3" disabled={busy || Boolean(problem && parsed.handles.length > 0)}>
             {busy ? "Creating…" : parsed.handles.length > 1 ? `Create ${parsed.handles.length} campaigns and get the invite links` : "Create campaign and get the creator link"}

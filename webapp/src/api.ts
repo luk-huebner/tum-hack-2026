@@ -104,6 +104,8 @@ export interface Config {
   validatorAddress: string;
   escrowTada: number;
   maxMilestones: number;
+  /** True when the service asks for the team access code before it creates a campaign. */
+  accessRequired?: boolean;
   brandWallet?: string;
   keeper: { enabled: boolean; allowPaid?: boolean; lastCycleAt?: string; ausdSpent?: number; released?: number };
   defaultDisclosure: string[];
@@ -200,6 +202,24 @@ export const workspaceKey = (): string => {
   }
 };
 
+const ACCESS = "creatorpay.access";
+/** The team access code for creating campaigns, kept in this browser after it worked once. */
+export const getAccessCode = (): string => {
+  try {
+    return localStorage.getItem(ACCESS) ?? "";
+  } catch {
+    return "";
+  }
+};
+export const setAccessCode = (code: string) => {
+  try {
+    if (code) localStorage.setItem(ACCESS, code);
+    else localStorage.removeItem(ACCESS);
+  } catch {
+    // storage blocked: the code is asked again next time
+  }
+};
+
 /** The service did not answer: offline, not deployed, or a proxy error page. Not the same as "no campaigns". */
 export class ServiceUnreachable extends Error {}
 export const OFFLINE_TEXT = "CreatorPay can't be reached right now. Check your connection and try again in a moment.";
@@ -207,9 +227,10 @@ export const describeError = (e: unknown) => (e instanceof ServiceUnreachable ? 
 
 const call = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const key = workspaceKey();
+  const access = getAccessCode();
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, { ...init, headers: { "content-type": "application/json", ...(key ? { "x-workspace-key": key } : {}), ...(init?.headers ?? {}) } });
+    res = await fetch(`${BASE}${path}`, { ...init, headers: { "content-type": "application/json", ...(key ? { "x-workspace-key": key } : {}), ...(access ? { "x-access-code": access } : {}), ...(init?.headers ?? {}) } });
   } catch {
     throw new ServiceUnreachable(OFFLINE_TEXT);
   }
@@ -227,6 +248,8 @@ export const api = {
   campaigns: () => call<Campaign[]>("/api/cp/campaigns"),
   campaign: (id: string) => call<Campaign>(`/api/cp/campaigns/${encodeURIComponent(id)}`),
   createCampaign: (body: unknown) => call<Campaign>("/api/cp/campaigns", { method: "POST", body: JSON.stringify(body) }),
+  /** Tries again the milestones that failed to lock. */
+  retryLocks: (id: string) => call<Campaign>(`/api/cp/campaigns/${encodeURIComponent(id)}/retry`, { method: "POST", body: "{}" }),
   submitPost: (id: string, body: { postUrl: string; payee: string }) => call<Campaign>(`/api/cp/campaigns/${encodeURIComponent(id)}/submit`, { method: "POST", body: JSON.stringify(body) }),
   /** Many influencers, one set of terms: `creators` is a list of X handles (or { handle }). */
   createCampaigns: (body: unknown) => call<BulkResult>("/api/cp/campaigns/bulk", { method: "POST", body: JSON.stringify(body) }),
