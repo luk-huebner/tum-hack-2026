@@ -135,6 +135,7 @@ export const masumiRoutes = (deps: MasumiDeps): { router: Router; stop: () => vo
   const inflight = new Set<string>(); // a second request with the same identifier while the first is still being set up
   router.post("/start_job", async (req: Request, res: Response) => {
     let key = "";
+    let acquired = false; // only the request that took the lock may release it (a rejected duplicate must not)
     try {
       const body = (req.body ?? {}) as Record<string, unknown>;
       const nonce = String(body.identifier_from_purchaser ?? body.identifierFromPurchaser ?? "");
@@ -156,6 +157,7 @@ export const masumiRoutes = (deps: MasumiDeps): { router: Router; stop: () => vo
 
       if (inflight.has(key)) return void res.status(409).json({ error: "This identifier_from_purchaser is being processed" });
       inflight.add(key);
+      acquired = true;
       const check = await deps.checkPolicy(input.policy);
       if (!check.ok) return void res.status(400).json({ error: check.reason });
       const t = now();
@@ -209,7 +211,7 @@ export const masumiRoutes = (deps: MasumiDeps): { router: Router; stop: () => vo
     } catch {
       res.status(500).json({ error: "Request failed. Inspect the saved job state before retrying." });
     } finally {
-      inflight.delete(key);
+      if (acquired) inflight.delete(key);
     }
   });
 

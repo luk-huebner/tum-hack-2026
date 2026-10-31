@@ -59,12 +59,13 @@ export const parseOffer = (body: unknown, nowMs: number): EscrowOffer => {
   const spec = specFor(template, tweetId ?? sourceId);
   // the threshold is called atLeast for a rule "at least" (prices, likes, views) and below for a rule "below" (rain)
   const key = spec.cmp === "Below" ? "below" : "atLeast";
-  const value = Number(b[key]);
+  const raw = b[key]; // a number or a numeric string; a boolean, null, array or object is not a threshold
+  const value = typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "") ? Number(raw) : NaN;
   if (!Number.isFinite(value) || value <= 0 || value > spec.max) throw new Error(`${key} must be a positive number up to ${spec.max}`);
   if (template !== "eth-usd" && Math.abs(value * 10 ** spec.scale - Math.round(value * 10 ** spec.scale)) > 1e-9) {
     throw new Error(`the threshold may have at most ${spec.scale} decimals`);
   }
-  if (!Number.isSafeInteger(deadlineMs) || deadlineMs < nowMs + MIN_LEAD_MS || deadlineMs > nowMs + MAX_LEAD_MS) {
+  if (!Number.isSafeInteger(deadlineMs) || !Number.isSafeInteger(nowMs) || deadlineMs < nowMs + MIN_LEAD_MS || deadlineMs > nowMs + MAX_LEAD_MS) {
     throw new Error("deadlineMs must be a unix time in milliseconds between 5 minutes and 8 days from now");
   }
   let payee: string | undefined;

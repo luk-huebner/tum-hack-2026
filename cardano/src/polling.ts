@@ -67,11 +67,11 @@ export const holds = (value: number, threshold: number, cmp: "AtLeast" | "Below"
 export const planNext = (p: PollInput): PollPlan => {
   const last = p.samples[p.samples.length - 1];
   const tLeft = p.deadlineMs - p.stopBeforeMs - p.now;
-  if (tLeft <= 0) return { delayMs: null, reason: "too close to the deadline to release" };
+  if (!Number.isFinite(tLeft) || tLeft <= 0) return { delayMs: null, reason: "too close to the deadline to release" };
   if (last && holds(last.value, p.threshold, p.cmp)) return { delayMs: 0, reason: "the rule holds: release" };
   if (p.kind === "static" && last) return { delayMs: null, reason: "static data: the answer will not change, so one check is enough" };
   if (p.costAusd === 0) return { delayMs: p.baseMs, reason: "free source: every cycle" };
-  if (p.budgetLeftAusd < p.costAusd) return { delayMs: null, reason: "the aUSD budget is used up" };
+  if (!(p.budgetLeftAusd >= p.costAusd)) return { delayMs: null, reason: "the aUSD budget is used up" }; // also refuses a budget that is not a number
   if (!last) return { delayMs: 0, reason: "first check" };
   if (p.fast) return { delayMs: p.baseMs, reason: "booth mode: look every cycle while the budget lasts" };
 
@@ -100,5 +100,6 @@ export const planNext = (p: PollInput): PollPlan => {
     delay = tLeft - FLOOR_MS;
     why += "; brought forward so that a last check happens a minute before the keeper must stop";
   }
+  if (delay > tLeft) return { delayMs: null, reason: "the next check would fall after the keeper must stop" };
   return { delayMs: Math.round(delay), reason: why };
 };
