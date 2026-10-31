@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BadgeCheck, CheckCircle2, Clock, ExternalLink, FileSignature, Heart, Loader2, Lock, PartyPopper, ShieldCheck, Wallet, XCircle } from "lucide-react";
 import { useConfig } from "../App";
-import { api, scanAddress, scanTx, txOf, type Campaign, type Escrow } from "../api";
+import { api, describeError, scanAddress, scanTx, txOf, type Campaign, type Escrow } from "../api";
 import { Steps } from "../components/Steps";
 import { Badge, ErrorNote, Hash, SectionTitle, dateTimeOf, timeOf } from "../components/ui";
 import { statusBadge } from "./Brand";
@@ -136,6 +136,19 @@ const Tracker = ({ c, escrowTada }: { c: Campaign; escrowTada: number }) => {
     prev.current = likes;
   }, [likes]);
   const post = c.submission?.post;
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string>();
+  const retry = async () => {
+    setRetrying(true);
+    setRetryError(undefined);
+    try {
+      await api.retryLocks(c.id);
+    } catch (e) {
+      setRetryError(describeError(e));
+    } finally {
+      setRetrying(false);
+    }
+  };
   const paid = c.escrows.filter((e) => e.state === "released").length;
   const top = Math.max(...c.escrows.map((e) => e.threshold), likes, 1);
 
@@ -221,6 +234,16 @@ const Tracker = ({ c, escrowTada }: { c: Campaign; escrowTada: number }) => {
               </div>
             );
           })}
+          {c.escrows.some((e) => e.state === "failed") && c.status !== "locking" && (
+            <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm">
+              <div className="font-semibold text-amber-200">A milestone could not be locked</div>
+              <p className="mt-1 text-ink-mute">The payment did not reach the contract (a network or facilitator hiccup). Try again: only the milestone that failed is paid.</p>
+              <button type="button" className="btn-primary mt-3" disabled={retrying} onClick={() => void retry()}>
+                {retrying ? "Retrying…" : "Retry the failed milestone"}
+              </button>
+              {retryError && <div className="mt-2 text-red-300">{retryError}</div>}
+            </div>
+          )}
           {c.escrows.length === 0 && <div className="text-sm text-ink-mute">Milestones appear here once the post passes the checks.</div>}
           {top > 0 && c.escrows.length > 0 && c.submission?.deadline && (
             <div className="flex items-center gap-1.5 pt-1 text-xs text-ink-mute">

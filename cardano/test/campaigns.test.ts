@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildEscrows, escrowName, escrowUnits, isWorkspaceKey, newId, ownerHashOf, parseTerms, type Campaign } from '../src/campaigns.js';
+import { accessAllowed, buildEscrows, retryDeadline, escrowName, escrowUnits, isWorkspaceKey, newId, ownerHashOf, parseTerms, type Campaign } from '../src/campaigns.js';
 
 // Pure rules only: the terms a brand states and the escrows they become. Nothing is paid, no service is started.
 const terms = (patch: Record<string, unknown> = {}) => ({ brand: 'Acme', title: 'Launch', creator: '@someone', milestones: [{ likes: 1 }, { likes: 2 }, { likes: 3 }], ...patch });
@@ -69,4 +69,18 @@ test('campaign and group ids are random, not a clock', () => {
   assert.equal(ids.size, 200);
   for (const id of ids) assert.match(id, /^cp-[0-9a-f]{18}$/);
   assert.match(newId('grp'), /^grp-[0-9a-f]{18}$/);
+});
+
+test('the team access code: no code set means open, a set code must match exactly', () => {
+  assert.equal(accessAllowed(undefined, undefined), true);
+  assert.equal(accessAllowed('', 'anything'), true);
+  assert.equal(accessAllowed('k7m2-x9qp-4tnd', 'k7m2-x9qp-4tnd'), true);
+  for (const wrong of [undefined, null, '', 'k7m2-x9qp-4tnc', 'K7M2-X9QP-4TND', 'k7m2-x9qp-4tnd ', 'k7m2', 42, ['k7m2-x9qp-4tnd']]) assert.equal(accessAllowed('k7m2-x9qp-4tnd', wrong), false);
+});
+
+test('a retried lock gets at least 30 minutes, or keeps a later original deadline', () => {
+  const now = 1_800_000_000_000;
+  assert.equal(retryDeadline(now - 60_000, now), now + 30 * 60_000);
+  assert.equal(retryDeadline(now + 3 * 60 * 60_000, now), now + 3 * 60 * 60_000);
+  assert.equal(retryDeadline(NaN, now), now + 30 * 60_000);
 });
