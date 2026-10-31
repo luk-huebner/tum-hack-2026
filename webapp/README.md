@@ -41,6 +41,22 @@ Rehearse once before the pitch: the brand wallet needs about 6 tADA per mileston
 
 `vercel.json` builds the static app and rewrites every route to `index.html`. Set `VITE_API_BASE` to the public URL of a running service and start the service with `CORS_ORIGIN=<the Vercel URL>`. The service holds keys and spends test funds, so it is not part of the Vercel deployment; the existing public judge site (`cardano/HOSTING.md`) remains the keyless option for the bench.
 
+## API for many creators, the posting payment and the engine view (added 31 Oct)
+
+All on the service, same origin as the rest of `/api/cp/*`. Nothing here changes the old fields.
+
+| Route | What it does |
+|---|---|
+| `POST /api/cp/campaigns` | now also takes `posting` (`true`, or `{ "units": 1, "label": "Post goes live" }`) and `units` on each milestone. A campaign needs a posting payment or at least one like milestone; at most 3 milestones, at most 8 escrows in all (`units` is 1 to 3). |
+| `POST /api/cp/campaigns/bulk` | the same body plus `creators`: a list of X handles (or `{ "handle": "..." }`), at most 50. One campaign per creator, all with the same `groupId`. Answers `{ groupId, campaigns, skipped: [{ row, handle, reason }] }`; duplicates and invalid handles are skipped and listed (this is what a CSV import shows the brand). |
+| `GET /api/cp/groups/:id` | every campaign of one import. |
+| `GET /api/cp/creator?wallet=&handle=&post=` | the creator's view. `wallet` is the payout address, `handle` the X handle (before the post is submitted), `post` a link or id that narrows it to one post. At least one is needed. |
+| `GET /api/cp/engine` | everything behind the screens: keeper status and what it watches, every journalled transaction (state, block, Cardanoscan link), the activity log and the signed data per post. Read only. |
+
+An escrow now has `kind` (`"posting"` pays as soon as the post is live, threshold 0; `"likes"` pays at `threshold`), `label`, and `unit` / `units` when a milestone is split over several 5 tADA escrows. The posting payment is `milestone: -1`. A campaign view has `budgetTada`.
+
+The budget is counted in 5 tADA units (the escrow route's fixed amount): for one creator, a posting payment plus likes 1, 2 and 3 is 4 units, 20 tADA. Percentages other than multiples of one unit are not possible yet.
+
 ## Limits
 
 - One 5 tADA escrow per milestone (the escrow route's fixed amount), each a separate x402 payment, locked one after the other.

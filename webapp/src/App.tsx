@@ -6,6 +6,7 @@ import Brand from "./pages/Brand";
 import CampaignPage from "./pages/CampaignPage";
 import Creator from "./pages/Creator";
 import Verify from "./pages/Verify";
+import EnginePage from "./pages/Engine";
 
 interface ConfigState {
   config?: Config;
@@ -75,6 +76,9 @@ export default function App() {
               <NavLink to="/verify" className={navClass}>
                 Verify
               </NavLink>
+              <NavLink to="/engine" className={navClass}>
+                Engine
+              </NavLink>
             </nav>
             <ServiceStatus state={state} />
           </div>
@@ -86,6 +90,7 @@ export default function App() {
             <Route path="/creator" element={<Creator />} />
             <Route path="/c/:id" element={<CampaignPage />} />
             <Route path="/verify" element={<Verify />} />
+            <Route path="/engine" element={<EnginePage />} />
             <Route path="*" element={<Home />} />
           </Routes>
         </main>

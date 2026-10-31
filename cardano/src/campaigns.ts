@@ -1,5 +1,5 @@
 import { Transaction } from "@evolution-sdk/evolution";
-import { reconcile, trackExternal } from "./tx-tracking.js";
+import { explorer, latestTransactions, reconcile, trackExternal } from "./tx-tracking.js";
 /**
  * Creator Pay campaigns for the web app: the brand's terms, the creator's post and the escrows that pay the creator.
  *
@@ -38,14 +38,27 @@ const scan = (hash: string) => `https://preprod.cardanoscan.io/transaction/${has
 const LIVE = process.env.CREATORPAY_LIVE === "1";
 const MAX_SUBMISSIONS = Number(process.env.CREATORPAY_MAX_SUBMISSIONS ?? "8"); // for the life of this process
 const MAX_MILESTONES = 3;
+const MAX_UNITS = 3; // 5 tADA escrows behind one milestone (or behind the posting payment)
+const MAX_ESCROWS = 8; // per campaign: 40 tADA, the same limit as the tranche planner
+const MAX_BULK = 50; // creators in one import
+const MAX_CAMPAIGNS = 200;
 
 export interface Milestone {
   likes: number;
   label?: string;
+  /** How many 5 tADA escrows pay this milestone (default 1): the brand's budget split. */
+  units?: number;
 }
 
 export interface Escrow {
+  /** Index into `milestones`, or -1 for the posting payment. */
   milestone: number;
+  /** "posting" pays as soon as the post is live (threshold 0); "likes" pays at `threshold` likes. Older stored escrows have no kind (likes). */
+  kind?: "posting" | "likes";
+  label?: string;
+  /** Which of the `units` escrows of this milestone this is (0-based). */
+  unit?: number;
+  units?: number;
   threshold: number;
   state: "pending" | "locking" | "locked" | "released" | "failed";
   ref?: string;
@@ -65,6 +78,10 @@ export interface Campaign {
   creator: string;
   disclosure: string[];
   milestones: Milestone[];
+  /** The posting payment: pays when the post is live, no like needed (a presence escrow). */
+  posting?: { units: number; label?: string };
+  /** Set when the brand imported many creators at once: every campaign of the import shares it. */
+  groupId?: string;
   likesMode: "increase" | "absolute";
   durationMinutes: number;
   measureLastMinutes?: number;
@@ -110,7 +127,7 @@ const brandAddress = async (): Promise<string> => (buyerAddress ??= Address.toBe
 
 const text = (value: unknown, max: number) => (typeof value === "string" ? value.trim().slice(0, max) : "");
 
-const parseTerms = (body: unknown): Omit<Campaign, "id" | "createdAt" | "status" | "steps" | "escrows"> => {
+export const parseTerms = (body: unknown): Omit<Campaign, "id" | "createdAt" | "status" | "steps" | "escrows"> => {
   const b = (body ?? {}) as Record<string, unknown>;
   const brand = text(b.brand, 60);
   const title = text(b.title, 80);
@@ -119,11 +136,23 @@ const parseTerms = (body: unknown): Omit<Campaign, "id" | "createdAt" | "status"
   if (!/^[A-Za-z0-9_]{1,15}$/.test(creator)) throw new Error("creator must be an X handle (letters, digits, underscore)");
   const disclosure = Array.isArray(b.disclosure) ? b.disclosure.map((x) => text(x, 30)).filter(Boolean).slice(0, 8) : DEFAULT_DISCLOSURE;
   const raw = Array.isArray(b.milestones) ? b.milestones : [];
-  const milestones = raw.slice(0, MAX_MILESTONES).map((m) => {
+  const unitsOf = (v: unknown, what: string) => {
+    const n = v === undefined || v === null || v === "" ? 1 : Number(v);
+    if (!Number.isSafeInteger(n) || n < 1 || n > MAX_UNITS) throw new Error(`${what}: units (5 tADA escrows) must be a whole number from 1 to ${MAX_UNITS}`);
+    return n;
+  };
+  const milestones: Milestone[] = raw.slice(0, MAX_MILESTONES).map((m, i) => {
     const x = (m ?? {}) as Record<string, unknown>;
-    return { likes: Number(x.likes), ...(text(x.label, 40) ? { label: text(x.label, 40) } : {}) };
+    const units = unitsOf(x.units, `milestone ${i + 1}`);
+    return { likes: Number(x.likes), ...(text(x.label, 40) ? { label: text(x.label, 40) } : {}), ...(units > 1 ? { units } : {}) };
   });
-  if (milestones.length === 0) throw new Error(`give one to ${MAX_MILESTONES} milestones`);
+  // The posting payment: pays as soon as the post is live, with no like needed
+  const postingRaw = b.posting === undefined || b.posting === null || b.posting === false ? undefined : b.posting;
+  const postingObj = typeof postingRaw === "object" && postingRaw !== null ? (postingRaw as Record<string, unknown>) : {};
+  const posting = postingRaw === undefined ? undefined : { units: unitsOf(postingObj.units, "posting"), ...(text(postingObj.label, 40) ? { label: text(postingObj.label, 40) } : {}) };
+  if (milestones.length === 0 && !posting) throw new Error(`give a posting payment or one to ${MAX_MILESTONES} like milestones`);
+  const escrowCount = (posting?.units ?? 0) + milestones.reduce((n, m) => n + (m.units ?? 1), 0);
+  if (escrowCount > MAX_ESCROWS) throw new Error(`${escrowCount} escrows is more than the limit of ${MAX_ESCROWS} (${MAX_ESCROWS * 5} tADA) per campaign`);
   if (milestones.some((m) => !Number.isSafeInteger(m.likes) || m.likes < 1 || m.likes > 10_000_000)) throw new Error("each milestone needs a whole number of likes, at least 1");
   if (new Set(milestones.map((m) => m.likes)).size !== milestones.length) throw new Error("two milestones cannot ask for the same number of likes");
   milestones.sort((a, c) => a.likes - c.likes);
@@ -142,11 +171,36 @@ const parseTerms = (body: unknown): Omit<Campaign, "id" | "createdAt" | "status"
     creator,
     disclosure,
     milestones,
+    ...(posting ? { posting } : {}),
     likesMode: b.likesMode === "absolute" ? "absolute" : "increase",
     durationMinutes,
     ...(measureLastMinutes === undefined ? {} : { measureLastMinutes }),
     maxPostAgeHours,
   };
+};
+
+// ---------------------------------------------------------------------------
+// The escrows a campaign needs: the posting payment first, then every like milestone, one escrow per unit
+
+export const escrowUnits = (c: Pick<Campaign, "milestones" | "posting">) => (c.posting?.units ?? 0) + c.milestones.reduce((n, m) => n + (m.units ?? 1), 0);
+
+export const buildEscrows = (c: Pick<Campaign, "milestones" | "posting" | "likesMode">, baselineLikes: number): Escrow[] => {
+  const out: Escrow[] = [];
+  if (c.posting) {
+    for (let u = 0; u < c.posting.units; u++) out.push({ milestone: -1, kind: "posting", label: c.posting.label ?? "Post goes live", unit: u, units: c.posting.units, threshold: 0, state: "pending" });
+  }
+  c.milestones.forEach((m, i) => {
+    const units = m.units ?? 1;
+    for (let u = 0; u < units; u++) {
+      out.push({ milestone: i, kind: "likes", ...(m.label ? { label: m.label } : {}), unit: u, units, threshold: c.likesMode === "increase" ? baselineLikes + m.likes : m.likes, state: "pending" });
+    }
+  });
+  return out;
+};
+
+export const escrowName = (e: Escrow) => {
+  const base = e.kind === "posting" ? (e.label ?? "The posting payment") : `Milestone ${e.milestone + 1}`;
+  return (e.units ?? 1) > 1 ? `${base} (${(e.unit ?? 0) + 1} of ${e.units})` : base;
 };
 
 // ---------------------------------------------------------------------------
@@ -271,31 +325,31 @@ const submit = async (campaign: Campaign, postUrl: string, payee: string, deps: 
   const measureAfterMs = campaign.measureLastMinutes === undefined ? undefined : deadlineMs - campaign.measureLastMinutes * 60_000;
   campaign.submission.deadline = new Date(deadlineMs).toISOString();
   if (measureAfterMs !== undefined) campaign.submission.measureAfter = new Date(Math.max(measureAfterMs, lockedAt)).toISOString();
-  campaign.escrows = campaign.milestones.map((m, i) => ({ milestone: i, threshold: campaign.likesMode === "increase" ? review.post.likes + m.likes : m.likes, state: "pending" }));
+  campaign.escrows = buildEscrows(campaign, review.post.likes);
   save();
 
   for (const escrow of campaign.escrows) {
     escrow.state = "locking";
-    add("info", `Milestone ${escrow.milestone + 1}: the brand pays 5 tADA into the contract, released to the creator when the signed count shows at least ${escrow.threshold} likes.`);
+    add("info", escrow.kind === "posting" ? `${escrowName(escrow)}: the brand pays 5 tADA into the contract, released to the creator as soon as a fresh signed response shows the post is live.` : `${escrowName(escrow)}: the brand pays 5 tADA into the contract, released to the creator when the signed count shows at least ${escrow.threshold} likes.`);
     try {
       const locked = await lockEscrow(
         deps.serviceUrl,
         {
           template: "source",
           sourceId: spec.id,
-          atLeast: escrow.threshold,
+          ...(escrow.kind === "posting" ? { presence: true } : { atLeast: escrow.threshold }),
           refund,
           payee,
           deadlineMs,
-          ...(measureAfterMs === undefined ? {} : { measureAfterMs: Math.max(measureAfterMs, Date.now()) }),
+          ...(escrow.kind === "posting" || measureAfterMs === undefined ? {} : { measureAfterMs: Math.max(measureAfterMs, Date.now()) }),
         },
         add,
       );
       Object.assign(escrow, { state: "locked", ref: locked.ref, payTx: locked.payTx });
-      add("ok", `Milestone ${escrow.milestone + 1} is locked at the contract. Nobody holds the money in between.`, { label: "payment transaction", url: scan(locked.payTx) });
+      add("ok", `${escrowName(escrow)} is locked at the contract. Nobody holds the money in between.`, { label: "payment transaction", url: scan(locked.payTx) });
     } catch (error) {
       Object.assign(escrow, { state: "failed", error: String((error as Error).message).slice(0, 200) });
-      add("refused", `Milestone ${escrow.milestone + 1} could not be locked: ${escrow.error}`);
+      add("refused", `${escrowName(escrow)} could not be locked: ${escrow.error}`);
     }
   }
   campaign.status = campaign.escrows.some((e) => e.state === "locked") ? "live" : "failed";
@@ -311,7 +365,7 @@ export const onKeeperJob = (entry: Record<string, unknown>) => {
     const escrow = c.escrows.find((e) => e.ref === entry.ref);
     if (!escrow) continue;
     Object.assign(escrow, { state: "released", releaseTx: entry.tx, releasedAt: new Date().toISOString(), ...(typeof entry.value === "number" ? { releasedValue: entry.value } : {}) });
-    c.steps.push({ at: new Date().toISOString(), kind: "ok", text: `Milestone ${escrow.milestone + 1} paid: the keeper proved ${entry.value ?? "the"} likes with a fresh signed response and the contract released 5 tADA to the creator.`, link: { label: "release transaction", url: scan(entry.tx) } });
+    c.steps.push({ at: new Date().toISOString(), kind: "ok", text: escrow.kind === "posting" ? `${escrowName(escrow)} paid: a fresh signed response showed the post is live and the contract released 5 tADA to the creator.` : `${escrowName(escrow)} paid: the keeper proved ${entry.value ?? "the"} likes with a fresh signed response and the contract released 5 tADA to the creator.`, link: { label: "release transaction", url: scan(entry.tx) } });
     save();
   }
 };
@@ -340,6 +394,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     const likes = sourceKey && status?.lastValues[sourceKey] !== undefined ? status.lastValues[sourceKey] : c.submission?.baseline;
     return {
       ...c,
+      budgetTada: escrowUnits(c) * (Number(ESCROW_LOVELACE) / 1_000_000),
       submission: c.submission && { ...c.submission, look: { ...c.submission.look, data: c.submission.look.data.slice(0, 4000) } },
       live: {
         likes,
@@ -381,7 +436,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
   });
 
   router.post("/api/cp/campaigns", (req: Request, res: Response) => {
-    if (campaigns.length >= 200) return void res.status(429).json({ error: "Too many campaigns on this server" });
+    if (campaigns.length >= MAX_CAMPAIGNS) return void res.status(429).json({ error: "Too many campaigns on this server" });
     let terms;
     try {
       terms = parseTerms(req.body);
@@ -423,6 +478,102 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
         busy = undefined;
       });
     res.json(view(c));
+  });
+
+  /** Many influencers, one set of terms: one campaign per creator under a shared groupId. Rows that cannot be created are skipped and reported. */
+  router.post("/api/cp/campaigns/bulk", (req: Request, res: Response) => {
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    const rows = Array.isArray(b.creators) ? b.creators : [];
+    if (rows.length === 0) return void res.status(400).json({ error: "creators must be a list of X handles (or { handle } objects)" });
+    if (rows.length > MAX_BULK) return void res.status(400).json({ error: `at most ${MAX_BULK} creators per import` });
+    const groupId = `grp-${Date.now().toString(36)}`;
+    const made: Campaign[] = [];
+    const skipped: { row: number; handle: string; reason: string }[] = [];
+    const seen = new Set<string>();
+    rows.forEach((row, i) => {
+      const handle = String(typeof row === "string" ? row : ((row ?? {}) as Record<string, unknown>).handle ?? "").trim().replace(/^@/, "");
+      if (seen.has(handle.toLowerCase())) return void skipped.push({ row: i + 1, handle, reason: "duplicate handle" });
+      seen.add(handle.toLowerCase());
+      if (campaigns.length + made.length >= MAX_CAMPAIGNS) return void skipped.push({ row: i + 1, handle, reason: "too many campaigns on this server" });
+      try {
+        const terms = parseTerms({ ...b, creator: handle });
+        made.push({ id: `cp-${(Date.now() + i).toString(36)}`, createdAt: new Date().toISOString(), status: "open", steps: [], escrows: [], groupId, ...terms });
+      } catch (error) {
+        skipped.push({ row: i + 1, handle, reason: (error as Error).message });
+      }
+    });
+    if (made.length === 0) return void res.status(400).json({ error: skipped[0]?.reason ?? "nothing to create", skipped });
+    campaigns.push(...made);
+    save();
+    res.json({ groupId, campaigns: made.map(view), skipped });
+  });
+
+  router.get("/api/cp/groups/:id", (req, res) => {
+    const list = campaigns.filter((c) => c.groupId === String(req.params.id));
+    if (list.length === 0) return void res.status(404).json({ error: "No such group" });
+    res.json({ groupId: String(req.params.id), campaigns: list.map(view).reverse() });
+  });
+
+  /** The creator's own view: by payout wallet or by X handle (who), optionally narrowed to one post (a link or an id). */
+  router.get("/api/cp/creator", (req, res) => {
+    const wallet = text(req.query.wallet, 120);
+    const handle = text(req.query.handle, 40).replace(/^@/, "").toLowerCase();
+    const post = text(req.query.post, 300);
+    const postId = post ? (tweetIdOf(post) ?? (/^\d{1,20}$/.test(post) ? post : undefined)) : undefined;
+    if (!wallet && !handle && !post) return void res.status(400).json({ error: "give a wallet, a handle or a post link" });
+    if (post && !postId) return void res.status(400).json({ error: "the post must be a link https://x.com/<handle>/status/<ID> or its id" });
+    const list = campaigns.filter((c) => {
+      const who = wallet || handle ? (wallet !== "" && c.submission?.payee === wallet) || (handle !== "" && c.creator.toLowerCase() === handle) : true;
+      const which = postId ? c.submission?.postUrl !== undefined && tweetIdOf(c.submission.postUrl) === postId : true;
+      return who && which;
+    });
+    res.json(list.map(view).reverse());
+  });
+
+  /** What happens behind the screens: the keeper, every transaction the service made, the activity and the signed data it acted on. */
+  router.get("/api/cp/engine", (_req, res) => {
+    const w = deps.watcher()?.status();
+    let journal: ReturnType<typeof latestTransactions> = [];
+    try {
+      journal = latestTransactions();
+    } catch {
+      // a damaged journal must not break the page
+    }
+    const transactions = journal
+      .sort((a, c) => (c.confirmationTimestamp ?? c.submissionTimestamp ?? c.updatedAt).localeCompare(a.confirmationTimestamp ?? a.submissionTimestamp ?? a.updatedAt))
+      .slice(0, 80)
+      .map((t) => ({ txHash: t.txHash, operation: t.operation, state: t.state, blockNumber: t.blockNumber, submittedAt: t.submissionTimestamp, confirmedAt: t.confirmationTimestamp, updatedAt: t.updatedAt, source: t.source, escrowRefs: t.escrowRefs, explorerUrl: t.explorerUrl || explorer(t.txHash), note: t.note ?? null }));
+    const activity = campaigns
+      .flatMap((c) => c.steps.map((s) => ({ ...s, campaignId: c.id, title: c.title, brand: c.brand, creator: c.creator })))
+      .sort((a, c) => c.at.localeCompare(a.at))
+      .slice(0, 80);
+    const signed = campaigns
+      .filter((c) => c.submission)
+      .slice(-20)
+      .reverse()
+      .map((c) => {
+        const s = c.submission!;
+        const key = s.sourceId ? `reg:${s.sourceId}` : undefined;
+        return { campaignId: c.id, creator: c.creator, postUrl: s.postUrl, airnode: s.look.airnode ?? null, signedAt: s.look.timestamp ?? null, requestHash: s.requestHash ?? null, signer: s.signer ?? null, baselineLikes: s.baseline, likesNow: key && w?.lastValues[key] !== undefined ? w.lastValues[key] : s.baseline, signedCount: Boolean(key && w?.lastValues[key] !== undefined) };
+      });
+    const escrowStates: Record<string, number> = {};
+    const campaignStates: Record<string, number> = {};
+    for (const c of campaigns) {
+      campaignStates[c.status] = (campaignStates[c.status] ?? 0) + 1;
+      for (const e of c.escrows) escrowStates[e.state] = (escrowStates[e.state] ?? 0) + 1;
+    }
+    res.json({
+      generatedAt: new Date().toISOString(),
+      network: "Cardano preprod",
+      contract: { validatorHash: scriptHash, validatorAddress: validatorAddressBech32 },
+      keeper: w
+        ? { enabled: true, dry: w.dry, allowPaid: w.allowPaid, startedAt: w.startedAt, lastCycleAt: w.lastCycleAt ?? null, released: w.released, retries: w.retries, ausdSpent: w.ausdSpent, consecutiveFailures: w.consecutiveFailures, watching: w.candidates.map((x) => ({ ref: x.ref, rule: x.rule, state: x.state, value: x.value ?? null, deadline: x.deadline, nextCheck: x.nextCheck ?? null })) }
+        : { enabled: false },
+      counts: { campaigns: campaigns.length, campaignStates, escrowStates, tadaReleased: (escrowStates.released ?? 0) * (Number(ESCROW_LOVELACE) / 1_000_000), tadaLocked: (escrowStates.locked ?? 0) * (Number(ESCROW_LOVELACE) / 1_000_000) },
+      transactions,
+      activity,
+      signed,
+    });
   });
 
   return router;

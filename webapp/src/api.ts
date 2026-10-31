@@ -15,10 +15,18 @@ export interface Step {
 export interface Milestone {
   likes: number;
   label?: string;
+  /** 5 tADA escrows behind this milestone (default 1): the brand's budget split. */
+  units?: number;
 }
 
 export interface Escrow {
+  /** Index into milestones, or -1 for the posting payment. */
   milestone: number;
+  /** "posting" pays when the post is live (threshold 0); "likes" pays at the threshold. Missing on old campaigns: likes. */
+  kind?: "posting" | "likes";
+  label?: string;
+  unit?: number;
+  units?: number;
   threshold: number;
   state: "pending" | "locking" | "locked" | "released" | "failed";
   ref?: string;
@@ -54,6 +62,11 @@ export interface Campaign {
   creator: string;
   disclosure: string[];
   milestones: Milestone[];
+  /** The posting payment: pays as soon as the post is live, no like needed. */
+  posting?: { units: number; label?: string };
+  /** Shared by every campaign created in one multi-creator import. */
+  groupId?: string;
+  budgetTada?: number;
   likesMode: "increase" | "absolute";
   durationMinutes: number;
   measureLastMinutes?: number;
@@ -125,6 +138,50 @@ export interface BoardRow {
   paysThisService: boolean;
 }
 
+export interface EngineTx {
+  txHash: string;
+  operation: string;
+  state: "built" | "submitted" | "confirmed" | "rejected" | "expired" | "unknown";
+  blockNumber: number | null;
+  submittedAt: string | null;
+  confirmedAt: string | null;
+  updatedAt: string;
+  source: string;
+  escrowRefs: string[];
+  explorerUrl: string;
+  note: string | null;
+}
+
+export interface Engine {
+  generatedAt: string;
+  network: string;
+  contract: { validatorHash: string; validatorAddress: string };
+  keeper:
+    | { enabled: false }
+    | {
+        enabled: true;
+        dry: boolean;
+        allowPaid: boolean;
+        startedAt: string;
+        lastCycleAt: string | null;
+        released: number;
+        retries: number;
+        ausdSpent: number;
+        consecutiveFailures: number;
+        watching: { ref: string; rule: string; state: string; value: number | null; deadline: string; nextCheck: string | null }[];
+      };
+  counts: { campaigns: number; campaignStates: Record<string, number>; escrowStates: Record<string, number>; tadaReleased: number; tadaLocked: number };
+  transactions: EngineTx[];
+  activity: (Step & { campaignId: string; title: string; brand: string; creator: string })[];
+  signed: { campaignId: string; creator: string; postUrl: string; airnode: string | null; signedAt: string | null; requestHash: string | null; signer: string | null; baselineLikes: number; likesNow: number; signedCount: boolean }[];
+}
+
+export interface BulkResult {
+  groupId: string;
+  campaigns: Campaign[];
+  skipped: { row: number; handle: string; reason: string }[];
+}
+
 const call = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const res = await fetch(`${BASE}${path}`, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
   const body = await res.json().catch(() => ({}));
@@ -138,6 +195,12 @@ export const api = {
   campaign: (id: string) => call<Campaign>(`/api/cp/campaigns/${encodeURIComponent(id)}`),
   createCampaign: (body: unknown) => call<Campaign>("/api/cp/campaigns", { method: "POST", body: JSON.stringify(body) }),
   submitPost: (id: string, body: { postUrl: string; payee: string }) => call<Campaign>(`/api/cp/campaigns/${encodeURIComponent(id)}/submit`, { method: "POST", body: JSON.stringify(body) }),
+  /** Many influencers, one set of terms: `creators` is a list of X handles (or { handle }). */
+  createCampaigns: (body: unknown) => call<BulkResult>("/api/cp/campaigns/bulk", { method: "POST", body: JSON.stringify(body) }),
+  group: (id: string) => call<{ groupId: string; campaigns: Campaign[] }>(`/api/cp/groups/${encodeURIComponent(id)}`),
+  /** The creator's own view, by payout wallet or handle, optionally narrowed to one post (link or id). */
+  creator: (q: { wallet?: string; handle?: string; post?: string }) => call<Campaign[]>(`/api/cp/creator?${new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString()}`),
+  engine: () => call<Engine>("/api/cp/engine"),
   cases: () => call<BenchCase[]>("/api/cases"),
   judge: (ref: string, response: unknown) => call<Verdict>("/api/judge", { method: "POST", body: JSON.stringify({ ref, response }) }),
   board: () => call<{ validatorHash: string; count: number; rows: BoardRow[] }>("/api/board"),

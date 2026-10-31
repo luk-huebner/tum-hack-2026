@@ -3,6 +3,7 @@ import { ArrowRight, BadgeCheck, Building2, FileSignature, Lock, ShieldCheck, Sp
 import { useConfig } from "../App";
 import { scanAddress } from "../api";
 import { Hash } from "../components/ui";
+import Trust from "../components/Trust";
 
 const flow = [
   { icon: Building2, title: "The brand sets the terms", text: "Which creator, which disclosure tag, which like milestones, and what each one pays. No money moves yet: the deal waits for the post." },
@@ -136,6 +137,8 @@ export default function Home() {
         </div>
         <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-ink-mute">Measured on Cardano preprod and in CI. A signature proves what the API returned, not that every like is genuine: measuring at the end and paying on the increase make buying likes not worth it.</p>
       </section>
+
+      <Trust />
 
       {/* who it is for */}
       <section className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6">

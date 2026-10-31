@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { buildEscrows, escrowName, escrowUnits, parseTerms, type Campaign } from '../src/campaigns.js';
+
+// Pure rules only: the terms a brand states and the escrows they become. Nothing is paid, no service is started.
+const terms = (patch: Record<string, unknown> = {}) => ({ brand: 'Acme', title: 'Launch', creator: '@someone', milestones: [{ likes: 1 }, { likes: 2 }, { likes: 3 }], ...patch });
+const campaign = (patch: Record<string, unknown> = {}) => parseTerms(terms(patch)) as Pick<Campaign, 'milestones' | 'posting' | 'likesMode'>;
+
+test('the demo budget: a posting payment, then 1, 2 and 3 likes, one 5 tADA unit each', () => {
+  const c = campaign({ posting: { units: 1 } });
+  assert.deepEqual(c.posting, { units: 1 });
+  const escrows = buildEscrows(c, 0);
+  assert.equal(escrowUnits(c), 4);
+  assert.deepEqual(escrows.map((e) => [e.kind, e.threshold]), [['posting', 0], ['likes', 1], ['likes', 2], ['likes', 3]]);
+  assert.deepEqual(escrows.map((e) => e.milestone), [-1, 0, 1, 2]);
+  assert.ok(escrows.every((e) => e.state === 'pending'));
+});
+
+test('thresholds count on top of the likes the post has when it is submitted, unless the brand asks for absolute numbers', () => {
+  assert.deepEqual(buildEscrows(campaign(), 10).map((e) => e.threshold), [11, 12, 13]);
+  assert.deepEqual(buildEscrows(campaign({ likesMode: 'absolute' }), 10).map((e) => e.threshold), [1, 2, 3]);
+  // the posting payment has no threshold in either mode
+  assert.equal(buildEscrows(campaign({ posting: true, likesMode: 'absolute' }), 10)[0].threshold, 0);
+});
+
+test('units split the budget: more 5 tADA escrows behind a milestone, each its own escrow', () => {
+  const c = campaign({ posting: { units: 2, label: 'Goes live' }, milestones: [{ likes: 1, units: 3 }, { likes: 5 }] });
+  const escrows = buildEscrows(c, 0);
+  assert.equal(escrows.length, 6);
+  assert.equal(escrowUnits(c), 6);
+  assert.deepEqual(escrows.map((e) => `${e.kind}:${e.unit}/${e.units}`), ['posting:0/2', 'posting:1/2', 'likes:0/3', 'likes:1/3', 'likes:2/3', 'likes:0/1']);
+  assert.equal(escrows[0].label, 'Goes live');
+  assert.deepEqual(escrows.map(escrowName), ['Goes live (1 of 2)', 'Goes live (2 of 2)', 'Milestone 1 (1 of 3)', 'Milestone 1 (2 of 3)', 'Milestone 1 (3 of 3)', 'Milestone 2']);
+});
+
+test('posting can be true, an object, or off; a posting payment alone is a campaign', () => {
+  assert.deepEqual(campaign({ posting: true }).posting, { units: 1 });
+  assert.equal(campaign({ posting: false }).posting, undefined);
+  assert.equal(campaign().posting, undefined);
+  const only = campaign({ posting: { units: 2 }, milestones: [] });
+  assert.equal(only.milestones.length, 0);
+  assert.equal(buildEscrows(only, 0).length, 2);
+});
+
+test('refusals: units, the limit of 8 escrows, an empty campaign, duplicate or bad milestones', () => {
+  for (const units of [0, 4, 1.5, -1, 'x']) assert.throws(() => parseTerms(terms({ milestones: [{ likes: 1, units }] })), /units/);
+  assert.throws(() => parseTerms(terms({ posting: { units: 4 } })), /units/);
+  assert.throws(() => parseTerms(terms({ posting: { units: 3 }, milestones: [{ likes: 1, units: 3 }, { likes: 2, units: 3 }] })), /more than the limit of 8/);
+  assert.doesNotThrow(() => parseTerms(terms({ posting: { units: 2 }, milestones: [{ likes: 1, units: 3 }, { likes: 2, units: 3 }] })));
+  assert.throws(() => parseTerms(terms({ milestones: [] })), /posting payment or one to 3/);
+  assert.throws(() => parseTerms(terms({ milestones: [{ likes: 2 }, { likes: 2 }] })), /same number of likes/);
+  assert.throws(() => parseTerms(terms({ milestones: [{ likes: 0 }] })), /at least 1/);
+  assert.throws(() => parseTerms(terms({ creator: 'not a handle!' })), /X handle/);
+});
