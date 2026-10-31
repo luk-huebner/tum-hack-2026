@@ -1,0 +1,28 @@
+{
+  "id": "j-munich-day-rain",
+  "label": "Munich rain on 23 Oct 2026 in mm",
+  "slug": "open-meteo",
+  "request": {
+    "operation": "historicalWeather",
+    "parameters": {
+      "latitude": "48.137",
+      "longitude": "11.575",
+      "start_date": "2026-10-23",
+      "end_date": "2026-10-23",
+      "daily": "rain_sum",
+      "timezone": "Europe/Berlin",
+      "precipitation_unit": "mm",
+      "models": "era5"
+    },
+    "responseProjection": {
+      "day": "/daily/time/0",
+      "value": "/daily/rain_sum/0"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 2
+}

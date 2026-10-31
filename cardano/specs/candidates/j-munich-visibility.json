@@ -1,0 +1,22 @@
+{
+  "id": "j-munich-visibility",
+  "label": "Current Munich visibility in kilometres",
+  "slug": "weatherapi",
+  "request": {
+    "operation": "getCurrentWeather",
+    "parameters": {
+      "q": "48.137,11.575",
+      "aqi": "no"
+    },
+    "responseProjection": {
+      "observedAt": "/current/last_updated_epoch",
+      "value": "/current/vis_km"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "Below",
+  "kind": "feed",
+  "scale": 1
+}

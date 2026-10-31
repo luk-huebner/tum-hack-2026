@@ -1,0 +1,28 @@
+{
+  "id": "j-japan-quake-count",
+  "label": "Japan-region earthquakes of magnitude at least 5 in September 2026",
+  "slug": "usgs",
+  "request": {
+    "operation": "countEvents",
+    "parameters": {
+      "format": "geojson",
+      "starttime": "2026-09-01T00:00:00",
+      "endtime": "2026-10-01T00:00:00",
+      "minlatitude": 30,
+      "maxlatitude": 46,
+      "minlongitude": 129,
+      "maxlongitude": 146,
+      "minmagnitude": 5,
+      "eventtype": "earthquake"
+    },
+    "responseProjection": {
+      "value": "/count"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 0
+}

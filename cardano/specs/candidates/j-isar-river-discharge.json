@@ -1,0 +1,27 @@
+{
+  "id": "j-isar-river-discharge",
+  "label": "Modelled Isar discharge on 23 Oct 2026 in cubic metres per second",
+  "slug": "open-meteo",
+  "request": {
+    "operation": "flood",
+    "parameters": {
+      "latitude": "48.137",
+      "longitude": "11.575",
+      "start_date": "2026-10-23",
+      "end_date": "2026-10-23",
+      "daily": "river_discharge",
+      "models": "seamless_v4",
+      "timezone": "GMT"
+    },
+    "responseProjection": {
+      "day": "/daily/time/0",
+      "value": "/daily/river_discharge/0"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 2
+}

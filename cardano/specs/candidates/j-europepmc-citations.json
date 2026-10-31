@@ -1,0 +1,23 @@
+{
+  "id": "j-europepmc-citations",
+  "label": "Europe PMC forward citation count for MED 33024307",
+  "slug": "europepmc",
+  "request": {
+    "operation": "listCitations",
+    "parameters": {
+      "source": "MED",
+      "id": "33024307",
+      "page": 1,
+      "pageSize": 1
+    },
+    "responseProjection": {
+      "value": "/hitCount"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "counter",
+  "scale": 0
+}

@@ -1,0 +1,25 @@
+{
+  "id": "j-munich-air-quality",
+  "label": "Current modelled Munich European air-quality index",
+  "slug": "open-meteo",
+  "request": {
+    "operation": "airQuality",
+    "parameters": {
+      "latitude": "48.137",
+      "longitude": "11.575",
+      "current": "european_aqi",
+      "timeformat": "unixtime",
+      "timezone": "GMT"
+    },
+    "responseProjection": {
+      "observedAt": "/current/time",
+      "value": "/current/european_aqi"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "feed",
+  "scale": 0
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "j-baxter-drug-recall-monitor",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-baxter-drug-recall-monitor.json --dry",
+    "exit": 0,
+    "output": "source j-baxter-drug-recall-monitor: https://airnode-openfda.fly.dev/\n  request hash (derived when paid)\n  price 0.005 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-class-one-drug-recalls",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-class-one-drug-recalls.json --dry",
+    "exit": 0,
+    "output": "source j-class-one-drug-recalls: https://airnode-openfda.fly.dev/\n  request hash (derived when paid)\n  price 0.005 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-crossref-work-citations",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-crossref-work-citations.json --dry",
+    "exit": 0,
+    "output": "source j-crossref-work-citations: https://airnode-crossref.fly.dev/\n  request hash (derived when paid)\n  price 0.01 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-europepmc-citations",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-europepmc-citations.json --dry",
+    "exit": 0,
+    "output": "source j-europepmc-citations: https://airnode-europepmc.fly.dev/\n  request hash (derived when paid)\n  price 0.01 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-isar-river-discharge",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-isar-river-discharge.json --dry",
+    "exit": 0,
+    "output": "source j-isar-river-discharge: https://airnode-open-meteo.fly.dev/\n  request hash (derived when paid)\n  price 0.1 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-japan-quake-count",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-japan-quake-count.json --dry",
+    "exit": 0,
+    "output": "source j-japan-quake-count: https://airnode-usgs.fly.dev/\n  request hash (derived when paid)\n  price 0 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-log4j-critical-cve-count",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-log4j-critical-cve-count.json --dry",
+    "exit": 0,
+    "output": "source j-log4j-critical-cve-count: https://airnode-nvd.fly.dev/\n  request hash (derived when paid)\n  price 0.01 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-log4shell-cvss-score",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-log4shell-cvss-score.json --dry",
+    "exit": 0,
+    "output": "source j-log4shell-cvss-score: https://airnode-nvd.fly.dev/\n  request hash (derived when paid)\n  price 0.01 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-munich-air-quality",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-munich-air-quality.json --dry",
+    "exit": 0,
+    "output": "source j-munich-air-quality: https://airnode-open-meteo.fly.dev/\n  request hash (derived when paid)\n  price 0.02 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-munich-day-rain",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-munich-day-rain.json --dry",
+    "exit": 0,
+    "output": "source j-munich-day-rain: https://airnode-open-meteo.fly.dev/\n  request hash (derived when paid)\n  price 0.1 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-munich-heat-day",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-munich-heat-day.json --dry",
+    "exit": 0,
+    "output": "source j-munich-heat-day: https://airnode-visualcrossing.fly.dev/\n  request hash (derived when paid)\n  price 0.5 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-munich-visibility",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-munich-visibility.json --dry",
+    "exit": 0,
+    "output": "source j-munich-visibility: https://airnode-weatherapi.fly.dev/\n  request hash (derived when paid)\n  price 0.01 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-north-sea-wave-height",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-north-sea-wave-height.json --dry",
+    "exit": 0,
+    "output": "source j-north-sea-wave-height: https://airnode-open-meteo.fly.dev/\n  request hash (derived when paid)\n  price 0.02 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-openalex-work-citations",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-openalex-work-citations.json --dry",
+    "exit": 0,
+    "output": "source j-openalex-work-citations: https://airnode-openalex.fly.dev/\n  request hash (derived when paid)\n  price 0.01 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  },
+  {
+    "id": "j-turkey-reviewed-quake",
+    "command": "npx tsx src/register-source.ts --spec specs/candidates/j-turkey-reviewed-quake.json --dry",
+    "exit": 0,
+    "output": "source j-turkey-reviewed-quake: https://airnode-usgs.fly.dev/\n  request hash (derived when paid)\n  price 0.01 aUSD per fetch\ndry run: nothing was paid and nothing was written.\n"
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "id": "j-openalex-work-citations",
+  "label": "OpenAlex citation count for work W2034269086",
+  "slug": "openalex",
+  "request": {
+    "operation": "getWork",
+    "parameters": {
+      "id": "W2034269086"
+    },
+    "responseProjection": {
+      "doi": "/doi",
+      "workId": "/id",
+      "value": "/cited_by_count"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "counter",
+  "scale": 0
+}

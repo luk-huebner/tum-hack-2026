@@ -1,0 +1,21 @@
+{
+  "id": "j-class-one-drug-recalls",
+  "label": "FDA Class I drug-enforcement records reported during September 2026",
+  "slug": "openfda",
+  "request": {
+    "operation": "searchDrugRecalls",
+    "parameters": {
+      "search": "classification:\"Class I\" AND report_date:[20260901 TO 20260930]",
+      "limit": 1
+    },
+    "responseProjection": {
+      "value": "/meta/results/total"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 0
+}
