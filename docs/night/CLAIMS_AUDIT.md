@@ -841,3 +841,31 @@ Register: **686 candidate lines**; {'NOT CHECKABLE': 608, 'WRONG': 12, 'OK': 66}
 Fresh full --no-checkout HTTPS clone used only at the specified B directory; Git top-level was guarded before subsequent Git operations. Pre-checkout heuristic scan inspected 137 base tracked files in memory and reported no candidate secrets; this is not a comprehensive secret audit or history scan. No owner's .env/wallet or credential storage was read. No secrets, signing, spending, new accounts, logins, CAPTCHA solving, API provisioning, deployment or paid service. Existing CI evidence only. Report commits use [skip ci]; CI billing eligibility was not established and no fresh CI validation is claimed. No subagents or other jobs were used. Open PRs and remote night/b state were checked before publication; no existing B branch/PR was found.
 
 Audit substantive stop: **2026-10-31 01:19:19 CET**. Report finalized at 2026-10-31 01:19:19 CET (35m26s after start); commit and PR publication followed immediately. Final publication time is recorded in the PR metadata. No further audit checks were performed after this cutoff. Original hard deadline: 03:43:53 CET. Work stopped with honest partial coverage rather than treating unrun checks as success.
+
+## Continuation — 31 October 2026
+
+Continuation started **01:47:21 CET**; observations ended **01:48:05 CET** (44 seconds). Original historical coverage above describes the first pass; the following supersedes its transaction inventory and counts. This continuation is incomplete. Detailed review of the remaining factual-line register remains pending; its original verdicts and counts have not been changed.
+
+Chrome observations, all limited to visible transaction summary and, where stated, UTXO view:
+
+| Hash prefix | Block | Observed evidence |
+|---|---:|---|
+| fb6f91ec | 5354218 | 5 tADA output #0 to current validator; UTXO view links its spend to 3f22b345. Fee 0.196829. |
+| db837990 | 5354223 | 5 tADA output #0 to current validator; fee 0.196829. |
+| bca39a39 | 5354231 | 5 tADA output #0 to current validator; fee 0.195245. |
+| 201484c1 | 5354317 | 5 tADA script input, 4.718737 tADA output to buyer address, fee 0.281263. |
+| c5f8d5ca | 5354318 | 5 tADA script input, 4.718737 tADA output to buyer address, fee 0.281263. |
+| b266fc38 | 5353069 | 5 tADA from first-validator address; fee 0.346383. |
+| 08796403 | 5353089 | 5 tADA from first-validator address; fee 0.287644. |
+| 7105a4fa | 5353121 | 5 tADA from first validator to seller enterprise address; fee 0.285870. |
+| 12b89bad | 5353125 | 5 tADA to first-validator address; fee 0.176281. The block 5353160 mentioned on the same PROOFS.md:113 row refers to the release, not this lock. |
+| a1c04de9 | 5353160 | 5 tADA from first validator to seller enterprise address; fee 0.286457. |
+| 51188ed4 | 5353430 | 2 tADA received; fee 0.168405; exact payee not extracted. |
+| 1678080a | 5353430 | 5 tADA from first validator to seller enterprise address; fee 0.283201. |
+| d903edc3 | 5353457 | 5 tADA received at first validator; fee 0.176545. |
+| 076de3e1 | 5353461 | 5 tADA from first validator to seller enterprise address; fee 0.285900. |
+| 1057e1d9 | 5353493 | 5 tADA from first validator; 4.740077 received; fee 0.259923; exact recipient not extracted. |
+
+These 15 observations are additions to the seven in the first pass: **22 of 54** full Cardano hashes have at least a limited Chrome observation; **32 of 54** have not been opened. The 15 entries in the earlier not-verified inventory corresponding to this table are superseded only for the observed facts above; their other claims remain not verified. No datum deadline, redeemer, actual deletion, independent creator ownership, full signatures or application process was established by these observations. The original line register remains 12 WRONG, 66 OK (as scoped), 608 NOT CHECKABLE. Those counts are not a measure of full sentence verification.
+
+No tests were rerun. No signing, spending, credentials, accounts, CAPTCHA, CI runs, paid services or deployment were used. Continuation ended early with substantial unverified scope; no claim of completing the requested 60-minute review.
