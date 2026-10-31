@@ -1,0 +1,51 @@
+file,line,status,source,reason
+README.md,3,not independently checkable,aiken/airnode_spike/lib/airnode.ak:15-42,Signature verification is implemented; uniqueness/first-on-Cardano claim has no independent historical source.
+README.md,5,not independently checkable,aiken/airnode_spike/lib/engine.ak:219-249; validators/pay_on_proof.ak:60-85,Code checks signed response and permits refund; claim about all Cardano transfers is broader than this validator.
+README.md,7,not independently checkable,README.md:7; cited source in original line,"Read claim and cited repository material; historical, external or full runtime assertion not independently established."
+README.md,13,not independently checkable,aiken/blueprint/plutus.json; CI run 41143359306,Script size/hash and 78 CI passes established previously; historical attack and all four external requirements remain separately unverified.
+README.md,14,not independently checkable,"PROOFS.md:44-46,85-89; continuation Chrome receipts",Transactions observed; attestation timing and datum/signatory details not independently decoded.
+README.md,15,not independently checkable,aiken/airnode_spike/lib/engine.ak:219-258; PROOFS.md:97-102,Generic engine exists; historical evaluation outcomes and attestation content not independently replayed.
+README.md,16,not independently checkable,README.md:16; cited source in original line,"Read claim and cited repository material; historical, external or full runtime assertion not independently established."
+README.md,17,not independently checkable,cardano/src/keeper.ts; cardano/out/keeper-log-run3.jsonl,Implementation and retained logs support intended schedule and backoff; historical autonomous operation not independently rerun.
+README.md,18,not independently checkable,"cardano/src/service.ts:55,106-170; Chrome transactions 51188ed4 and 1678080a",Price and submission code and two receipts observed; exact charged-only-if guarantee and refused balance history not independently established.
+README.md,19,not independently checkable,"cardano/src/escrow.ts:18,133-141; Chrome d903edc3,076de3e1,1057e1d9","Payment/release/refund exist; datum, refund deadline and rejected early attempt not independently decoded or rerun."
+README.md,20,not independently checkable,cardano/src/service.ts:321-330; cardano/src/autorelease.ts:139-255,"Configuration and filtering visible; historical automatic timing, cost and fault scenario not independently replayed."
+README.md,22,not independently checkable,README.md:22; cited source in original line,"Read claim and cited repository material; historical, external or full runtime assertion not independently established."
+README.md,23,not independently checkable,cardano/src/templates.ts:88-137; PROOFS.md:242-244,Template definitions and prices present; all six claimed payment/release receipts have not yet been inspected.
+README.md,24,not independently checkable,aiken/airnode_spike/lib/lunar_youtube.test.ak; CI run 41099371259,Eight test declarations and 73-pass historical CI logged; external feed provenance and indexing behavior not independently checked.
+README.md,25,not independently checkable,cardano/src/register-source.ts; PROOFS.md:344-353,Source registration exists; universal any-request scope and historical 53-second claim not independently established.
+README.md,26,not independently checkable,"cardano/src/creator-intake.ts:98-128; cardano/src/creator-campaign.ts; Chrome fb6f91ec,3f22b345,201484c1,c5f8d5ca","Intake and payout receipts support parts; actual deletion was simulated by unlike, and signed measurement time does not establish when likes were earned."
+README.md,27,not independently checkable,cardano/scripts/masumi-test.ts; prior local 23-pass result,23 stand-in checks passed locally; real payment-service compatibility not verified.
+README.md,28,not independently checkable,"cardano/src/mcp-server.ts:33-35,82-215; cardano/scripts/mcp-test.mjs",Seven tool definitions and spending guards exist; network-dependent 14-check client was not run.
+README.md,29,not independently checkable,README.md:29; cited source in original line,"Read claim and cited repository material; historical, external or full runtime assertion not independently established."
+README.md,45,not factual,README.md:43-46,Table column labels; not a factual claim.
+README.md,47,not independently checkable,aiken/airnode_spike/lib; aiken/airnode_spike/validators,"Path contains validator, engine and test sources; independent real-world provenance of signed vectors not verified."
+README.md,48,not independently checkable,aiken/blueprint/plutus.json; .github/workflows/aiken.yml:32-44,Blueprint file exists and CI builds/uploads its own blueprint; equality to committed file not independently rebuilt.
+README.md,49,verified from source (scoped),cardano/src/engine.ts:15-84,Datum/redeemer encoding and script address helpers exist.
+README.md,50,verified from source (scoped),cardano/src/autorelease.ts:139-156,Scans and filters eligible beneficiary policies; live release not rerun.
+README.md,51,verified from source (scoped),cardano/src/proof.ts:44-149,Named helper functions exist; paid fetch was not executed.
+README.md,52,not independently checkable,cardano/src/service.ts; cardano/src/escrow.ts; cardano/web/index.html,Named paths exist; full end-to-end integration not independently rerun.
+README.md,53,not independently checkable,cardano/src/refund.ts; aiken/airnode_spike/validators/pay_on_proof.ak:82-85,Refund branch requires time and signer; universal claim for any policy is too broad for malformed datums and native assets.
+README.md,54,not independently checkable,cardano/vectors/,Files exist; real-world origin of every response not independently established.
+README.md,55,verified from source (scoped),checks/,Named scripts exist; none executed.
+README.md,56,not independently checkable,lib/STARTER-LICENSE,License file exists; exact provenance of every helper not independently verified.
+README.md,60,not independently checkable,README.md:60; cited source in original line,"Read claim and cited repository material; historical, external or full runtime assertion not independently established."
+README.md,62,not factual,README.md:62; cardano/JUDGES.md,Navigation link; not a factual claim.
+README.md,63,not independently checkable,README.md:63; cited source in original line,"Read claim and cited repository material; historical, external or full runtime assertion not independently established."
+README.md,64,not independently checkable,README.md:64; cited source in original line,"Read claim and cited repository material; historical, external or full runtime assertion not independently established."
+README.md,68,verified from source (scoped),TRUST.md,Document exists and discusses trust and gaps; no claim about security completeness.
+README.md,71,not independently checkable,aiken/airnode_spike/lib/airnode.ak:30-42,Code verifies a signature; provider deployment and data integrity claims not independently checked.
+README.md,74,not independently checkable,PROOFS.md:50-62,Document describes provider-side evaluations; independent historical provider logs not available.
+README.md,75,not independently checkable,AUDIT.md:3,Project states unaudited/test funds; independent absence of every external audit and full fund provenance not established.
+README.md,77,not independently checkable,lib/STARTER-LICENSE; package files,Repository documents starter and dependency sources; complete provenance not independently established.
+TRUST.md,3,not independently checkable,TRUST.md:3,Read claim; its historic evaluation or external condition was not independently established.
+TRUST.md,7,not factual,TRUST.md:7,Table header; not a factual claim.
+TRUST.md,17,not independently checkable,TRUST.md:17,Read claim; its historic evaluation or external condition was not independently established.
+TRUST.md,19,not factual,TRUST.md:19,Table header; not a factual claim.
+TRUST.md,21,not independently checkable,validators/pay_on_proof.ak:70-80; prior Chrome receipts,Release code accepts a correctly funded proof; three-wallet evaluation was not independently replayed.
+TRUST.md,22,not independently checkable,"validators/pay_on_proof.ak:27-49,70-80","Code constrains one same-credential input and lovelace payout; native tokens are not protected, and historic attack evaluation was not rerun."
+TRUST.md,23,not independently checkable,"validators/pay_on_proof.ak:27-35,74-79",Lovelace underpayment is excluded by code; specific historical 4.9 and one-lovelace evaluations not rerun.
+TRUST.md,24,not independently checkable,aiken/airnode_spike/lib/engine.ak:227-248,Code checks signature/request/time; specific historical judge evaluations not rerun.
+TRUST.md,25,not independently checkable,engine.ak:239; CI run 41143359306,"Upper bound is inclusive, so exact deadline is permitted; 78 passed in existing base CI, and absence of on-chain runs not independently proven."
+TRUST.md,26,not independently checkable,"validators/pay_on_proof.ak:82-85; Chrome 1057e1d9,b338476f",Refund branch and transactions observed; respective datum deadlines and exact refund signer not independently decoded.
+TRUST.md,27,not independently checkable,PROOFS.md:163-165,Historical early-refund evaluation is documented; not independently replayed.
