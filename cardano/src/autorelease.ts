@@ -336,5 +336,10 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
   };
   void loop();
 
-  return { status: (): WatchStatus => status, stop: () => { stopped = true; } };
+  return {
+    status: (): WatchStatus => status,
+    stop: () => { stopped = true; },
+    /** Adds a payee at run time (Creator Pay: a creator who just submitted a post through the web app). */
+    serve: (address: string) => { served.add(paymentKeyHashHex(address)); },
+  };
 };

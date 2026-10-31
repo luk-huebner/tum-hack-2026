@@ -11,3 +11,4 @@ deploy/
 .vercel/
 cardano/out/masumi-jobs.json
 cardano/out/transactions.jsonl
+cardano/out/campaigns.json
