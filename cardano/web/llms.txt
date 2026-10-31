@@ -1,6 +1,6 @@
 # Pay-on-Proof (Cardano preprod, testnet)
 
-> A Cardano smart contract holds a payment and releases it to the seller only when a signed AirnodeHub (API3) response proves a condition agreed in advance. Otherwise the buyer is refunded after the deadline. This site is the public, read-only part: you can ask the contract itself whether a signed response would release a payment. It holds no key and never sends a transaction.
+> A Cardano smart contract holds a payment and releases it to the seller only when a signed AirnodeHub (API3) response proves a condition agreed in advance. Otherwise the buyer is refunded after the deadline. This site is the public, read-only part: you can ask the contract itself whether a signed response would release a payment. It holds no wallet signing key and never sends a transaction.
 
 Contract: Plutus V3 validator, script hash 58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea (Cardano preprod).
 Source, receipts, trust sheet: see the repository README (PROOFS.md lists every transaction).

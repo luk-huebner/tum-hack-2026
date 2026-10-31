@@ -4,7 +4,7 @@ Collected during the TUM Blockchain & AI Hackathon 2026. All networks are testne
 
 **Times in this file are UTC.** Munich has been on CET (UTC+1) since 25 Oct 2026, so 18:22 UTC is 19:22 in Munich.
 
-> **Which validator?** Everything above the section "Validator revision" was run against the FIRST validator, script hash `a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c` (1,832 bytes, 39 tests), which has the double-satisfaction flaw described in TRUST.md. Those receipts stay valid as evidence of what that version did. The current validator is `58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea` (2,317 bytes, 55 tests), see the last section.
+> **Which validator?** Everything above the section "Validator revision" was run against the FIRST validator, script hash `a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c` (1,832 bytes, 39 tests), which has the double-satisfaction flaw described in TRUST.md. Those receipts stay valid as evidence of what that version did. The current validator is `58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea` (2,317 bytes; 55 tests when it was revised, 78 now), see the last section.
 
 
 ## Cardano preprod: first paid x402 request (the Cardano track gate)

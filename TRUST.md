@@ -27,7 +27,7 @@ Every row names where it was shown. "Evaluation" means the node provider ran the
 | Refund party | Refund before the deadline | **No** | Same UTxO refused 343 s early, then refunded after the deadline (`PROOFS.md`) |
 | Anyone else, including the beneficiary | Refund (not listing the refund party as signer) | **No** | `attacks.ts --expired`: no signer, the attacker's key and the beneficiary's key all refused |
 | Anyone | Pay the same UTxO twice | **No** | Spending the UTxO consumes it; a second release finds no policy |
-| Seller's server | Lie in the price list (another beneficiary or refund party, an easier rule, a longer deadline, another signer, a different payout, another script, a missing datum) | The facilitator does not check the datum, so **only the buyer's client stops it** | `cardano/src/attack-offline.ts`: 17 dishonest price lists, all refused, honest one accepted |
+| Seller's server | Lie in the price list (another beneficiary or refund party, an easier rule, a longer deadline, another signer, a different payout, another script, a missing datum) | The facilitator does not check the datum, so **only the buyer's client stops it** | `cardano/src/attack-offline.ts`: 54 dishonest price lists (18 variants for each of 3 templates), all refused, honest ones accepted |
 
 ## 3. Why not Stripe and a backend?
 
@@ -70,7 +70,7 @@ The honest answer is about which trust assumptions disappear and which remain.
 - **"What does it prove?"** Authenticity and the condition. Task completion only where the outcome is what the data measures.
 - **"Why a blockchain here?"** So that no party, including the operator, can redirect funds, and so the settlement rule is public. Not for transparency alone.
 - **"What if the oracle is wrong?"** Then the contract pays on a wrong value. That risk stays; we choose sources close to the data owner and say so.
-- **"Is the data fresh?"** The signature is (age limit, not from the future). The underlying observation is not checked yet.
+- **"Is the data fresh?"** The signature is (age limit, not from the future). The underlying observation time is checked only for feeds that sign one (the ETH/USD escrow uses the Nodary `updatedAt` with 120 s), not for rainfall or tweets.
 - **"Can a response be reused?"** For another policy that pins the same request, yes, by design. For the same policy, no.
 - **"How often does the keeper check, and what does that cost?"** It depends on the data. Rainfall over a finished window: once. Likes: next look at half the predicted time to the threshold, at most 15 minutes apart with a trend and 5 without, never twice a minute, always inside an aUSD cap. A free price feed: every 20 seconds. Derivation and numbers in `POLLING.md`.
 - **"What if the creator buys likes or views?"** The contract proves what the data said, not that it is real. The design answers with the rule, not with the contract: count only a measurement taken at the end (`settle_after`), pay on the increase over today's number, hold part back in a second escrow measured later, keep the payout small against the cost of faking, and do not pay on views alone. Two sources that must agree and a buyer veto window would need a new validator. See `cardano/CREATOR_PAY.md`.
@@ -89,7 +89,7 @@ The honest answer is about which trust assumptions disappear and which remain.
 
 ```bash
 cd cardano && npm install && cp .env.example .env     # a funded preprod wallet and a Blockfrost key
-npx tsx src/attack-offline.ts                          # no network: 17 lying price lists
+npx tsx src/attack-offline.ts                          # no network: 54 lying price lists (18 per template)
 npx tsx src/attacks.ts                                 # evaluation only: redirect, underpay, anyone may submit
 npx tsx src/attacks.ts --expired <txHash>#<index>      # evaluation only: wrong refunders on an expired policy you funded
 # the double-satisfaction case needs a fresh response (0.1 aUSD, see JUDGES.md for the command).

@@ -54,5 +54,5 @@ For a creator's post, `src/creator-intake.ts` writes the spec for you and pins t
 - Only numbers that follow a colon in an object are readable (not numbers inside arrays). A response with arrays needs a projection that picks single elements.
 - The signed text must be the same shape on every fetch. A response whose fixed part changes (a changing title, a list that grows) cannot be waited for; `--twice` catches the common cases but not a change that happens later.
 - A source that returns an empty record for an unknown id (the tweet API does) is safe only because the id is part of the signed text and so of every policy.
-- The tool buys data, so it runs on a machine with the payer key. It is not part of the public judge site, which holds no key.
+- The tool buys data, so it runs on a machine with the payer key. It is not part of the public judge site, which holds no wallet signing key.
 - Not every listing was tried. Instagram and TikTok posts are untested (`PROOFS.md`, LunarCrush section).

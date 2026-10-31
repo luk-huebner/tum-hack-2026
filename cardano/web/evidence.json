@@ -1,6 +1,6 @@
 {
   "updated": "2026-10-30",
-  "note": "Every entry names where it was shown. On chain means a transaction on Cardano preprod; evaluation means the node provider ran the validator on a transaction that was never sent; tests means a contract test in CI.",
+  "note": "Every entry names where it was shown. On chain means a transaction on Cardano preprod; evaluation means the node provider ran the validator on a transaction that was never sent; tests means an automated check: an Aiken contract test in CI, or an off-chain script (the lying price lists, the MCP server, the Masumi stand-in).",
   "validators": {
     "current": {
       "hash": "58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea",
@@ -19,7 +19,7 @@
       "group": "The contract",
       "claim": "One validator checks the signer, the request, the age and the rule, then pays the beneficiary. 78 contract tests pass, including the four tamper cases API3 asks for.",
       "status": "tests",
-      "detail": "Current validator, script hash 58fb7eef. CI run 41090389165.",
+      "detail": "Current validator, script hash 58fb7eef. CI run 41143359306 (78 passed, 0 failed).",
       "tx": []
     },
     {
@@ -336,7 +336,7 @@
     },
     {
       "group": "Attacks refused",
-      "claim": "A public judge site (https://pay-on-proof-judge.vercel.app) runs the tamper bench for anyone, with no key on the host: 6 of 6 cases came out as expected against the live validator (control accepted, four tampered cases rejected, control accepted).",
+      "claim": "A public judge site (https://pay-on-proof-judge.vercel.app) runs the tamper bench for anyone, with no wallet signing key on the host (only a free Blockfrost access key): 6 of 6 cases came out as expected against the live validator (control accepted, four tampered cases rejected, control accepted).",
       "status": "evaluation",
       "detail": "The site uses an address-only client and never sends a transaction; a verdict is the node's script evaluation of an unsigned release. Not load tested.",
       "tx": []
@@ -350,7 +350,7 @@
     },
     {
       "group": "Not shown yet",
-      "claim": "The provider being unreachable for minutes, the facilitator being down, a rule-not-met case on the escrow route, a stale observation on chain, and a public judge URL.",
+      "claim": "The provider being unreachable for minutes, the facilitator being down, a rule-not-met case on the escrow route, and a stale observation on chain.",
       "status": "notrun",
       "detail": "On the build list. (The three templates are shown above.)",
       "tx": []
