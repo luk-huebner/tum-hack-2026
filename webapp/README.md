@@ -57,6 +57,14 @@ An escrow now has `kind` (`"posting"` pays as soon as the post is live, threshol
 
 The budget is counted in 5 tADA units (the escrow route's fixed amount): for one creator, a posting payment plus likes 1, 2 and 3 is 4 units, 20 tADA. Percentages other than multiples of one unit are not possible yet.
 
+## Many creators at once, and the budget split
+
+The Brand page takes a **list of creators**: one X handle per line (commas and semicolons work), or **Import CSV**. A CSV is read from the column named `handle` (also `x_handle`, `twitter`, `creator`, `username`, `account`, `influencer`; the header row is skipped), otherwise from the first column. The list is checked as you type: duplicates are ignored, anything that is not an X handle is flagged, and at most 50 creators go in one import. Parsing lives in `src/lib/csv.ts` and is tested in `cardano/test/csv.test.ts`.
+
+The **budget split per creator** is a posting payment (paid as soon as the post is live, no like needed) plus up to three like milestones, each with 1 to 3 units of 5 tADA, at most 8 escrows (40 tADA) per creator. The page shows the budget per creator and for all of them. One creator creates one campaign; two or more create a group, shown as one card with a link per creator, **Copy all links** and a **CSV** download (`handle, invite_link, campaign_id`).
+
+On a campaign page a milestone with a green tick is paid, a clock is "not yet" (with likes of the threshold so far), and a red cross appears only after the campaign's deadline has passed without the milestone being reached. The units of one milestone are one row.
+
 ## Who sees what (no accounts yet)
 
 - A campaign opens from its **link** (`/c/<id>`): the id is random, so the link is the secret the brand sends to the creator.

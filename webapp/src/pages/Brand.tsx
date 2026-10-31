@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { ArrowRight, Info, Plus, Trash2, X } from "lucide-react";
+import { ArrowRight, Download, Info, Plus, Trash2, Upload, Users, X } from "lucide-react";
 import { useConfig } from "../App";
 import { api, describeError, scanAddress, type Campaign } from "../api";
 import { Badge, CopyButton, ErrorNote, Hash, SectionTitle, dateTimeOf } from "../components/ui";
+import { MAX_CREATORS, extractHandleColumn, parseCreatorList } from "../lib/csv";
 
 export const statusBadge = (c: Campaign) => {
   const paid = c.escrows.filter((e) => e.state === "released").length;
@@ -32,8 +33,8 @@ const CampaignCard = ({ c, highlight }: { c: Campaign; highlight?: boolean }) =>
         </div>
         <h3 className="mt-0.5 truncate text-base font-bold">{c.title}</h3>
         <div className="mt-1 text-sm text-ink-soft">
-          for <span className="font-semibold">@{c.creator}</span> · {c.milestones.length} milestone{c.milestones.length > 1 ? "s" : ""} ·{" "}
-          {c.milestones.map((m) => `${c.likesMode === "increase" ? "+" : ""}${m.likes}`).join(" / ")} likes
+          for <span className="font-semibold">@{c.creator}</span> · {c.posting ? "post goes live + " : ""}
+          {c.milestones.length ? `${c.milestones.map((m) => `${c.likesMode === "increase" ? "+" : ""}${m.likes}`).join(" / ")} likes` : "no like milestones"} · {c.budgetTada ?? c.milestones.length * 5} tADA
         </div>
       </div>
       {statusBadge(c)}
@@ -56,17 +57,89 @@ const CampaignCard = ({ c, highlight }: { c: Campaign; highlight?: boolean }) =>
   </div>
 );
 
+const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
+
+/** Campaigns created in one import: one row per creator, with the invite links ready to send. */
+const GroupCard = ({ list, highlight }: { list: Campaign[]; highlight: boolean }) => {
+  const first = list[0];
+  const live = list.filter((c) => c.status === "live").length;
+  const waiting = list.filter((c) => c.status === "open").length;
+  const links = list.map((c) => `@${c.creator}\t${inviteUrl(c.id)}`).join("\n");
+  const download = () => {
+    const rows = ["handle,invite_link,campaign_id", ...list.map((c) => [c.creator, inviteUrl(c.id), c.id].map(csvCell).join(","))];
+    const url = URL.createObjectURL(new Blob([`${rows.join("\n")}\n`], { type: "text/csv" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: `creatorpay-${first.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30) || "invites"}.csv` });
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  return (
+    <div className={`card p-5 ${highlight ? "ring-2 ring-brand-400/50" : ""}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-medium text-ink-mute">
+            {first.brand} · created {dateTimeOf(first.createdAt)}
+          </div>
+          <h3 className="mt-0.5 truncate text-base font-bold">{first.title}</h3>
+          <div className="mt-1 flex items-center gap-1.5 text-sm text-ink-soft">
+            <Users size={14} /> {list.length} creators · {first.budgetTada ?? first.milestones.length * 5} tADA each · {list.length * (first.budgetTada ?? first.milestones.length * 5)} tADA in all
+          </div>
+          <div className="mt-0.5 text-xs text-ink-mute">
+            {waiting} waiting for a post · {live} live · {list.length - waiting - live} other
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          <CopyButton value={links} label="Copy all links" />
+          <button type="button" onClick={download} className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-ink-mute hover:bg-white/10 hover:text-ink">
+            <Download size={14} /> CSV
+          </button>
+        </div>
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs uppercase tracking-wider text-ink-mute">
+            <tr>
+              <th className="py-2 pr-3 font-semibold">Creator</th>
+              <th className="py-2 pr-3 font-semibold">Status</th>
+              <th className="py-2 pr-3 font-semibold">Invite link</th>
+              <th className="py-2 font-semibold" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/10">
+            {list.map((c) => (
+              <tr key={c.id}>
+                <td className="py-2.5 pr-3 font-semibold">@{c.creator}</td>
+                <td className="py-2.5 pr-3">{statusBadge(c)}</td>
+                <td className="py-2.5 pr-3">
+                  <CopyButton value={inviteUrl(c.id)} label="Copy link" />
+                </td>
+                <td className="py-2.5 text-right">
+                  <Link to={`/c/${c.id}`} className="inline-flex items-center gap-1 text-xs font-bold text-brand-400 hover:underline">
+                    Open <ArrowRight size={14} />
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 export default function Brand() {
   const { config } = useConfig();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [error, setError] = useState<string>();
-  const [created, setCreated] = useState<string>();
+  const [created, setCreated] = useState<string[]>([]);
+  const [skipped, setSkipped] = useState<{ row: number; handle: string; reason: string }[]>([]);
+  const [creatorsText, setCreatorsText] = useState("");
+  const [importNote, setImportNote] = useState<string>();
+  const [posting, setPosting] = useState({ on: true, units: 1, label: "Post goes live" });
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     brand: "",
     title: "",
     brief: "",
-    creator: "",
     likesMode: "increase" as "increase" | "absolute",
     durationMinutes: 60,
     maxPostAgeHours: 24,
@@ -74,10 +147,25 @@ export default function Brand() {
     measureLastMinutes: 15,
     tags: "",
   });
-  const [milestones, setMilestones] = useState<{ likes: number; label: string }[]>([
-    { likes: 1, label: "First traction" },
-    { likes: 3, label: "Takes off" },
+  const [milestones, setMilestones] = useState<{ likes: number; label: string; units: number }[]>([
+    { likes: 1, label: "First like", units: 1 },
+    { likes: 2, label: "Second like", units: 1 },
+    { likes: 3, label: "Third like", units: 1 },
   ]);
+  const parsed = useMemo(() => parseCreatorList(creatorsText), [creatorsText]);
+  const items = useMemo(() => {
+    const out: ({ kind: "group"; id: string; list: Campaign[] } | { kind: "single"; c: Campaign })[] = [];
+    const seen = new Set<string>();
+    for (const c of campaigns) {
+      if (!c.groupId) out.push({ kind: "single", c });
+      else if (!seen.has(c.groupId)) {
+        seen.add(c.groupId);
+        const list = campaigns.filter((x) => x.groupId === c.groupId);
+        out.push(list.length > 1 ? { kind: "group", id: c.groupId, list } : { kind: "single", c });
+      }
+    }
+    return out;
+  }, [campaigns]);
 
   const load = () => api.campaigns().then(setCampaigns).catch((e: unknown) => setError(describeError(e)));
   useEffect(() => {
@@ -92,25 +180,51 @@ export default function Brand() {
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
   const escrowTada = config?.escrowTada ?? 5;
   const maxMilestones = config?.maxMilestones ?? 3;
+  const unitsPerCreator = (posting.on ? posting.units : 0) + milestones.reduce((n, m) => n + m.units, 0);
+  const MAX_ESCROWS = 8;
+  const tooMany = parsed.handles.length > MAX_CREATORS;
+  const tooBig = unitsPerCreator > MAX_ESCROWS || unitsPerCreator === 0;
+  const problem = parsed.handles.length === 0 ? "Add at least one creator handle." : tooMany ? `At most ${MAX_CREATORS} creators per import: split the list.` : unitsPerCreator === 0 ? "Pay for something: the posting payment or at least one like milestone." : tooBig ? `At most ${MAX_ESCROWS} escrows (${MAX_ESCROWS * escrowTada} tADA) per creator.` : undefined;
+
+  const importFile = async (ev: ChangeEvent<HTMLInputElement>) => {
+    const file = ev.target.files?.[0];
+    ev.target.value = "";
+    if (!file) return;
+    if (file.size > 500_000) return setImportNote("That file is too large for a creator list (500 KB at most).");
+    const { values, column } = extractHandleColumn(await file.text());
+    setCreatorsText((t) => [t.trim(), ...values].filter(Boolean).join("\n"));
+    setImportNote(`Read ${values.length} row${values.length === 1 ? "" : "s"} from ${file.name}${column ? ` (column "${column}")` : " (first column)"}. Check the list below.`);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (problem) return setError(problem);
     setBusy(true);
     setError(undefined);
     try {
-      const c = await api.createCampaign({
+      const base = {
         brand: form.brand,
         title: form.title,
         brief: form.brief,
-        creator: form.creator,
         likesMode: form.likesMode,
         durationMinutes: Number(form.durationMinutes),
         maxPostAgeHours: Number(form.maxPostAgeHours),
         ...(form.measureAtEnd ? { measureLastMinutes: Number(form.measureLastMinutes) } : {}),
         disclosure: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-        milestones: milestones.map((m) => ({ likes: Number(m.likes), label: m.label })),
-      });
-      setCreated(c.id);
+        ...(posting.on ? { posting: { units: posting.units, ...(posting.label.trim() ? { label: posting.label.trim() } : {}) } } : {}),
+        milestones: milestones.map((m) => ({ likes: Number(m.likes), label: m.label, ...(m.units > 1 ? { units: m.units } : {}) })),
+      };
+      if (parsed.handles.length === 1) {
+        const c = await api.createCampaign({ ...base, creator: parsed.handles[0] });
+        setCreated([c.id]);
+        setSkipped([]);
+      } else {
+        const r = await api.createCampaigns({ ...base, creators: parsed.handles });
+        setCreated(r.campaigns.map((c) => c.id));
+        setSkipped(r.skipped);
+      }
+      setCreatorsText("");
+      setImportNote(undefined);
       await load();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -157,25 +271,38 @@ export default function Brand() {
             <textarea id="brief" className="input min-h-[80px]" placeholder="One post about the drop, your own words, tag us, mark it as an ad." value={form.brief} onChange={(e) => set("brief", e.target.value)} />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="creator">Creator on X</label>
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-mute">@</span>
-                <input id="creator" className="input pl-8" required placeholder="handle" value={form.creator} onChange={(e) => set("creator", e.target.value.replace(/^@/, ""))} />
-              </div>
-              <p className="hint">Only a post by this account can be paid.</p>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <label className="label mb-0" htmlFor="creators">Creators on X</label>
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-brand-400 hover:bg-white/10 focus-within:ring-2 focus-within:ring-brand-400">
+                <Upload size={14} /> Import CSV
+                <input type="file" accept=".csv,.txt,text/csv,text/plain" className="sr-only" onChange={(ev) => void importFile(ev)} />
+              </label>
             </div>
-            <div>
-              <label className="label" htmlFor="tags">Disclosure tag (one of)</label>
-              <input id="tags" className="input" value={form.tags} onChange={(e) => set("tags", e.target.value)} />
-              <p className="hint">Paid posts must say they are paid.</p>
-            </div>
+            <textarea id="creators" className="input min-h-[104px] font-mono text-[0.85rem]" placeholder={"@anna_creates\n@ben_reels\n@cara_ugc"} value={creatorsText} onChange={(e) => setCreatorsText(e.target.value)} />
+            <p className="hint">One handle per line (commas work too). A CSV needs a column named handle, or the handles in its first column. Only a post by that account can be paid, and every creator gets their own invite link.</p>
+            {importNote && <p className="mt-1 text-xs text-brand-300">{importNote}</p>}
+            <p className="mt-1 text-sm">
+              <span className="font-semibold">{parsed.handles.length}</span> creator{parsed.handles.length === 1 ? "" : "s"}
+              {parsed.duplicates.length > 0 && <span className="ml-2 text-amber-300">{parsed.duplicates.length} duplicate{parsed.duplicates.length === 1 ? "" : "s"} ignored</span>}
+              {parsed.invalid.length > 0 && (
+                <span className="ml-2 text-amber-300" title={parsed.invalid.join("\n")}>
+                  {parsed.invalid.length} not an X handle: {parsed.invalid.slice(0, 3).join(", ")}
+                  {parsed.invalid.length > 3 ? "…" : ""}
+                </span>
+              )}
+            </p>
+          </div>
+
+          <div>
+            <label className="label" htmlFor="tags">Disclosure tag (one of)</label>
+            <input id="tags" className="input" value={form.tags} onChange={(e) => set("tags", e.target.value)} />
+            <p className="hint">Paid posts must say they are paid.</p>
           </div>
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="label mb-0">Milestones</span>
+              <span className="label mb-0">Budget split per creator</span>
               <div className="flex rounded-lg bg-white/10 p-0.5 text-xs font-semibold">
                 {(["increase", "absolute"] as const).map((m) => (
                   <button type="button" key={m} onClick={() => set("likesMode", m)} className={`rounded-md px-2.5 py-1 ${form.likesMode === m ? "bg-white/15 text-ink" : "text-ink-mute"}`}>
@@ -185,6 +312,20 @@ export default function Brand() {
               </div>
             </div>
             <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <label className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg bg-brand-500/15" title="Pay a part of the budget as soon as the post is live">
+                  <input type="checkbox" className="h-4 w-4 accent-[#d33d6a]" checked={posting.on} onChange={(e) => setPosting((p) => ({ ...p, on: e.target.checked }))} aria-label="Posting payment" />
+                </label>
+                <input className="input min-w-0 flex-1" placeholder="Post goes live" disabled={!posting.on} value={posting.label} onChange={(e) => setPosting((p) => ({ ...p, label: e.target.value }))} />
+                <span className="w-32 shrink-0 text-xs text-ink-mute sm:w-40">paid when the post is live, no like needed</span>
+                <select className="input w-24 shrink-0" disabled={!posting.on} value={posting.units} onChange={(e) => setPosting((p) => ({ ...p, units: Number(e.target.value) }))} aria-label="Escrows for the posting payment">
+                  {[1, 2, 3].map((u) => (
+                    <option key={u} value={u}>{u} × {escrowTada}</option>
+                  ))}
+                </select>
+                <span className="w-20 shrink-0 text-right text-sm font-semibold text-ink-soft">{posting.on ? posting.units * escrowTada : 0} tADA</span>
+                <span className="w-9 shrink-0" />
+              </div>
               {milestones.map((m, i) => (
                 <div key={i} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-500/15 text-xs font-bold text-brand-400">{i + 1}</span>
@@ -200,22 +341,35 @@ export default function Brand() {
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-mute">likes</span>
                   </div>
-                  <span className="w-20 shrink-0 text-right text-sm font-semibold text-ink-soft">{escrowTada} tADA</span>
-                  <button type="button" disabled={milestones.length === 1} onClick={() => setMilestones((ms) => ms.filter((_, j) => j !== i))} className="rounded-lg p-2 text-ink-mute hover:bg-white/10 disabled:opacity-30" title="Remove">
+                  <select className="input w-24 shrink-0" value={m.units} onChange={(e) => setMilestones((ms) => ms.map((x, j) => (j === i ? { ...x, units: Number(e.target.value) } : x)))} aria-label={`Escrows for milestone ${i + 1}`}>
+                    {[1, 2, 3].map((u) => (
+                      <option key={u} value={u}>{u} × {escrowTada}</option>
+                    ))}
+                  </select>
+                  <span className="w-20 shrink-0 text-right text-sm font-semibold text-ink-soft">{m.units * escrowTada} tADA</span>
+                  <button type="button" disabled={milestones.length === 1 && !posting.on} onClick={() => setMilestones((ms) => ms.filter((_, j) => j !== i))} className="rounded-lg p-2 text-ink-mute hover:bg-white/10 disabled:opacity-30" title="Remove">
                     <Trash2 size={16} />
                   </button>
                 </div>
               ))}
             </div>
             <div className="mt-2 flex items-center justify-between">
-              <button type="button" disabled={milestones.length >= maxMilestones} onClick={() => setMilestones((ms) => [...ms, { likes: (ms[ms.length - 1]?.likes ?? 0) * 2 || 1, label: "" }])} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 disabled:opacity-40">
+              <button type="button" disabled={milestones.length >= maxMilestones} onClick={() => setMilestones((ms) => [...ms, { likes: (ms[ms.length - 1]?.likes ?? 0) + 1, label: "", units: 1 }])} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 disabled:opacity-40">
                 <Plus size={16} /> Add milestone
               </button>
               <span className="text-sm text-ink-mute">
-                Budget <span className="font-bold text-ink">{milestones.length * escrowTada} tADA</span>
+                Per creator <span className="font-bold text-ink">{unitsPerCreator * escrowTada} tADA</span>
+                {parsed.handles.length > 1 && (
+                  <>
+                    {" "}· all {parsed.handles.length} <span className="font-bold text-ink">{parsed.handles.length * unitsPerCreator * escrowTada} tADA</span>
+                  </>
+                )}
               </span>
             </div>
-            <p className="hint">{form.likesMode === "increase" ? "Counted on top of the likes the post has when it is submitted, so an already popular post does not qualify by itself." : "The post's total like count."}</p>
+            <p className="hint">
+              Each unit is one {escrowTada} tADA escrow, locked from your wallet when that creator submits the post and refunded to you if it is not earned in time.{" "}
+              {form.likesMode === "increase" ? "Likes count on top of the likes the post has when it is submitted, so an already popular post does not qualify by itself." : "Likes are the post's total like count."}
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -243,8 +397,8 @@ export default function Brand() {
           </label>
 
           {error && <ErrorNote>{error}</ErrorNote>}
-          <button className="btn-primary w-full py-3" disabled={busy}>
-            {busy ? "Creating…" : "Create campaign and get the creator link"}
+          <button className="btn-primary w-full py-3" disabled={busy || Boolean(problem && parsed.handles.length > 0)}>
+            {busy ? "Creating…" : parsed.handles.length > 1 ? `Create ${parsed.handles.length} campaigns and get the invite links` : "Create campaign and get the creator link"}
           </button>
           <p className="flex items-start gap-2 text-xs text-ink-mute">
             <Info size={14} className="mt-0.5 shrink-0" />
@@ -256,18 +410,30 @@ export default function Brand() {
           <SectionTitle eyebrow="Your campaigns" title={campaigns.length ? `${campaigns.length} campaign${campaigns.length > 1 ? "s" : ""}` : "No campaigns yet"}>
             Only the campaigns created in this browser are listed. Creators open theirs from the invite link.
           </SectionTitle>
-          {created && (
+          {created.length > 0 && (
             <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-proof/30 bg-proof/10 px-4 py-3 text-sm text-proof">
-              <span>Campaign created. Send the invite link to the creator, or open it to follow along.</span>
-              <button onClick={() => setCreated(undefined)} className="shrink-0">
+              <span>
+                {created.length === 1 ? "Campaign created. Send the invite link to the creator, or open it to follow along." : `${created.length} campaigns created. Copy the invite links or download them as a CSV, and send each creator their own link.`}
+                {skipped.length > 0 && (
+                  <span className="mt-1 block text-amber-300">
+                    Skipped {skipped.length}: {skipped.slice(0, 4).map((s) => `${s.handle || "(empty)"} (${s.reason})`).join("; ")}
+                    {skipped.length > 4 ? "…" : ""}
+                  </span>
+                )}
+              </span>
+              <button onClick={() => { setCreated([]); setSkipped([]); }} className="shrink-0" aria-label="Dismiss">
                 <X size={16} />
               </button>
             </div>
           )}
           <div className="space-y-4">
-            {campaigns.map((c) => (
-              <CampaignCard key={c.id} c={c} highlight={c.id === created} />
-            ))}
+            {items.map((item) =>
+              item.kind === "group" ? (
+                <GroupCard key={item.id} list={item.list} highlight={item.list.some((c) => created.includes(c.id))} />
+              ) : (
+                <CampaignCard key={item.c.id} c={item.c} highlight={created.includes(item.c.id)} />
+              ),
+            )}
           </div>
         </div>
       </div>
