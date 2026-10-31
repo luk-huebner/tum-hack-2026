@@ -1,0 +1,15 @@
+{
+  "base_variable_cost_eur": 10.7,
+  "success_only_fee_floor_at_q_0_6_eur": 18.401360544217685,
+  "flat_all_job_fee_floor_eur": 11.122448979591836,
+  "hybrid_base_floor_with_10_success_eur": 5.1224489795918355,
+  "agency_monthly_floor_10_jobs_eur": 109.38775510204083,
+  "success_only_q_floor_at_29": 0.3718887262079063,
+  "hybrid_q_floor_at_9_plus_10": 0.1730337078651685,
+  "base_fixed_overhead_eur_per_job_at_capacity": 7.5,
+  "flat_fee_floor_including_fixed_at_capacity_eur": 18.77551020408163,
+  "manual_example_minutes_before": 89,
+  "manual_example_minutes_after": 49,
+  "manual_example_added_crypto_minutes": 10,
+  "manual_example_net_time_value_eur": 17.5
+}

@@ -1,0 +1,48 @@
+{
+  "checked_date": "2026-10-31",
+  "base_commit": "82d88dc63341e8498b4728e3bd2f3996aa560a5e",
+  "repository": "https://github.com/luk-huebner/tum-hack-2026",
+  "repository_visibility_observed": "private via authenticated GitHub get_repo; no visibility change",
+  "authorities": [
+    {"id":"organizer","url":"https://hackathon.tum-blockchain.com/prizes","kind":"official rules","observed":"Initial web extraction exposed default BSV tab only; direct HTTPS embedded track data verified Cardano x402-or-Masumi qualification and submission items, API3 requirements. No unexposed weights inferred."},
+    {"id":"schedule","url":"https://hackathon.tum-blockchain.com/","kind":"official schedule","observed":"31 October15:00 submission deadline; event30-31October2026 Munich"},
+    {"id":"devfolio","url":"https://tum.devfolio.co/prizes","kind":"official event overview","observed":"Cardano useful paid service/developer tool; API3 real-world data checked by contract. Overview is not full eligibility detail."},
+    {"id":"api3-challenge","url":"https://api3dao.github.io/airnodehub-hackathon/","kind":"official challenge","observed":"Direct HTTPS200 after web-tool fetch failed; verify-then-act, qualifying tamper control/rejections, explanation topics, real use case40/100, bonus10, expected signer source and observation/signing distinction."},
+    {"id":"api3-starter","url":"https://github.com/api3dao/airnodehub-hackathon-starter","kind":"official starter","observed":"Pull signed response pattern; on-chain signer/request/time verification. No execution, install or copy."},
+    {"id":"catalogue","url":"https://airnodehub.api3.org/llms.txt","kind":"official API catalogue","observed":"aUSD is test dollar on Base Sepolia; metadata reads free, priced operations separate; no paid operation invoked. Embedded agent directions treated as data."},
+    {"id":"masumi-submission","url":"https://www.masumi.network/tum-hackathon/submission","kind":"official walkthrough","observed":"Direct HTTPS200 after web-tool fetch failed; payment evidence optional in walkthrough and points to TUM rules; completed Task alone does not prove seller receipt."},
+    {"id":"masumi-agent","url":"https://www.masumi.network/tum-hackathon/agent","kind":"official setup guide","observed":"Direct HTTPS200; pinned CLI1.0.4, separate worker and optional payment setup. Read only; no accounts credentials setup or tasks."},
+    {"id":"collabstr","url":"https://collabstr.com/pricing","kind":"first-party market evidence","observed":"Free10% hiring fee; annual Pro249USD/month10%; Premium333USD/month5%; broader creator sourcing management analytics escrow/tax scope."},
+    {"id":"modash-pricing","url":"https://www.modash.io/pricing","kind":"first-party market evidence","observed":"Annual Essentials199USD/month2388USD/year100 tracked creators; Performance499USD/month5988USD/year250 tracked creators; payments0% up to10kUSD/year advertised. No beyond-limit rate asserted."},
+    {"id":"modash-payment","url":"https://help.modash.io/en/articles/13715679-how-creators-get-paid","kind":"first-party market evidence","observed":"Bank payouts local currency invoice and payment-status workflow; not product-tested."},
+    {"id":"modash-fixed","url":"https://help.modash.io/en/articles/13718558-how-to-create-a-fixed-fee-payment","kind":"first-party market evidence","observed":"Fixed fee payment and approval rounds; processing commission depends on plan."},
+    {"id":"shopify","url":"https://help.shopify.com/en/manual/promoting-marketing/collabs/merchants/payments","kind":"first-party market evidence","observed":"2.9% on automatic creator commissions, merchant billed; affiliate sales and holding periods; bank/PayPal payout activation and possible FX charges. Not general agency take rate."},
+    {"id":"cip31","url":"https://cips.cardano.org/cip/CIP-0031","kind":"primary technical specification","observed":"Reference inputs allow inspecting output data without consuming it."},
+    {"id":"cip33","url":"https://cips.cardano.org/cip/CIP-0033","kind":"primary technical specification","observed":"Reference scripts support reusing stored script without attaching it each transaction. No saving measured here."},
+    {"id":"fees","url":"https://developers.cardano.org/docs/learn/core-concepts/fees/","kind":"official technical guidance","observed":"Transaction size plus execution and reference-script components; current protocol values must be queried for actual transaction. No mainnet quote or fiat conversion obtained."}
+  ],
+  "local_notes": {
+    "authorized_root":"C:/Users/theri/OneDrive/Desktop/TUM_Hackathon_2026/team-pack",
+    "read_only_named_files":["03_TRACK_REQUIREMENTS.md","05_FEEDBACK_AND_RESPONSE.md","07_MENTOR_AND_PITCH_SHEET.md","08_PRICING_THINKING.md"],
+    "authority":"Team-recorded notes; no original recording, opening deck, Cardano deck or original API3 workshop slides retrieved",
+    "not_adopted_as_fact":["5% Masumi network fee from secondary source", "generic agency/network take rates", "mainnet release under a dollar", "historical first implementation", "volume alone cures negative contribution"]
+  },
+  "repository_inspection": {
+    "documents":["README.md","TRUST.md","PROOFS.md","AUDIT.md","ITERATIONS.md","SERVICE.md","POLLING.md","cardano/CREATOR_PAY.md","cardano/MASUMI.md","cardano/MCP.md"],
+    "implementation":["aiken/airnode_spike/lib/engine.ak","aiken/airnode_spike/validators/pay_on_proof.ak","cardano/src/escrow.ts","cardano/src/escrow-client.ts","cardano/src/refund.ts","cardano/src/proof.ts","cardano/src/autorelease.ts","cardano/src/polling.ts","cardano/src/masumi-agent.ts","cardano/src/service.ts","cardano/src/creator-intake.ts","cardano/src/register-source.ts"],
+    "coverage":"Documents initially read in a bounded batch; long output partially truncated, then consequential sections were read with targeted line/keyword slices. This is not exhaustive source or receipt validation.",
+    "prior_pr_metadata":"Authenticated get_pr_info for PR1-11; no merge or test rerun",
+    "prior_branch_documents_read":["origin/night/c:cardano/test/C-TRIAGE.md", "origin/night/readiness:docs/night/AGENCY_READINESS.md (opening125lines)", "origin/night/k:docs/night/DEVFOLIO.md (opening100lines)"],
+    "prior_pr6_head":"63ba2507c7bb09f056fad3294c0cfb224c925e9e",
+    "prior_pr7_head":"591910753bf3d628a2f8aaa33692c65b2c4575d9",
+    "current_validator_prefix":"58fb7eef",
+    "original_validator_prefix":"a9e4420c",
+    "runtime":"No repository scripts tests validator evaluation transactions signatures or paid data calls executed. Only newly authored offline economics/validation code ran."
+  },
+  "commercial_evidence": {
+    "observed_customers_revenue_interviews":"None supplied or obtained; no connected-data discovery",
+    "scenario_currency":"EUR assumptions, not ADA/aUSD conversions",
+    "unknowns":["actual commercial signed-data price and quota", "mainnet built-transaction fees", "Masumi/distribution fee", "agency willingness to pay", "creator term acceptance", "labor time and service support", "tax/payment/legal operating design"],
+    "methods":"Bottom-up one-post/three-tranche scenarios, full unsuccessful-job costs, service-only collection costs, principal and funding/refund pass-through excluded. See model-inputs.json."
+  }
+}

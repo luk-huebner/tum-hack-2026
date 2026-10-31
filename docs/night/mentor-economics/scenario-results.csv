@@ -1,0 +1,10 @@
+scenario,model,success_probability,platform_share,gross_service_revenue_eur,net_after_collection_eur,expected_variable_cost_eur,contribution_eur,contribution_margin_pct,jobs_to_cover_fixed_overhead,agencies_to_cover_fixed_overhead,labor_capacity_jobs_per_month,operating_surplus_at_capacity_eur
+pessimistic,success_only,0.35,0.0,10.149999999999999,9.876999999999999,50.955,-41.078,-404.7093596059114,,,133,-8463.374
+pessimistic,base_plus_success,0.35,0.0,12.5,12.05,50.955,-38.905,-311.24,,,133,-8174.365
+pessimistic,agency_subscription_full_use,0.35,0.0,19.9,19.482,50.955,-31.473,-158.15577889447235,,,133,-7185.909
+base,success_only,0.6,0.0,17.4,16.932,10.7,6.231999999999999,35.81609195402299,482,,400,-507.2000000000003
+base,base_plus_success,0.6,0.0,15.0,14.5,10.7,3.8000000000000007,25.333333333333336,790,,400,-1479.9999999999998
+base,agency_subscription_full_use,0.6,0.0,19.9,19.482,10.7,8.782,44.13065326633166,342,35,400,512.8000000000002
+optimistic,success_only,0.85,0.0,24.65,23.986999999999995,3.28,20.706999999999994,84.00405679513183,145,,1200,21848.399999999994
+optimistic,base_plus_success,0.85,0.0,17.5,16.95,3.28,13.67,78.11428571428571,220,,1200,13404.0
+optimistic,agency_subscription_full_use,0.85,0.0,19.9,19.482,3.28,16.201999999999998,81.41708542713567,186,19,1200,16442.399999999998

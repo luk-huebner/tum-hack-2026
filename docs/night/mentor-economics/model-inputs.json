@@ -1,0 +1,19 @@
+{
+  "classification": "Illustrative EUR scenarios, not observed prices, exchange conversions, market facts or forecasts",
+  "unit": "one accepted creator-post job with three payout tranches; checks shared across tranches of that post",
+  "currency": "EUR",
+  "fixed_monthly_overhead_eur": 3000,
+  "service_hours_per_month": 100,
+  "service_collection_percent": 0.02,
+  "service_collection_fixed_eur_per_invoice": 0.20,
+  "external_platform_revenue_share": 0.0,
+  "external_platform_revenue_share_note": "Unknown Masumi/commercial distribution fee; zero is a direct-sales scenario, not a verified zero-fee claim. Sensitivity includes 5% and 10% assumed shares.",
+  "prices": {"success_only_eur": 29, "base_eur": 9, "optional_success_eur": 10, "agency_monthly_eur": 199, "agency_included_jobs": 10, "agency_extra_job_eur": 19},
+  "scenarios": [
+    {"name":"pessimistic","success_probability":0.35,"monitoring_looks":288,"setup_looks":3,"assumed_eur_per_look":0.05,"tranches":3,"assumed_eur_per_release":0.30,"expected_extra_submitted_tx":0.30,"onboarding_minutes_per_job":15,"support_minutes_per_job":30,"loaded_eur_per_hour":45,"variable_hosting_eur":1.50,"treasury_fx_eur":0.75},
+    {"name":"base","success_probability":0.60,"monitoring_looks":60,"setup_looks":3,"assumed_eur_per_look":0.01,"tranches":3,"assumed_eur_per_release":0.30,"expected_extra_submitted_tx":0.10,"onboarding_minutes_per_job":5,"support_minutes_per_job":10,"loaded_eur_per_hour":35,"variable_hosting_eur":0.50,"treasury_fx_eur":0.25},
+    {"name":"optimistic","success_probability":0.85,"monitoring_looks":15,"setup_looks":3,"assumed_eur_per_look":0.005,"tranches":3,"assumed_eur_per_release":0.15,"expected_extra_submitted_tx":0.05,"onboarding_minutes_per_job":2,"support_minutes_per_job":3,"loaded_eur_per_hour":30,"variable_hosting_eur":0.25,"treasury_fx_eur":0.05}
+  ],
+  "pass_through_excluded_from_service_revenue_and_cost": ["creator payout principal", "buyer funding fee", "buyer refund fee", "buyer working capital"],
+  "notes": ["All jobs incur the stated monitoring looks, setup and labor, including unsuccessful jobs; intentionally conservative, no early-success data reduction assumed.","Expected releases = success probability * three tranches. This correlates tranche outcomes for simplicity; real pilots must record per-tranche success and costs.","Extra submitted-transaction allowance is distinct from rejected local evaluations; latter do not automatically incur a chain fee. Data retries are included in monitoring-look totals.","Release fees are absorbed by the service in these scenarios, not also billed as pass-through. Funding/refund costs are passed at cost outside the service invoice; if the service sponsors them, add them once.","Payment collection assumption applies only to the service invoice. Invoice-based subscription has one fixed collection charge per agency-month. Unknown taxes, principal payment costs and actual platform fees are not quoted here.","Fixed overhead is additional to job labor and variable hosting; scenario allowance for management, sales, fixed tooling and audit/legal reserve. It is not a quote or a measured accounting P&L."]
+}
