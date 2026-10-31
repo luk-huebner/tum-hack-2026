@@ -418,6 +418,7 @@ function hintLines(res) {
   const h = res.hints || {};
   const lines = [];
   if (res.verdict === 'ACCEPTED') lines.push('Nothing was sent. The same response would release ' + res.policy.payoutTada + ' tADA to the policy\'s beneficiary.');
+  if (res.verdict === 'ACCEPTED') lines.push('Only the numbers in the data text are read. The contract rebuilds the rest of the signed text from the policy, so changing a field name or adding text around the numbers does not change what it checks; changing a number, the time, the request hash or the signature does.');
   if (res.verdict === 'REJECTED') {
     lines.push('Hints below are worked out by this page, not by the contract.');
     if (h.sameRequest === false) lines.push('The response answers a different request than this policy pins.');
