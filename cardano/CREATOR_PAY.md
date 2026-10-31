@@ -65,7 +65,7 @@ Some creators post for 24 hours and delete the post afterwards, some will not ac
 |---|---|---|
 | The post stays up | `standard-week.json` | a third after the campaign, two thirds only if the post is still there a week later |
 | **The post lives 24 hours** | `ephemeral-24h.json` | milestones (1,000 / 5,000 likes) pay whenever they are reached while the post is up; the biggest part is measured near the end of the post's life (hours 22 to 23.7); **nothing is measured after the post is gone**, and the plan is refused if a window would end after it (`postLifetimeMinutes`) |
-| Wants a fee for delivering, with a bonus | `delivery-plus-bonus.json` | half pays when the post is live in its first hours (one like shows it exists), the rest as result bonuses |
+| Wants a fee for delivering, with a bonus | `delivery-plus-bonus.json` | half pays when the post is live (a **presence** tranche, `"presence": true`: any signed response about exactly the pinned post counts, no like needed), the rest as result bonuses |
 
 ```bash
 npx tsx src/creator-campaign.ts --plan plans/ephemeral-24h.json --source <id> --payee <addr_test1...>   # prints, pays nothing

@@ -36,6 +36,7 @@ const { values } = parseArgs({
     tweet: { type: "string" },
     source: { type: "string" },
     "at-least": { type: "string" },
+    presence: { type: "boolean", default: false }, // template source: pay when the post is live (threshold 0), instead of a count
     below: { type: "string" },
     minutes: { type: "string", default: "40" },
     "measure-after-minutes": { type: "string" },
@@ -72,7 +73,7 @@ const body =
     : values.template === "tweet-likes"
       ? { ...base0, tweetId: values.tweet, atLeast: Number(values["at-least"] ?? "300000") }
       : values.template === "source"
-        ? { ...base0, sourceId: values.source, ...(values.below !== undefined ? { below: Number(values.below) } : { atLeast: Number(values["at-least"]) }) }
+        ? { ...base0, sourceId: values.source, ...(values.presence ? { presence: true } : values.below !== undefined ? { below: Number(values.below) } : { atLeast: Number(values["at-least"]) }) }
         : { ...base0, atLeast: Number(values["at-least"] ?? "2000") };
 const request = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
 
@@ -95,7 +96,7 @@ const describe = (r: Requirement) => {
   console.log(`price list: ${Number(r.amount) / 1_000_000} tADA to ${r.payTo}`);
   console.log(`  transfer method ${String(extra.assetTransferMethod)}, script hash ${String(extra.scriptHash)}${extra.scriptHash === scriptHash ? " (our validator)" : " (NOT our validator)"}`);
   console.log(`  payTo is the validator address: ${r.payTo === Address.toBech32(scriptAddress)}`);
-  console.log(`  template ${values.template}; datum: ${datumHex.length / 2} bytes; rule ${policy.cmp === "Below" ? "below" : "at least"} ${policy.threshold / 10 ** policy.scale}, pays ${Number(policy.payout) / 1_000_000} tADA`);
+  console.log(`  template ${values.template}; datum: ${datumHex.length / 2} bytes; rule ${policy.cmp !== "Below" && policy.threshold === 0 ? "the post is live (threshold 0)" : `${policy.cmp === "Below" ? "below" : "at least"} ${policy.threshold / 10 ** policy.scale}`}, pays ${Number(policy.payout) / 1_000_000} tADA`);
   console.log(`  refund party is this wallet: ${policy.refundToHex === ours}; deadline ${new Date(policy.deadlineMs).toISOString()}; max response age ${policy.maxAgeMs / 1000} s`);
   return policy;
 };

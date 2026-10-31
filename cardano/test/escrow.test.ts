@@ -98,3 +98,21 @@ test('BUG E1: boolean thresholds should not silently become a numeric payment ru
 test('BUG E2: a non-finite reference clock must not disable deadline limits', () => {
   assert.throws(() => parseOffer(body({ deadlineMs: 1 }), NaN), /deadlineMs/);
 });
+
+// Presence: "the post is live" is a threshold of 0 on a registered post source. It has to be asked for explicitly.
+const postSource = () => registeredSources().find((s) => s.cmp !== 'Below')!.id;
+test('presence on a registered post source gives threshold 0 and says so in words', () => {
+  const offer = parseOffer({ refund: KEY, template: 'source', sourceId: postSource(), presence: true, deadlineMs: NOW + 60 * M }, NOW);
+  assert.equal(offer.value, 0);
+  assert.match(describeOffer(offer), /the post is live: any signed response about it counts/);
+});
+test('presence is refused for other templates, with a threshold, and when it is not a boolean', () => {
+  assert.throws(() => parse({ presence: true, atLeast: undefined }), /only for a registered post source/);
+  assert.throws(() => parse({ template: 'tweet-likes', tweetId: '20', presence: true, atLeast: undefined }), /only for a registered post source/);
+  assert.throws(() => parse({ template: 'source', sourceId: postSource(), presence: true }), /no threshold/);
+  for (const presence of ['true', 1, null, [], {}]) assert.throws(() => parse({ template: 'source', sourceId: postSource(), presence, atLeast: undefined }), /presence must be true or false/);
+});
+test('without presence a threshold of 0 is still refused', () => {
+  for (const atLeast of [0, '0', false, null]) assert.throws(() => parse({ template: 'source', sourceId: postSource(), atLeast }), /atLeast/);
+  assert.equal(parseOffer({ refund: KEY, template: 'source', sourceId: postSource(), presence: false, atLeast: 5, deadlineMs: NOW + 60 * M }, NOW).value, 5);
+});

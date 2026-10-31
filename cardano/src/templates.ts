@@ -77,7 +77,7 @@ const sourceSpec = (r: RegisteredSource): Spec => ({
   slotTo: r.slotTo,
   cmp: r.cmp,
   toThreshold: (v) => Math.round(v * 10 ** r.scale),
-  describe: (v) => `${r.label} ${r.cmp === "Below" ? "below" : "at least"} ${v}`,
+  describe: (v) => (v === 0 && r.cmp !== "Below" ? `the post is live: any signed response about it counts (${r.label})` : `${r.label} ${r.cmp === "Below" ? "below" : "at least"} ${v}`),
   max: r.max,
   kind: r.kind,
 });

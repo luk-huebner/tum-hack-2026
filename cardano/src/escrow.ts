@@ -59,9 +59,15 @@ export const parseOffer = (body: unknown, nowMs: number): EscrowOffer => {
   const spec = specFor(template, tweetId ?? sourceId);
   // the threshold is called atLeast for a rule "at least" (prices, likes, views) and below for a rule "below" (rain)
   const key = spec.cmp === "Below" ? "below" : "atLeast";
+  // Presence ("the post is live"): a registered post source whose rule any signed response about the pinned post satisfies. The pin
+  // (author, creation time, id, not a reply) is what makes it a test, so the threshold is 0. It has to be asked for explicitly.
+  if (b.presence !== undefined && typeof b.presence !== "boolean") throw new Error("presence must be true or false");
+  const presence = b.presence === true;
+  if (presence && (template !== "source" || spec.cmp !== "AtLeast")) throw new Error("presence (the post is live) is only for a registered post source with an at-least rule");
+  if (presence && b[key] !== undefined) throw new Error("presence has no threshold: leave atLeast out");
   const raw = b[key]; // a number or a numeric string; a boolean, null, array or object is not a threshold
-  const value = typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "") ? Number(raw) : NaN;
-  if (!Number.isFinite(value) || value <= 0 || value > spec.max) throw new Error(`${key} must be a positive number up to ${spec.max}`);
+  const value = presence ? 0 : typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "") ? Number(raw) : NaN;
+  if (!presence && (!Number.isFinite(value) || value <= 0 || value > spec.max)) throw new Error(`${key} must be a positive number up to ${spec.max}`);
   if (template !== "eth-usd" && Math.abs(value * 10 ** spec.scale - Math.round(value * 10 ** spec.scale)) > 1e-9) {
     throw new Error(`the threshold may have at most ${spec.scale} decimals`);
   }

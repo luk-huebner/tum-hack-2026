@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 // Deliberately DO NOT import creator-campaign.ts: it parses CLI arguments, exits,
 // and can spawn a spending client. Copied from base 82d88dc, validation and share maths
 // only. Throw substitutes for fail()/process.exit; no pricing, env, wallets or IO.
-interface Tranche { label: string; escrows: number; atLeast: number; measureAfterMinutes: number; windowMinutes: number }
+interface Tranche { label: string; escrows: number; atLeast: number; presence?: boolean; measureAfterMinutes: number; windowMinutes: number }
 const fail = (message: string): never => { throw new Error(message); };
 function validate(tranches: Tranche[], lifetime?: number) {
   if (!Array.isArray(tranches) || tranches.length === 0) fail('the plan has no tranches');
@@ -13,7 +13,10 @@ function validate(tranches: Tranche[], lifetime?: number) {
   for (const [i, t] of tranches.entries()) {
     const name = `tranche ${i + 1} (${t.label ?? 'unnamed'})`;
     if (!(Number.isInteger(t.escrows) && t.escrows >= 1 && t.escrows <= 4)) fail(`${name}: escrows must be a whole number from 1 to 4`);
-    if (!(Number.isFinite(t.atLeast) && t.atLeast > 0)) fail(`${name}: atLeast must be a positive number`);
+    if (t.presence !== undefined && typeof t.presence !== 'boolean') fail(`${name}: presence must be true or false`);
+    if (t.presence === true) {
+      if (t.atLeast !== undefined) fail(`${name}: a presence tranche has no atLeast (it pays when the post is live)`);
+    } else if (!(Number.isFinite(t.atLeast) && t.atLeast > 0)) fail(`${name}: atLeast must be a positive number`);
     if (!(Number.isFinite(t.measureAfterMinutes) && t.measureAfterMinutes >= 0)) fail(`${name}: measureAfterMinutes must be 0 or more`);
     if (!(Number.isFinite(t.windowMinutes) && t.windowMinutes >= 10)) fail(`${name}: windowMinutes must be at least 10 (the keeper needs time to measure and release)`);
     if (lifetime !== undefined && t.measureAfterMinutes + t.windowMinutes > lifetime) {
@@ -110,4 +113,11 @@ test('intake refuses empty, unicode digits, nonsense and overlong or nonnumeric 
 });
 test('BUG I1: an unrelated host or path fragment must not be accepted as a post link', { todo: 'known input-validation gap in an operator CLI (not on the judge demo path); see test/README.md' }, () => {
   for (const link of ['https://example.invalid/u/status/123', 'nonsense/status/123']) assert.equal(tweetId(link), undefined);
+});
+
+test('a presence tranche takes no atLeast and the others still need a positive one', () => {
+  assert.deepEqual(validate([tranche({ presence: true, atLeast: undefined as unknown as number, escrows: 2 }), tranche({ atLeast: 5000, escrows: 4 }), tranche({ atLeast: 5000 })]), { escrowCount: 7, totalTada: 35, shares: [29, 57, 14] });
+  assert.throws(() => validate([tranche({ presence: true, atLeast: 1 })]), /no atLeast/);
+  assert.throws(() => validate([tranche({ presence: 'yes' as unknown as boolean, atLeast: undefined as unknown as number })]), /presence must be/);
+  assert.throws(() => validate([tranche({ presence: false, atLeast: 0 })]), /atLeast must be a positive number/);
 });

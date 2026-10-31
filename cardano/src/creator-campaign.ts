@@ -57,7 +57,8 @@ const fail: (message: string) => never = (message) => {
 interface Tranche {
   label: string;
   escrows: number;
-  atLeast: number;
+  atLeast: number; // left out in a presence tranche
+  presence?: boolean; // pay when the post is live (any signed response about the pinned post), not at a count
   measureAfterMinutes: number;
   windowMinutes: number;
 }
@@ -106,7 +107,10 @@ let escrowCount = 0;
 for (const [i, t] of file.tranches.entries()) {
   const name = `tranche ${i + 1} (${t.label ?? "unnamed"})`;
   if (!(Number.isInteger(t.escrows) && t.escrows >= 1 && t.escrows <= 4)) fail(`${name}: escrows must be a whole number from 1 to 4`);
-  if (!(Number.isFinite(t.atLeast) && t.atLeast > 0)) fail(`${name}: atLeast must be a positive number`);
+  if (t.presence !== undefined && typeof t.presence !== "boolean") fail(`${name}: presence must be true or false`);
+  if (t.presence === true) {
+    if (t.atLeast !== undefined) fail(`${name}: a presence tranche has no atLeast (it pays when the post is live)`);
+  } else if (!(Number.isFinite(t.atLeast) && t.atLeast > 0)) fail(`${name}: atLeast must be a positive number`);
   if (!(Number.isFinite(t.measureAfterMinutes) && t.measureAfterMinutes >= 0)) fail(`${name}: measureAfterMinutes must be 0 or more`);
   if (!(Number.isFinite(t.windowMinutes) && t.windowMinutes >= 10)) fail(`${name}: windowMinutes must be at least 10 (the keeper needs time to measure and release)`);
   if (lifetime !== undefined && t.measureAfterMinutes + t.windowMinutes > lifetime) {
@@ -129,13 +133,15 @@ const buyer = process.env.BUYER_ADDRESS || payee; // only a stand-in for checkin
 interface Escrow {
   label: string;
   atLeast: number;
+  presence: boolean;
   measureAfterMs?: number;
   deadlineMs: number;
 }
 const escrows: Escrow[] = file.tranches.flatMap((t) =>
   Array.from({ length: t.escrows }, (_, k) => ({
     label: t.escrows > 1 ? `${t.label} ${k + 1}/${t.escrows}` : t.label,
-    atLeast: t.atLeast,
+    atLeast: t.presence === true ? 0 : t.atLeast,
+    presence: t.presence === true,
     ...(t.measureAfterMinutes > 0 ? { measureAfterMs: t0 + t.measureAfterMinutes * 60_000 } : {}),
     deadlineMs: t0 + (t.measureAfterMinutes + t.windowMinutes) * 60_000,
   })),
@@ -147,13 +153,13 @@ const hm = (minutes: number) => (minutes >= 120 ? `${(minutes / 60).toFixed(minu
 console.log(`plan: ${escrows.length} escrows of ${tada} tADA = ${total} tADA on source ${source}, paying ${payee.slice(0, 22)}..., refund to the buyer${lifetime === undefined ? "" : `, the post lives ${hm(lifetime)}`}\n`);
 for (const t of file.tranches) {
   const share = Math.round((100 * t.escrows) / escrows.length);
-  console.log(`  ${String(share).padStart(3)}%  ${t.label.padEnd(18)} at least ${t.atLeast}, counted ${t.measureAfterMinutes === 0 ? "from the start" : `from ${hm(t.measureAfterMinutes)}`} until ${hm(t.measureAfterMinutes + t.windowMinutes)}`);
+  console.log(`  ${String(share).padStart(3)}%  ${t.label.padEnd(18)} ${t.presence === true ? "the post is live" : `at least ${t.atLeast}`}, counted ${t.measureAfterMinutes === 0 ? "from the start" : `from ${hm(t.measureAfterMinutes)}`} until ${hm(t.measureAfterMinutes + t.windowMinutes)}`);
 }
 console.log("");
 for (const e of escrows) {
   const offer = (() => {
     try {
-      return parseOffer({ template: "source", sourceId: source, atLeast: e.atLeast, refund: buyer, payee, deadlineMs: e.deadlineMs, ...(e.measureAfterMs === undefined ? {} : { measureAfterMs: e.measureAfterMs }) }, t0);
+      return parseOffer({ template: "source", sourceId: source, ...(e.presence ? { presence: true } : { atLeast: e.atLeast }), refund: buyer, payee, deadlineMs: e.deadlineMs, ...(e.measureAfterMs === undefined ? {} : { measureAfterMs: e.measureAfterMs }) }, t0);
     } catch (error) {
       return fail(`${e.label}: ${(error as Error).message}`);
     }
@@ -193,7 +199,7 @@ for (const [i, e] of escrows.entries()) {
   const args = [
     "node_modules/tsx/dist/cli.mjs", "src/escrow-client.ts",
     "--template", "source", "--source", source,
-    "--at-least", String(e.atLeast),
+    ...(e.presence ? ["--presence"] : ["--at-least", String(e.atLeast)]),
     "--minutes", ((e.deadlineMs - now) / 60_000).toFixed(2),
     ...(e.measureAfterMs === undefined ? [] : ["--measure-after-minutes", ((e.measureAfterMs - now) / 60_000).toFixed(2)]),
     "--payee", payee,

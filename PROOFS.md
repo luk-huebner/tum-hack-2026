@@ -410,3 +410,16 @@ After the Cardano team said that a rival to Masumi has to be much better and tha
 - `npx tsx scripts/masumi-test.ts`: 23 of 23 checks pass, no network and no money. The four MIP-003 routes; refusals (a short identifier, a wrong input, an escrow the keeper does not serve, one too close to its deadline, one identifier reused with another input); the payment request (tUSDM unit, input hash, payment source type); the life cycle up to `completed` with the submitted hash equal to `sha256(nonce;result)`; an unpaid job failing after its pay-by time; 503 without a payment service. With the service started with `MASUMI_ENABLED=1` and no payment service, `/masumi/availability` says unavailable and `start_job` answers 503 (checked by hand).
 - The request and answer shapes come from Masumi's TUM hackathon quickstart (`github.com/masumi-network/tum-hackathon-quickstart`: `agent-api.mjs`, `standard-hash.mjs`, `payment-registration.mjs`) and the MIP-003 text. Masumi's own docs pages returned 404 that evening, so details may differ.
 - **Not possible here:** this machine has no Docker or WSL, and Masumi's payment service needs Docker and a database, so the real flow needs a hosted payment service from Masumi or another computer.
+
+## A presence tranche: "the post is live" pays with 0 likes (31 Oct 2026, 11:31 to 11:33 UTC)
+
+An escrow rule can now be "the post is live" (threshold 0, only for a registered post source, only when asked for with `presence`; `escrow-client.ts --presence`, `"presence": true` in a plan tranche). The validator is unchanged: it already accepted a threshold of 0. What makes it a test is the pin: the signed text carries the author, the creation time, the post id and `isReply: false`, so only a signed response about exactly that post can release it, and a post that does not exist or is deleted cannot match.
+
+Run on preprod with the Cardano and API3 meme post, which has **0 likes** at the time (the keeper's log says `value=0 threshold=0`), the payee being our own seller key:
+
+| Step | Result |
+|---|---|
+| x402 payment of 5 tADA into the validator, rule "the post is live: any signed response about it counts", refund after 12:01:16 UTC | `3760ce819fb66c1086d3057c687bda45cfc6d5ae486ada61250d56ae703d89b4`, block 5356905, fee 0.178613 tADA, HTTP 200 after 54.5 s |
+| The seller's keeper found it, fetched one signed response (0.01 aUSD) and released it, nobody told it to | `eb65e57d4dbe250530c41967da07886a25c15bd79041f26ea8b9806ba835cadd`, block 5356908, fee 0.310518 tADA, 5 tADA to the seller key, response age 18 s |
+
+Limits: one post, one run; a real deletion was not tested (the empty record a deleted post returns is documented, not observed); the offline tests cover the parser and the plan validation (`test/escrow.test.ts`, `test/creator-logic.test.ts`). Without `presence` a threshold of 0 is still refused.
