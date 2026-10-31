@@ -1,0 +1,43 @@
+[
+  {
+    "at": "2026-10-30T23:46:18.708Z",
+    "action": "Initial desktop navigation, reserved 4 (document, two info, favicon)",
+    "reserved": 4
+  },
+  {
+    "at": "2026-10-30T23:46:25.809Z",
+    "action": "Open Tamper bench",
+    "reserved": 2
+  },
+  {
+    "at": "2026-10-30T23:48:06.282Z",
+    "action": "Run whole bench once (six sequential POST evaluations)",
+    "reserved": 6,
+    "note": "Timestamp conservatively moved to observed completion"
+  },
+  {
+    "at": "2026-10-30T23:48:38.535Z",
+    "action": "Send one-character data mutation 6.90 to 6.91 on bench-48h",
+    "reserved": 1
+  },
+  {
+    "at": "2026-10-30T23:48:49.043Z",
+    "action": "Empty pasted response, client-side JSON failure",
+    "reserved": 0
+  },
+  {
+    "at": "2026-10-30T23:48:53.788Z",
+    "action": "Malformed response {, client-side JSON failure",
+    "reserved": 0
+  },
+  {
+    "at": "2026-10-30T23:49:03.148Z",
+    "action": "Oversized signed data field: 8001 ASCII a characters",
+    "reserved": 1
+  },
+  {
+    "at": "2026-10-30T23:49:09.589Z",
+    "action": "Unicode signed-data mutation with escaped HTML-like text",
+    "reserved": 1
+  }
+]

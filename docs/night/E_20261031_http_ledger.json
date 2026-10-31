@@ -1,0 +1,102 @@
+[
+  {
+    "epoch": 1793405863.7841659,
+    "utc": "2026-10-31T00:17:43Z",
+    "method": "GET",
+    "path": "/api/info",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "seconds": 1.183,
+    "characters": 345,
+    "headers": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+    }
+  },
+  {
+    "epoch": 1793405873.223526,
+    "utc": "2026-10-31T00:17:53Z",
+    "method": "GET",
+    "path": "/api/cases",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "seconds": 0.265,
+    "characters": 5024,
+    "headers": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+    }
+  },
+  {
+    "epoch": 1793405881.6589332,
+    "utc": "2026-10-31T00:18:01Z",
+    "method": "GET",
+    "path": "/api/policies",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "seconds": 0.823,
+    "characters": 1150,
+    "headers": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+    }
+  },
+  {
+    "epoch": 1793405890.6703146,
+    "utc": "2026-10-31T00:18:10Z",
+    "method": "GET",
+    "path": "/api/board",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "seconds": 0.495,
+    "characters": 685,
+    "headers": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+    }
+  },
+  {
+    "epoch": 1793405899.3458335,
+    "utc": "2026-10-31T00:18:19Z",
+    "method": "GET",
+    "path": "/health",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "seconds": 0.25,
+    "characters": 11,
+    "headers": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload"
+    }
+  },
+  {
+    "epoch": 1793405907.7939656,
+    "utc": "2026-10-31T00:18:27Z",
+    "method": "GET",
+    "path": "/llms.txt",
+    "status": 200,
+    "content_type": "text/plain; charset=utf-8",
+    "seconds": 0.144,
+    "characters": 2481,
+    "headers": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+      "access-control-allow-origin": "*"
+    }
+  },
+  {
+    "epoch": 1793405916.1477082,
+    "utc": "2026-10-31T00:18:36Z",
+    "method": "GET",
+    "path": "/evidence.json",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "seconds": 0.131,
+    "characters": 18801,
+    "headers": {
+      "cache-control": "public, max-age=0, must-revalidate",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+      "access-control-allow-origin": "*"
+    }
+  }
+]
