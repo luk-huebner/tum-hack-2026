@@ -1,3 +1,5 @@
+import { withMetadata } from "./tx-metadata.js";
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Refund a Pay-on-Proof policy to its refund party after the deadline.
  *
@@ -11,7 +13,7 @@
  */
 import { parseArgs } from "node:util";
 import { Address, KeyHash } from "@evolution-sdk/evolution";
-import { hexOf, makeClient, paymentKeyHashHex, refundData, script, sleep, waitForTip, waitForTx } from "./engine.js";
+import { hexOf, makeClient, paymentKeyHashHex, refundData, script, scriptHash, sleep, waitForTip, waitForTx } from "./engine.js";
 import { classify, findPolicyUtxo, policyViewOf } from "./proof.js";
 
 const { values } = parseArgs({ options: { utxo: { type: "string" }, submit: { type: "boolean", default: false }, wait: { type: "boolean", default: false }, early: { type: "boolean", default: false } } });
@@ -40,8 +42,7 @@ const fromMs = values.early ? now - 60_000 : Math.max(now - 60_000, policy.deadl
 if (!values.early) await waitForTip(fromMs + 2_000);
 
 try {
-  const built = await client
-    .newTx()
+  const built = await withMetadata(client.newTx(), "Refund", scriptHash)
     .collectFrom({ inputs: [utxo], redeemer: refundData() })
     .attachScript({ script })
     .addSigner({ keyHash: KeyHash.fromHex(policy.refundToHex) })
@@ -50,7 +51,7 @@ try {
   if (!values.submit) {
     console.log(`ACCEPTED: the validator would allow this refund (validity starts ${new Date(fromMs).toISOString()}). Nothing was sent.`);
   } else {
-    const submitted = await built.signAndSubmit();
+    const submitted = await submitTracked(built, { source: "refund.ts" });
     const hash = hexOf(submitted.hash);
     console.log(`refund submitted: ${hash}`);
     console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");

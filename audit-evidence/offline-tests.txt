@@ -1,0 +1,5 @@
+eth-usd: control accepted; 18 of 18 dishonest price lists refused
+tweet-likes (tweet 20): control accepted; 18 of 18 dishonest price lists refused
+rain-below (Munich): control accepted; 18 of 18 dishonest price lists refused
+
+54 dishonest price lists over 3 templates (attacker key abababab…): all refused, every control accepted.

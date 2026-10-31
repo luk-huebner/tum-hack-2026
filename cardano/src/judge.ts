@@ -1,3 +1,4 @@
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Judge tamper bench: try a signed AirnodeHub response against a locked policy on Cardano preprod.
  *
@@ -45,7 +46,7 @@ if (!values.submit) {
 } else {
   try {
     const built = await releaseTx(client, utxo, policy, response, evaluationWindow(policy, check.signedMs, now));
-    const submitted = await built.signAndSubmit();
+    const submitted = await submitTracked(built, { source: "judge.ts" });
     console.log(`ACCEPTED and released: https://preprod.cardanoscan.io/transaction/${hexOf(submitted.hash)}`);
   } catch (error) {
     console.log(`NOT RELEASED: ${String((error as Error)?.message ?? error).replace(/\s+/g, " ").slice(0, 200)}`);

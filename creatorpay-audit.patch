@@ -1,0 +1,610 @@
+--- a/cardano/src/autorelease.ts
++++ b/cardano/src/autorelease.ts
+@@ -1,3 +1,4 @@
++import { submitTracked, pendingFor, reconcile } from "./tx-tracking.js";
+ /**
+  * The seller's keeper: watches the validator for policies that pay this service and releases them when the data proves the
+  * rule. Nobody starts a cycle and nobody names a policy: it finds them.
+@@ -169,7 +170,8 @@
+     }
+     for (const [ref, s] of submitted) {
+       if (!onChain.has(ref)) {
+-        log({ event: "spent-on-chain", ref, tx: s.tx, note: "the release is no longer at the validator, so it landed" });
++        log({ event: "spent-on-chain", ref, tx: s.tx, note: "escrow absent from this scan; this alone does not identify its spending transaction" });
++        await reconcile(s.tx);
+         submitted.delete(ref);
+         firstSeen.delete(ref);
+         attempts.delete(ref);
+@@ -181,7 +183,9 @@
+ 
+     const ruleOf = (m: (typeof mine)[number]) => m.known.describe(m.policy.threshold / 10 ** m.policy.scale);
+     const gaveUp = (ref: string) => (attempts.get(ref) ?? 0) >= MAX_RELEASE_ATTEMPTS;
+-    const open = mine.filter((m) => m.policy.deadlineMs - now >= MIN_TIME_LEFT_MS && !submitted.has(m.ref) && !gaveUp(m.ref) && !stopChecking.has(m.ref));
++    const pendingRefs = new Set<string>();
++    for (const m of mine) if (await pendingFor(m.ref)) pendingRefs.add(m.ref);
++    const open = mine.filter((m) => m.policy.deadlineMs - now >= MIN_TIME_LEFT_MS && !submitted.has(m.ref) && !pendingRefs.has(m.ref) && !gaveUp(m.ref) && !stopChecking.has(m.ref));
+     status.lastCycleAt = new Date(now).toISOString();
+     status.faultsLeft = faultsLeft();
+     status.candidates = mine
+@@ -190,7 +194,7 @@
+         ref: m.ref,
+         rule: ruleOf(m),
+         deadline: new Date(m.policy.deadlineMs).toISOString(),
+-        state: submitted.has(m.ref) ? "released" : gaveUp(m.ref) ? "gave-up" : stopChecking.has(m.ref) ? "settled-not-met" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : m.policy.settleAfterMs > now ? "waiting-for-window" : "watching",
++        state: submitted.has(m.ref) || pendingRefs.has(m.ref) ? "releasing" : gaveUp(m.ref) ? "gave-up" : stopChecking.has(m.ref) ? "settled-not-met" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : m.policy.settleAfterMs > now ? "waiting-for-window" : "watching",
+       }));
+     if (open.length === 0) return;
+     // The node's script evaluation can be blind to outputs that are seconds old, including this wallet's change from the release
+@@ -287,7 +291,7 @@
+       }
+       fault("evaluate", "Script evaluation failed: injected fault (a blind evaluator looks just like this)");
+       const tx = await bounded(
+-        (async () => hexOf((await (await releaseTx(client, m.utxo, m.policy, response, window)).signAndSubmit()).hash))(),
++        (async () => hexOf((await submitTracked((await releaseTx(client, m.utxo, m.policy, response, window)), { source: "autorelease.ts" })).hash))(),
+         90_000,
+         "building and sending the release",
+       );
+--- a/cardano/src/buyer.ts
++++ b/cardano/src/buyer.ts
+@@ -1,3 +1,5 @@
++import { trackExternal } from "./tx-tracking.js";
++import { Transaction } from "@evolution-sdk/evolution";
+ /**
+  * Buyer: an agent that pays for an API call via x402 on Cardano preprod.
+  *
+@@ -44,11 +46,10 @@
+   const TTL_MARGIN_SECONDS = 120;
+   const signer = {
+     ...baseSigner,
+-    buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
+-      baseSigner.buildAndSignPaymentTransaction({
++    buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) => { const built = await baseSigner.buildAndSignPaymentTransaction({
+         ...input,
+         maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS),
+-      }),
++      }); trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "buyer.ts", true); return built; },
+   };
+   client.register("cardano:*", new ExactCardanoScheme(signer));
+   console.log(`Buyer wallet: ${signer.getAddress()}`);
+--- a/cardano/src/creator-campaign.ts
++++ b/cardano/src/creator-campaign.ts
+@@ -1,3 +1,4 @@
++import { createHash } from "node:crypto";
+ /**
+  * Pay a creator in tranches. The shape of the split is yours: a ladder of milestones, a payment for delivery plus a bonus, or
+  * a part after the campaign and a part only if the post is still there later.
+@@ -184,6 +185,8 @@
+ }
+ 
+ console.log(`\nlocking ${escrows.length} escrows (${total} tADA), one x402 payment after the other (about a minute each)...`);
++const campaign = process.env.CREATORPAY_CAMPAIGN ?? createHash("sha256").update(JSON.stringify({ source, payee, t0, escrows })).digest("hex");
++console.log(`campaign: ${campaign}`);
+ const refs: string[] = [];
+ for (const [i, e] of escrows.entries()) {
+   const now = Date.now();
+@@ -196,7 +199,7 @@
+     "--payee", payee,
+   ];
+   try {
+-    const { stdout } = await run(process.execPath, args, { cwd: cardanoDir, timeout: 420_000, maxBuffer: 16 * 1024 * 1024 });
++    const { stdout } = await run(process.execPath, args, { cwd: cardanoDir, env: { ...process.env, CREATORPAY_CAMPAIGN: campaign }, timeout: 420_000, maxBuffer: 16 * 1024 * 1024 });
+     const ref = /Policy UTxO at the validator: (\S+)/.exec(stdout)?.[1];
+     if (!ref) throw new Error(stdout.split("\n").slice(-4).join(" | "));
+     refs.push(ref);
+--- a/cardano/src/creator-demo.ts
++++ b/cardano/src/creator-demo.ts
+@@ -1,3 +1,4 @@
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Creator Pay shape on Cardano preprod, with a REAL signed AirnodeHub response about a tweet.
+  *
+@@ -88,7 +89,7 @@
+   for (const threshold of [300_000, 400_000]) {
+     builder = builder.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policyFor(threshold, nowMs))) });
+   }
+-  const submitted = await (await builder.build()).signAndSubmit();
++  const submitted = await submitTracked((await builder.build()), { source: "creator-demo.ts" });
+   const hash = hexOf(submitted.hash);
+   console.log(`lock submitted: ${hash}`);
+   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet");
+@@ -122,7 +123,7 @@
+   const lock = readLock();
+   const from = Math.max(signedMs + 2_000, Date.now() - 60_000);
+   await waitForTip(from + 2_000);
+-  const submitted = await (await tx(await found(lock.txHash, lock.indexes[0]), response, from, from + 10 * 60_000)).signAndSubmit();
++  const submitted = await submitTracked((await tx(await found(lock.txHash, lock.indexes[0]), response, from, from + 10 * 60_000)), { source: "creator-demo.ts" });
+   const hash = hexOf(submitted.hash);
+   console.log(`release submitted: ${hash}`);
+   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet");
+--- a/cardano/src/demo-run.ts
++++ b/cardano/src/demo-run.ts
+@@ -1,3 +1,6 @@
++import { trackExternal } from "./tx-tracking.js";
++import { Transaction } from "@evolution-sdk/evolution";
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Live demo runs for the console: the buyer's side of the story, step by step, with real transactions on Cardano preprod.
+  *
+@@ -132,8 +135,7 @@
+   // the facilitator measures the payment's validity from the chain tip, which trails the clock (see buyer.ts)
+   const signer = {
+     ...baseSigner,
+-    buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
+-      baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - 120) }),
++    buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) => { const built = await baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - 120) }); trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "demo-run.ts", true); return built; },
+   };
+   client.register("cardano:*", new ExactCardanoScheme(signer));
+ 
+@@ -147,7 +149,7 @@
+     // transaction lands anyway. Look at the contract before saying the payment failed.
+     add("wait", `The service answered HTTP ${response.status}. A slow settlement is reported as a failure even when the payment lands, so the console looks for the escrow at the contract by its datum.`);
+     utxo = await findByDatum(buyer, String(requirement.extra?.datum), 150_000);
+-    if (!utxo) throw new Error(`The service refused the payment (HTTP ${response.status}) and no escrow appeared at the contract: nothing was charged.`);
++    if (!utxo) throw new Error(`The service refused the payment (HTTP ${response.status}) and no unspent escrow was found: status UNKNOWN. Inspect the transaction journal before retrying.`);
+     payTx = hexOf(utxo.transactionId.hash);
+     add("ok", `The payment DID settle: the escrow is at the contract (the buyer was told it failed, which is why the console looks).`, { label: "payment transaction", url: scan(payTx) });
+   } else {
+@@ -206,7 +208,7 @@
+   const fromMs = Math.max(Date.now() - 60_000, policy.deadlineMs + 1_000);
+   await waitForTip(fromMs + 2_000);
+   const built = await buyer.newTx().collectFrom({ inputs: [utxo], redeemer: refundData() }).attachScript({ script }).addSigner({ keyHash: KeyHash.fromHex(policy.refundToHex) }).setValidity({ from: BigInt(fromMs), to: BigInt(fromMs + 15 * 60_000) }).build();
+-  const submitted = await built.signAndSubmit();
++  const submitted = await submitTracked(built, { source: "demo-run.ts" });
+   const refundTx = hexOf(submitted.hash);
+   add("ok", "The deadline has passed. The buyer's key refunds the escrow: the contract allows it, and only for this key.", { label: "refund transaction", url: scan(refundTx) });
+   const confirmed = await waitForTx(refundTx, 120_000);
+--- a/cardano/src/engine-demo.ts
++++ b/cardano/src/engine-demo.ts
+@@ -1,3 +1,4 @@
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Pay-on-Proof on Cardano preprod, end to end, with a REAL signed AirnodeHub response.
+  *
+@@ -163,7 +164,7 @@
+   let tx = client.newTx();
+   for (const c of list) tx = tx.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(c.policy)) });
+   const built = await tx.build();
+-  const submitted = await built.signAndSubmit();
++  const submitted = await submitTracked(built, { source: "engine-demo.ts" });
+   const hash = hexOf(submitted.hash);
+   console.log(`lock transaction submitted: ${hash}`);
+   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
+@@ -182,7 +183,7 @@
+   ];
+   let tx = client.newTx();
+   for (const c of benchCases) tx = tx.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(c.policy)) });
+-  const submitted = await (await tx.build()).signAndSubmit();
++  const submitted = await submitTracked((await tx.build()), { source: "engine-demo.ts" });
+   const hash = hexOf(submitted.hash);
+   console.log(`bench lock submitted: ${hash}`);
+   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
+@@ -222,7 +223,7 @@
+   const utxo = await findUtxo(lock.txHash, c.index);
+   const now = Date.now();
+   const built = await releaseTx(utxo, { fromMs: now - 60_000, toMs: now + 15 * 60_000 });
+-  const submitted = await built.signAndSubmit();
++  const submitted = await submitTracked(built, { source: "engine-demo.ts" });
+   const hash = hexOf(submitted.hash);
+   console.log(`release submitted: ${hash}`);
+   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
+@@ -244,7 +245,7 @@
+     // Slots are whole seconds and round down, so start one second after the deadline to satisfy lower >= deadline.
+     .setValidity({ from: BigInt(fromMs), to: BigInt(now + 15 * 60_000) })
+     .build();
+-  const submitted = await built.signAndSubmit();
++  const submitted = await submitTracked(built, { source: "engine-demo.ts" });
+   const hash = hexOf(submitted.hash);
+   console.log(`refund submitted: ${hash}`);
+   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
+--- a/cardano/src/engine.ts
++++ b/cardano/src/engine.ts
+@@ -1,3 +1,4 @@
++import { reconcile } from "./tx-tracking.js";
+ /**
+  * Off-chain side of Pay-on-Proof: builds the policy datum, locks funds at the validator, and releases or refunds them.
+  * Testnet only. Seeds come from .env and are never printed.
+@@ -214,13 +215,13 @@
+   const started = Date.now();
+   while (Date.now() - started < timeoutMs) {
+     try {
+-      if ((await blockfrost(`/txs/${txHash}`)).ok) return true;
++      if ((await reconcile(txHash)).state === "confirmed") return true;
+     } catch {
+       // a dropped connection (a train, say) must not end the wait
+     }
+     await sleep(5000);
+   }
+-  return false;
++  return (await reconcile(txHash)).state === "confirmed";
+ };
+ 
+ /**
+--- a/cardano/src/escrow-client.ts
++++ b/cardano/src/escrow-client.ts
+@@ -1,3 +1,4 @@
++import { trackExternal, recordTransaction, reconcile } from "./tx-tracking.js";
+ /**
+  * Client for the escrow route: pay by x402 and have the payment locked straight into the Pay-on-Proof validator.
+  *
+@@ -119,8 +120,11 @@
+ const TTL_MARGIN_SECONDS = 120;
+ const signer = {
+   ...baseSigner,
+-  buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
+-    baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) }),
++  buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
++    { const built = await baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) });
++      trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "escrow-client.ts", !values["build-only"]);
++      return built;
++    },
+ };
+ 
+ if (values.dry) {
+@@ -162,11 +166,11 @@
+   try {
+     response = await wrapFetchWithPayment(lossyFetch, client)(url, request);
+   } catch (error) {
+-    if (!values["drop-response"]) throw error;
++    // Any transport failure may follow broadcast, not only the injected fault.
+     console.log(`The connection dropped after the payment was sent (${(error as Error).name}). The buyer does not know whether it settled; looking for the escrow at the validator by its datum.`);
+     const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 240_000);
+     if (found) console.log(`The escrow IS at the validator: ${hexOf(found.transactionId.hash)}#${Number(found.index)}. Nothing was lost; the seller's keeper will release it, or the buyer can refund it after the deadline.`);
+-    else console.log("No escrow appeared at the validator within 4 minutes: the payment did not settle, so nothing was charged.");
++    else console.log("No unspent escrow was found within 4 minutes. Payment status is UNKNOWN; it may already be spent or the provider unavailable. Inspect the journal before paying again.");
+     process.exit(0);
+   }
+   console.log(`HTTP ${response.status} after ${((Date.now() - started) / 1000).toFixed(1)} s`);
+@@ -178,12 +182,16 @@
+     console.log(`\nThe service answered HTTP ${response.status}. That does not prove the payment failed; looking for the escrow at the validator by its datum.`);
+     const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 150_000);
+     if (found) console.log(`The payment DID settle: the escrow is at the validator as ${hexOf(found.transactionId.hash)}#${Number(found.index)}.`);
+-    else console.log("No escrow appeared: nothing was charged.");
++    else console.log("No unspent escrow found. Payment status is UNKNOWN; do not pay again before reconciling the recorded hash.");
+     process.exitCode = found ? 0 : 1;
+   } else {
+     const receipt = new x402HTTPClient(client).getPaymentSettleResponse((name) => response.headers.get(name));
+     const txHash = receipt?.transaction;
+-    console.log(`\nPayment (settled by the facilitator): https://preprod.cardanoscan.io/transaction/${txHash}`);
++    if (txHash && /^[a-f0-9]{64}$/.test(txHash)) {
++      recordTransaction(txHash, { state: "submitted", operation: "lock", source: "escrow-client.ts" });
++      await reconcile(txHash);
++      console.log(`\nPayment: https://preprod.cardanoscan.io/transaction/${txHash}`);
++    } else console.log("No valid transaction hash in receipt; inspect the write-ahead journal.");
+     // The payment output at the validator is the policy UTxO. Look for it by the payment's transaction hash.
+     const wallet = makeClient("MNEMONIC");
+     for (let attempt = 0; attempt < 24 && txHash; attempt++) {
+--- a/cardano/src/judge.ts
++++ b/cardano/src/judge.ts
+@@ -1,3 +1,4 @@
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Judge tamper bench: try a signed AirnodeHub response against a locked policy on Cardano preprod.
+  *
+@@ -45,7 +46,7 @@
+ } else {
+   try {
+     const built = await releaseTx(client, utxo, policy, response, evaluationWindow(policy, check.signedMs, now));
+-    const submitted = await built.signAndSubmit();
++    const submitted = await submitTracked(built, { source: "judge.ts" });
+     console.log(`ACCEPTED and released: https://preprod.cardanoscan.io/transaction/${hexOf(submitted.hash)}`);
+   } catch (error) {
+     console.log(`NOT RELEASED: ${String((error as Error)?.message ?? error).replace(/\s+/g, " ").slice(0, 200)}`);
+--- a/cardano/src/keep-client.ts
++++ b/cardano/src/keep-client.ts
+@@ -1,3 +1,5 @@
++import { trackExternal } from "./tx-tracking.js";
++import { Transaction } from "@evolution-sdk/evolution";
+ /**
+  * Client for the paid keeper job: an agent that hires the Pay-on-Proof keeper and pays per request with x402 on preprod.
+  *
+@@ -70,8 +72,7 @@
+   const TTL_MARGIN_SECONDS = 120;
+   const signer = {
+     ...baseSigner,
+-    buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
+-      baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) }),
++    buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) => { const built = await baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) }); trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "keep-client.ts", true); return built; },
+   };
+   client.register("cardano:*", new ExactCardanoScheme(signer));
+ 
+--- a/cardano/src/keeper.ts
++++ b/cardano/src/keeper.ts
+@@ -1,3 +1,4 @@
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Keeper agent: watches a Pay-on-Proof policy over time and releases it when AirnodeHub data satisfies the rule.
+  * Nobody starts a cycle. Each cycle the agent decides whether it may spend, buys a signed response, checks it, and
+@@ -106,7 +107,7 @@
+     // a Nodary feed signs the time it observed the price (slot 1); other sources have no observation time
+     ...(source.spec.startsWith("nodary") ? { obsSlot: 1, obsMaxAgeMs: 120_000 } : {}),
+   };
+-  const submitted = await (await client.newTx().payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policy)) }).build()).signAndSubmit();
++  const submitted = await submitTracked((await client.newTx().payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policy)) }).build()), { source: "keeper.ts" });
+   const hash = hexOf(submitted.hash);
+   console.log(`policy locked: ${hash}  (${source.spec} ${values.below ? "below" : "at least"} ${target}, now ${first}; deadline in ${values.minutes} min; accepts a response up to ${values["max-age"]} s old)`);
+   await waitForTx(hash);
+@@ -176,15 +177,15 @@
+       const window = submitWindow(policy, signedMs);
+       await waitForTip(window.from + 2_000);
+       const built = await releaseTx(client, utxo, policy, response, window);
+-      const released = await built.signAndSubmit();
++      const released = await submitTracked(built, { source: "keeper.ts" });
+       const hash = hexOf(released.hash);
+       log({ cycle, event: "released", tx: hash, responseAgeS: Math.round((Date.now() - signedMs) / 1000) });
+       outcome = `released ${hash}`;
+       const confirmed = await waitForTx(hash);
+       log({ cycle, event: confirmed ? "confirmed" : "confirmation-not-seen-yet", tx: hash });
+     } catch (error) {
+-      log({ cycle, event: "on-chain-rejected", error: String((error as Error).message).slice(0, 160) });
+-      outcome = "rejected on chain after the local check passed";
++      log({ cycle, event: "release-error", error: String((error as Error).message).slice(0, 160) });
++      outcome = "release not completed; inspect the transaction journal before retrying";
+     }
+     break;
+   }
+--- a/cardano/src/live.ts
++++ b/cardano/src/live.ts
+@@ -1,3 +1,4 @@
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Live Pay-on-Proof run on Cardano preprod: a FRESH signed AirnodeHub response releases a policy that only accepts
+  * responses up to 5 minutes old.
+@@ -71,7 +72,7 @@
+ 
+ // 1. Lock
+ const lockBuilt = await client.newTx().payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policy)) }).build();
+-const lockSubmitted = await lockBuilt.signAndSubmit();
++const lockSubmitted = await submitTracked(lockBuilt, { source: "live.ts" });
+ const lockHash = hexOf(lockSubmitted.hash);
+ console.log(`1. policy locked: ${lockHash} (5 tADA, accepts a response up to ${MAX_AGE_MS / 1000} s old)`);
+ await waitForTx(lockHash);
+@@ -96,7 +97,7 @@
+ await waitForTip(fromMs + 2_000);
+ const utxo = (await client.getUtxos(scriptAddress)).find((u) => hexOf(u.transactionId.hash) === lockHash);
+ if (!utxo) throw new Error("The locked policy UTxO is not visible yet");
+-const released = await (
++const released = await submitTracked((
+   await client
+     .newTx()
+     .collectFrom({ inputs: [utxo], redeemer: releaseDataFromResponse(response) })
+@@ -104,7 +105,7 @@
+     .payToAddress({ address: Address.fromBech32(sellerAddressBech32()), assets: lovelace(PAYOUT) })
+     .setValidity({ from: BigInt(fromMs), to: BigInt(toMs) })
+     .build()
+-).signAndSubmit();
++), { source: "live.ts" });
+ const releaseHash = hexOf(released.hash);
+ console.log(`3. released: ${releaseHash} (response was ${Math.round((Date.now() - signedMs) / 1000)} s old when submitted)`);
+ await waitForTx(releaseHash);
+--- a/cardano/src/proof.ts
++++ b/cardano/src/proof.ts
+@@ -1,3 +1,4 @@
++import { withMetadata } from "./tx-metadata.js";
+ /**
+  * Pieces shared by the keeper, the paid service and the judge page: buying a signed response, checking it against a
+  * policy before spending fees, building the release transaction, and reading a validator verdict.
+@@ -19,6 +20,7 @@
+   policyViewOf,
+   releaseDataFromResponse,
+   script,
++  scriptHash,
+   scriptAddress,
+   sleep,
+   slotsFromData,
+@@ -180,8 +182,7 @@
+ export const releaseTx = (client: Client, utxo: Utxo, policy: PolicyView, response: SignedResponse, window: { from: number; to: number }) => {
+   // The validator requires the beneficiary to receive the payout AND everything that was locked in the UTxO.
+   const owed = utxo.assets.lovelace > policy.payout ? utxo.assets.lovelace : policy.payout;
+-  return client
+-    .newTx()
++  return withMetadata(client.newTx(), "Release", scriptHash)
+     .collectFrom({ inputs: [utxo], redeemer: releaseDataFromResponse(response) })
+     .attachScript({ script })
+     // The contract only checks the beneficiary's payment key hash, so an enterprise address (header 0x60) is enough.
+--- a/cardano/src/refund.ts
++++ b/cardano/src/refund.ts
+@@ -1,3 +1,5 @@
++import { withMetadata } from "./tx-metadata.js";
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Refund a Pay-on-Proof policy to its refund party after the deadline.
+  *
+@@ -11,7 +13,7 @@
+  */
+ import { parseArgs } from "node:util";
+ import { Address, KeyHash } from "@evolution-sdk/evolution";
+-import { hexOf, makeClient, paymentKeyHashHex, refundData, script, sleep, waitForTip, waitForTx } from "./engine.js";
++import { hexOf, makeClient, paymentKeyHashHex, refundData, script, scriptHash, sleep, waitForTip, waitForTx } from "./engine.js";
+ import { classify, findPolicyUtxo, policyViewOf } from "./proof.js";
+ 
+ const { values } = parseArgs({ options: { utxo: { type: "string" }, submit: { type: "boolean", default: false }, wait: { type: "boolean", default: false }, early: { type: "boolean", default: false } } });
+@@ -40,8 +42,7 @@
+ if (!values.early) await waitForTip(fromMs + 2_000);
+ 
+ try {
+-  const built = await client
+-    .newTx()
++  const built = await withMetadata(client.newTx(), "Refund", scriptHash)
+     .collectFrom({ inputs: [utxo], redeemer: refundData() })
+     .attachScript({ script })
+     .addSigner({ keyHash: KeyHash.fromHex(policy.refundToHex) })
+@@ -50,7 +51,7 @@
+   if (!values.submit) {
+     console.log(`ACCEPTED: the validator would allow this refund (validity starts ${new Date(fromMs).toISOString()}). Nothing was sent.`);
+   } else {
+-    const submitted = await built.signAndSubmit();
++    const submitted = await submitTracked(built, { source: "refund.ts" });
+     const hash = hexOf(submitted.hash);
+     console.log(`refund submitted: ${hash}`);
+     console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
+--- a/cardano/src/service.ts
++++ b/cardano/src/service.ts
+@@ -1,3 +1,4 @@
++import { submitTracked } from "./tx-tracking.js";
+ /**
+  * Pay-on-Proof service on Cardano preprod: one process, two jobs.
+  *
+@@ -150,7 +151,7 @@
+     }
+     const window = submitWindow(policy, check.signedMs);
+     await waitForTip(window.from + 2_000, 120_000);
+-    const submitted = await (await releaseTx(client, utxo, policy, response, window)).signAndSubmit();
++    const submitted = await submitTracked((await releaseTx(client, utxo, policy, response, window)), { source: "service.ts" });
+     const tx = hexOf(submitted.hash);
+     recordJob({ ref, source: source.spec, outcome: "released", tx, value: check.value, seconds: Math.round((Date.now() - started) / 1000) });
+     return void res.json({
+--- /dev/null
++++ b/cardano/src/tx-tracking.ts
+@@ -0,0 +1,81 @@
++/** Preprod write-ahead journal: identifiers only, never credentials or signed CBOR. */
++import { appendFileSync, closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync } from 'node:fs';
++import { dirname } from 'node:path';
++import { fileURLToPath } from 'node:url';
++import { Address, TransactionBody, type Transaction } from '@evolution-sdk/evolution';
++export type State = 'built' | 'submitted' | 'confirmed' | 'rejected' | 'expired' | 'unknown';
++export interface RecordTx {
++  txHash:string; network:'cardano:preprod'; operation:string; campaign:string|null; escrowRefs:string[];
++  submissionTimestamp:string|null; state:State; updatedAt:string; blockNumber:number|null;
++  confirmationTimestamp:string|null; explorerUrl:string; validUntilSlot:string|null; source:string; note?:string;
++}
++const journal=()=>process.env.TRANSACTION_LOG ?? fileURLToPath(new URL('../out/transactions.jsonl',import.meta.url));
++const hashes=new Set(['58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea','a9e4420cc2b611c46a8a0c1f5413f9ce4b6be47c7974e8509171b11c']);
++export const explorer=(hash:string)=>`https://preprod.cardanoscan.io/transaction/${hash}`;
++export function latestTransactions():RecordTx[] {
++  if(!existsSync(journal()))return [];
++  const latest=new Map<string,RecordTx>();
++  for(const [i,line] of readFileSync(journal(),'utf8').split('\n').entries()) {
++    if(!line.trim())continue;
++    try {const row=JSON.parse(line) as RecordTx;latest.set(row.txHash,row);}
++    catch {throw new Error(`Transaction journal damaged at line ${i+1}; reconcile before submitting`);}
++  }
++  return [...latest.values()];
++}
++export function recordTransaction(hash:string,change:Partial<RecordTx>):RecordTx {
++  if(!/^[a-f0-9]{64}$/.test(hash))throw new Error('Invalid transaction hash');
++  const previous=latestTransactions().find(r=>r.txHash===hash);
++  const row:RecordTx={txHash:hash,network:'cardano:preprod',operation:'payment',campaign:process.env.CREATORPAY_CAMPAIGN??null,
++    escrowRefs:[],submissionTimestamp:null,state:'built',updatedAt:new Date().toISOString(),blockNumber:null,
++    confirmationTimestamp:null,explorerUrl:explorer(hash),validUntilSlot:null,source:'external',...previous,...change};
++  row.updatedAt=new Date().toISOString();
++  if(previous?.state==='confirmed'&&change.state!=='confirmed')row.state='confirmed';
++  mkdirSync(dirname(journal()),{recursive:true});const fd=openSync(journal(),'a',0o600);
++  try {appendFileSync(fd,JSON.stringify(row)+'\n');fsyncSync(fd);} finally {closeSync(fd);}
++  return row;
++}
++async function readChain(path:string):Promise<{status:number;data?:any}> {
++  const base=process.env.BLOCKFROST_BASE_URL??'https://cardano-preprod.blockfrost.io/api/v0';
++  if(base!=='https://cardano-preprod.blockfrost.io/api/v0')throw new Error('Tracking requires Cardano Preprod endpoint');
++  try {const r=await fetch(base+path,{headers:{project_id:process.env.BLOCKFROST_PROJECT_ID??''},signal:AbortSignal.timeout(15_000)});return {status:r.status,data:r.ok?await r.json():undefined};}
++  catch {return {status:0};}
++}
++export async function reconcile(hash:string):Promise<RecordTx> {
++  const prior=latestTransactions().find(r=>r.txHash===hash),result=await readChain(`/txs/${hash}`);
++  if(result.status===200 && result.data?.hash===hash && result.data.valid_contract===false)
++    return recordTransaction(hash,{state:'rejected',blockNumber:result.data.block_height??null,confirmationTimestamp:Number.isFinite(result.data.block_time)?new Date(result.data.block_time*1000).toISOString():null,note:'Included with invalid contract; ordinary escrow payout did not execute'});
++  if(result.status===200&&result.data?.hash===hash&&Number.isInteger(result.data.block_height)&&Number.isFinite(result.data.block_time))
++    return recordTransaction(hash,{state:'confirmed',blockNumber:result.data.block_height,confirmationTimestamp:new Date(result.data.block_time*1000).toISOString(),note:'Observed in a block by Blockfrost Preprod'});
++  if(prior?.state==='confirmed')return prior;
++  if(result.status===404&&prior?.validUntilSlot){const tip=await readChain('/blocks/latest');
++    if(tip.status===200&&Number.isSafeInteger(tip.data?.slot)&&BigInt(tip.data.slot)>BigInt(prior.validUntilSlot))
++      return recordTransaction(hash,{state:'expired',note:'Not indexed; chain tip beyond validity upper bound. Check escrow unspent before rebuilding.'});}
++  return recordTransaction(hash,{state:'unknown',note:'No confirmation observed; absence or timeout does not prove rejection'});
++}
++export async function pendingFor(ref:string):Promise<boolean> {
++  for(const row of latestTransactions().filter(r=>r.escrowRefs.includes(ref)&&r.operation!=='lock'&&['submitted','unknown','confirmed'].includes(r.state))){
++    const state=(await reconcile(row.txHash)).state;if(state!=='expired'&&state!=='rejected')return true;}
++  return false;
++}
++type TxHash = ReturnType<typeof TransactionBody.toHash>;
++interface Built{toTransaction():Promise<Transaction.Transaction>;chainResult():{txHash:string;consumed:readonly {transactionId:{hash:Uint8Array};index:bigint;address:Address.Address}[]};sign():Promise<{submit():Promise<TxHash>}>}
++export async function submitTracked(built:Built,context:{source:string}):Promise<TxHash>{
++  const chain=built.chainResult(),tx=await built.toTransaction();
++  const refs=chain.consumed.filter(u=>hashes.has(Address.toHex(u.address).slice(2,58))).map(u=>`${Buffer.from(u.transactionId.hash).toString('hex')}#${u.index}`);
++  for(const ref of refs)if(await pendingFor(ref))throw new Error(`Unresolved transaction spends ${ref}; reconcile before retrying`);
++  const locks=tx.body.outputs.flatMap((o,i)=>hashes.has(Address.toHex(o.address).slice(2,58))?[`${chain.txHash}#${i}`]:[]);
++  const operation=refs.length?(tx.body.requiredSigners?.length?'refund':'release'):locks.length?'lock':'payment';
++  recordTransaction(chain.txHash,{state:'built',operation,escrowRefs:refs.length?refs:locks,validUntilSlot:tx.body.ttl?.toString()??null,source:context.source});
++  const signed=await built.sign();
++  recordTransaction(chain.txHash,{state:'unknown',submissionTimestamp:new Date().toISOString(),note:'Submission starting; response not yet received'});
++  console.log(`Transaction ${chain.txHash}: ${explorer(chain.txHash)}`);
++  try {const result=await signed.submit();recordTransaction(chain.txHash,{state:'submitted'});return result;}
++  catch {const status=await reconcile(chain.txHash);if(status.state==='confirmed')return TransactionBody.toHash(tx.body);throw new Error(`Submission response unavailable; transaction ${chain.txHash} is ${status.state}. Check ${explorer(chain.txHash)} before retrying.`);}
++}
++export function trackExternal(tx:Transaction.Transaction,source:string,sending:boolean):string {
++  const hash=Buffer.from(TransactionBody.toHash(tx.body).hash).toString('hex');
++  const refs=tx.body.outputs.flatMap((o,i)=>hashes.has(Address.toHex(o.address).slice(2,58))?[`${hash}#${i}`]:[]);
++  recordTransaction(hash,{operation:refs.length?'lock':'payment',escrowRefs:refs,source,state:sending?'unknown':'built',validUntilSlot:tx.body.ttl?.toString()??null,
++    submissionTimestamp:sending?new Date().toISOString():null,note:sending?'Signed for facilitator; broadcast not yet known':'Built only; not submitted'});
++  return hash;
++}
+--- /dev/null
++++ b/cardano/src/tx-metadata.ts
+@@ -0,0 +1,7 @@
++/** Optional CIP-20 messages; no effect on validator rules. No personal fields. */
++export function withMetadata<T extends {attachMetadata(p:{label:bigint;metadata:Map<string,string[]>}):T}>(builder:T, action:'Release'|'Refund', scriptHash?:string):T {
++  if(process.env.CREATORPAY_METADATA!=='1')return builder;
++  const msg=['CreatorPay',`Action: ${action}`,'Network: Cardano Preprod',...(scriptHash ? ['Validator:',scriptHash] : [])];
++  if(msg.some(s=>Buffer.byteLength(s,'utf8')>64))throw new Error('Metadata text exceeds 64 bytes');
++  return builder.attachMetadata({label:674n,metadata:new Map([['msg',msg]])});
++}
+--- /dev/null
++++ b/cardano/src/history.ts
+@@ -0,0 +1,14 @@
++import { readFileSync } from "node:fs";
++/** Read-only chain queries; updates only local confirmation records, never submits. */
++import { config } from 'dotenv';
++import { latestTransactions, reconcile } from './tx-tracking.js';
++config();
++if (process.argv[2] === "--archive") {
++  const data = JSON.parse(readFileSync(new URL("../../transaction-history.json", import.meta.url), "utf8"));
++  const filter = process.argv[3];
++  for (const row of data.records.filter((r: {txHash:string;inputs:{tx_hash:string;tx_index:number}[]}) => !filter || r.txHash === filter || r.inputs.some(i=>`${i.tx_hash}#${i.tx_index}` === filter))) console.log(JSON.stringify(row));
++  process.exit(0);
++}
++const filter=process.argv[2];
++for(const row of latestTransactions().filter(r=>!filter||r.txHash===filter||r.escrowRefs.includes(filter)||r.campaign===filter))
++ console.log(JSON.stringify(row.state==='built'?row:await reconcile(row.txHash)));
+--- /dev/null
++++ b/cardano/scripts/tracking-test.ts
+@@ -0,0 +1,41 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { mkdtempSync, rmSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { recordTransaction, latestTransactions, reconcile, pendingFor, submitTracked } from '../src/tx-tracking.js';
++import { withMetadata } from '../src/tx-metadata.js';
++const dir=mkdtempSync(join(tmpdir(),'creatorpay-'));process.env.TRANSACTION_LOG=join(dir,'tx.jsonl');
++const hash='a'.repeat(64),ref='b'.repeat(64)+'#0';
++test('timeout persists unknown and suppresses retry',async()=>{
++ recordTransaction(hash,{operation:'release',escrowRefs:[ref],state:'submitted',validUntilSlot:'100'});
++ globalThis.fetch=async()=>{throw new Error('timeout');};
++ assert.equal((await reconcile(hash)).state,'unknown');assert.equal(latestTransactions()[0].txHash,hash);assert.equal(await pendingFor(ref),true);
++});
++test('late confirmation cannot be downgraded by outage',async()=>{
++ globalThis.fetch=async()=>new Response(JSON.stringify({hash,block_height:12,block_time:1793362061}),{status:200});
++ assert.equal((await reconcile(hash)).state,'confirmed');globalThis.fetch=async()=>new Response('',{status:503});
++ assert.equal((await reconcile(hash)).state,'confirmed');assert.equal(latestTransactions()[0].blockNumber,12);
++});
++test('404 needs chain tip past TTL to become expired',async()=>{
++ const h='c'.repeat(64);recordTransaction(h,{state:'submitted',validUntilSlot:'100'});
++ globalThis.fetch=async()=>new Response('',{status:404});assert.equal((await reconcile(h)).state,'unknown');
++ globalThis.fetch=async input=>String(input).endsWith('/blocks/latest')?new Response(JSON.stringify({slot:101}),{status:200}):new Response('',{status:404});
++ assert.equal((await reconcile(h)).state,'expired');
++});
++test('optional metadata has valid CIP-20 shape',()=>{
++ const b={attachMetadata(p:any){assert.equal(p.label,674n);assert(p.metadata.get('msg').every((s:string)=>Buffer.byteLength(s)<=64));return this;}};
++ delete process.env.CREATORPAY_METADATA;assert.equal(withMetadata(b,'Release'),b);process.env.CREATORPAY_METADATA='1';assert.equal(withMetadata(b,'Refund'),b);
++});
++test('hash journaled before submit despite lost reply',async()=>{
++ const h='e'.repeat(64);let submitted=false;
++ const built={chainResult:()=>({txHash:h,consumed:[]}),toTransaction:async()=>({body:{outputs:[],ttl:200n}}),sign:async()=>({submit:async()=>{submitted=true;assert.equal(latestTransactions().find(r=>r.txHash===h)?.state,'unknown');throw new Error('lost reply');}})};
++ globalThis.fetch=async()=>new Response('',{status:503});
++ await assert.rejects(submitTracked(built as never,{source:'test'}),/unknown/);assert(submitted);
++});
++test('included phase-2 failure is not a successful payout',async()=>{
++ const h='f'.repeat(64);recordTransaction(h,{state:'submitted'});
++ globalThis.fetch=async()=>new Response(JSON.stringify({hash:h,block_height:13,block_time:1793362062,valid_contract:false}),{status:200});
++ assert.equal((await reconcile(h)).state,'rejected');
++});
++test.after(()=>rmSync(dir,{recursive:true,force:true}));

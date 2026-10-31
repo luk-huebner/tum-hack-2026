@@ -1,3 +1,4 @@
+import { reconcile } from "./tx-tracking.js";
 /**
  * Off-chain side of Pay-on-Proof: builds the policy datum, locks funds at the validator, and releases or refunds them.
  * Testnet only. Seeds come from .env and are never printed.
@@ -214,13 +215,13 @@ export const waitForTx = async (txHash: string, timeoutMs = 180_000): Promise<bo
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     try {
-      if ((await blockfrost(`/txs/${txHash}`)).ok) return true;
+      if ((await reconcile(txHash)).state === "confirmed") return true;
     } catch {
       // a dropped connection (a train, say) must not end the wait
     }
     await sleep(5000);
   }
-  return false;
+  return (await reconcile(txHash)).state === "confirmed";
 };
 
 /**

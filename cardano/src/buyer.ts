@@ -1,3 +1,5 @@
+import { trackExternal } from "./tx-tracking.js";
+import { Transaction } from "@evolution-sdk/evolution";
 /**
  * Buyer: an agent that pays for an API call via x402 on Cardano preprod.
  *
@@ -44,11 +46,10 @@ async function main() {
   const TTL_MARGIN_SECONDS = 120;
   const signer = {
     ...baseSigner,
-    buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
-      baseSigner.buildAndSignPaymentTransaction({
+    buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) => { const built = await baseSigner.buildAndSignPaymentTransaction({
         ...input,
         maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS),
-      }),
+      }); trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "buyer.ts", true); return built; },
   };
   client.register("cardano:*", new ExactCardanoScheme(signer));
   console.log(`Buyer wallet: ${signer.getAddress()}`);

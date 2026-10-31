@@ -1,3 +1,6 @@
+import { trackExternal } from "./tx-tracking.js";
+import { Transaction } from "@evolution-sdk/evolution";
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Live demo runs for the console: the buyer's side of the story, step by step, with real transactions on Cardano preprod.
  *
@@ -132,8 +135,7 @@ const execute = async (params: DemoParams, deps: DemoDeps, run: Run, add: (kind:
   // the facilitator measures the payment's validity from the chain tip, which trails the clock (see buyer.ts)
   const signer = {
     ...baseSigner,
-    buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
-      baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - 120) }),
+    buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) => { const built = await baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - 120) }); trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "demo-run.ts", true); return built; },
   };
   client.register("cardano:*", new ExactCardanoScheme(signer));
 
@@ -147,7 +149,7 @@ const execute = async (params: DemoParams, deps: DemoDeps, run: Run, add: (kind:
     // transaction lands anyway. Look at the contract before saying the payment failed.
     add("wait", `The service answered HTTP ${response.status}. A slow settlement is reported as a failure even when the payment lands, so the console looks for the escrow at the contract by its datum.`);
     utxo = await findByDatum(buyer, String(requirement.extra?.datum), 150_000);
-    if (!utxo) throw new Error(`The service refused the payment (HTTP ${response.status}) and no escrow appeared at the contract: nothing was charged.`);
+    if (!utxo) throw new Error(`The service refused the payment (HTTP ${response.status}) and no unspent escrow was found: status UNKNOWN. Inspect the transaction journal before retrying.`);
     payTx = hexOf(utxo.transactionId.hash);
     add("ok", `The payment DID settle: the escrow is at the contract (the buyer was told it failed, which is why the console looks).`, { label: "payment transaction", url: scan(payTx) });
   } else {
@@ -206,7 +208,7 @@ const execute = async (params: DemoParams, deps: DemoDeps, run: Run, add: (kind:
   const fromMs = Math.max(Date.now() - 60_000, policy.deadlineMs + 1_000);
   await waitForTip(fromMs + 2_000);
   const built = await buyer.newTx().collectFrom({ inputs: [utxo], redeemer: refundData() }).attachScript({ script }).addSigner({ keyHash: KeyHash.fromHex(policy.refundToHex) }).setValidity({ from: BigInt(fromMs), to: BigInt(fromMs + 15 * 60_000) }).build();
-  const submitted = await built.signAndSubmit();
+  const submitted = await submitTracked(built, { source: "demo-run.ts" });
   const refundTx = hexOf(submitted.hash);
   add("ok", "The deadline has passed. The buyer's key refunds the escrow: the contract allows it, and only for this key.", { label: "refund transaction", url: scan(refundTx) });
   const confirmed = await waitForTx(refundTx, 120_000);

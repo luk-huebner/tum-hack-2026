@@ -1,0 +1,32 @@
+40-minute escrow, the keeper stops at minute 37, budget cap 0.30 aUSD
+
+likes: steady growth, 20 000 to go at 600 per minute (crosses at minute 33)
+   every minute      30 checks, 0.30 aUSD   MISSED
+   every 5 minutes    8 checks, 0.08 aUSD   seen at minute 35.0, 1.6 min after it started to hold
+   cost-derived       9 checks, 0.09 aUSD   seen at minute 34.3, 0.9 min after it started to hold
+
+likes: flat, then a burst at minute 30
+   every minute      30 checks, 0.30 aUSD   MISSED
+   every 5 minutes    7 checks, 0.07 aUSD   seen at minute 30.0, 0.0 min after it started to hold
+   cost-derived       8 checks, 0.08 aUSD   seen at minute 31.0, 1.0 min after it started to hold
+
+likes: never gets there (flat, a few unlikes)
+   every minute      30 checks, 0.30 aUSD   never holds (correct)
+   every 5 minutes    8 checks, 0.08 aUSD   never holds (correct)
+   cost-derived       7 checks, 0.07 aUSD   never holds (correct)
+
+likes: already above the threshold at the first check
+   every minute       1 checks, 0.01 aUSD   seen at minute 0.0
+   every 5 minutes    1 checks, 0.01 aUSD   seen at minute 0.0
+   cost-derived       1 checks, 0.01 aUSD   seen at minute 0.0
+
+rainfall: static, rule holds (26.2 mm below 30)
+   every minute       1 checks, 0.10 aUSD   seen at minute 0.0
+   every 5 minutes    1 checks, 0.10 aUSD   seen at minute 0.0
+   cost-derived       1 checks, 0.10 aUSD   seen at minute 0.0
+
+rainfall: static, rule can never hold (26.2 mm below 20)
+   every minute       3 checks, 0.30 aUSD   never holds (correct)
+   every 5 minutes    3 checks, 0.30 aUSD   never holds (correct)
+   cost-derived       1 checks, 0.10 aUSD   never holds (correct)
+

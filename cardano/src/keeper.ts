@@ -1,3 +1,4 @@
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Keeper agent: watches a Pay-on-Proof policy over time and releases it when AirnodeHub data satisfies the rule.
  * Nobody starts a cycle. Each cycle the agent decides whether it may spend, buys a signed response, checks it, and
@@ -106,7 +107,7 @@ if (mode === "lock") {
     // a Nodary feed signs the time it observed the price (slot 1); other sources have no observation time
     ...(source.spec.startsWith("nodary") ? { obsSlot: 1, obsMaxAgeMs: 120_000 } : {}),
   };
-  const submitted = await (await client.newTx().payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policy)) }).build()).signAndSubmit();
+  const submitted = await submitTracked((await client.newTx().payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policy)) }).build()), { source: "keeper.ts" });
   const hash = hexOf(submitted.hash);
   console.log(`policy locked: ${hash}  (${source.spec} ${values.below ? "below" : "at least"} ${target}, now ${first}; deadline in ${values.minutes} min; accepts a response up to ${values["max-age"]} s old)`);
   await waitForTx(hash);
@@ -176,15 +177,15 @@ if (mode === "lock") {
       const window = submitWindow(policy, signedMs);
       await waitForTip(window.from + 2_000);
       const built = await releaseTx(client, utxo, policy, response, window);
-      const released = await built.signAndSubmit();
+      const released = await submitTracked(built, { source: "keeper.ts" });
       const hash = hexOf(released.hash);
       log({ cycle, event: "released", tx: hash, responseAgeS: Math.round((Date.now() - signedMs) / 1000) });
       outcome = `released ${hash}`;
       const confirmed = await waitForTx(hash);
       log({ cycle, event: confirmed ? "confirmed" : "confirmation-not-seen-yet", tx: hash });
     } catch (error) {
-      log({ cycle, event: "on-chain-rejected", error: String((error as Error).message).slice(0, 160) });
-      outcome = "rejected on chain after the local check passed";
+      log({ cycle, event: "release-error", error: String((error as Error).message).slice(0, 160) });
+      outcome = "release not completed; inspect the transaction journal before retrying";
     }
     break;
   }

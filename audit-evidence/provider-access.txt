@@ -1,0 +1,4 @@
+Koios Preprod: successful tx_info, paginated address_txs, address_utxos queries; full public JSON retained.
+Cardanoscan transaction HTML request for e3d03ef789985374587412cb459b0db441623ff770bd03006583da302ece5e67 returned title 'Just a moment...' (Cloudflare challenge). UI details not verified.
+Web retrieval of Cardanoscan and Blockfrost transaction URLs returned inaccessible. No Blockfrost project key supplied, so no authenticated independent Blockfrost data retrieved.
+Official API3 and Cardano CIP documentation retrieved successfully through web reader. No browser login attempted.

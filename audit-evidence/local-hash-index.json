@@ -1,0 +1,1264 @@
+{
+  "20e884e9ffd886b2a471bb3d0b3dfbc53df00f5a9945a0a2157e561414f0afd5": [
+    {
+      "file": "POLLING.md",
+      "line": 45,
+      "hexPrefix": false
+    },
+    {
+      "file": "PROOFS.md",
+      "line": 291,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 299,
+      "hexPrefix": false
+    }
+  ],
+  "0504bffc977987662d3dbaf26631529c4895f3bec3f0e66d4c5972224a9aa417": [
+    {
+      "file": "POLLING.md",
+      "line": 45,
+      "hexPrefix": false
+    },
+    {
+      "file": "PROOFS.md",
+      "line": 292,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 307,
+      "hexPrefix": false
+    }
+  ],
+  "88b9fb664a8c8ffb0d1704de049df3c243ae5a90f39e3ebc8b10d39b597d15dd": [
+    {
+      "file": "PROOFS.md",
+      "line": 13,
+      "hexPrefix": false
+    },
+    {
+      "file": "PROOFS.md",
+      "line": 14,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 96,
+      "hexPrefix": false
+    }
+  ],
+  "015c9ca8287b05e394a6205318863320b1606abaa4b9c1883d4bd111403b4ac8": [
+    {
+      "file": "PROOFS.md",
+      "line": 25,
+      "hexPrefix": true
+    }
+  ],
+  "83a500a4bac7f93e72eeed81a9820d4cb965e1d0faf7a47c96b4ca4b96e32bde": [
+    {
+      "file": "PROOFS.md",
+      "line": 26,
+      "hexPrefix": true
+    }
+  ],
+  "52958f53e1dec5e7ff308009fbf697b0da03931c8c1af1f1e7f76959e79e1a1d": [
+    {
+      "file": "PROOFS.md",
+      "line": 27,
+      "hexPrefix": true
+    }
+  ],
+  "391bba91115a3e2ecb1b226a15a818ecb30078e39ed456bd9faffa9721a55873": [
+    {
+      "file": "PROOFS.md",
+      "line": 28,
+      "hexPrefix": true
+    }
+  ],
+  "e17cadb7d0b09b8e6da87b42845b9dee3adb19f3b0bf61d353e54b6fce959013": [
+    {
+      "file": "PROOFS.md",
+      "line": 29,
+      "hexPrefix": true
+    }
+  ],
+  "11e0e1b67c51d6c7ecc06f18d0ce6d2b2b1802243733bf63cc69df10599b86c5": [
+    {
+      "file": "PROOFS.md",
+      "line": 40,
+      "hexPrefix": true
+    },
+    {
+      "file": "cardano/vectors/meteo.json",
+      "line": 32,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/vectors/meteo-response.json",
+      "line": 29,
+      "hexPrefix": true
+    },
+    {
+      "file": "cardano/vectors/tamper/edited.json",
+      "line": 3,
+      "hexPrefix": true
+    },
+    {
+      "file": "cardano/vectors/tamper/valid.json",
+      "line": 3,
+      "hexPrefix": true
+    },
+    {
+      "file": "cardano/vectors/tamper/foreign-signer.json",
+      "line": 3,
+      "hexPrefix": true
+    }
+  ],
+  "211d85c16ac19ca116c0d5551f1474a480a137e98240fea459b87b5865d2ef89": [
+    {
+      "file": "PROOFS.md",
+      "line": 44,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/lock.json",
+      "line": 2,
+      "hexPrefix": false
+    }
+  ],
+  "0a2b24ddef14da2d29369d3fbb3e4d771d321e2519dbbc1d07e544aef3e64649": [
+    {
+      "file": "PROOFS.md",
+      "line": 45,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 108,
+      "hexPrefix": false
+    }
+  ],
+  "b338476fcdca0ca00043cc16244e2d91c99ab98fc4e38c7d000c6ccd3cad8d92": [
+    {
+      "file": "PROOFS.md",
+      "line": 46,
+      "hexPrefix": false
+    }
+  ],
+  "4ec3a5dd555f794d3f8ea4ad730282701bc71a6e6e94518ddea875bc6d1d973e": [
+    {
+      "file": "PROOFS.md",
+      "line": 66,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/standing-policies-v1.json",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/standing-policies-v1.json",
+      "line": 9,
+      "hexPrefix": false
+    }
+  ],
+  "49ce28c19ee140d3322279c5238cd082c3eec79e80bca5c0e10964cf445f100f": [
+    {
+      "file": "PROOFS.md",
+      "line": 85,
+      "hexPrefix": false
+    }
+  ],
+  "427aba95eb24dec6ca272bf444d7d637524a65efb6fe0198ea31f41c68be0746": [
+    {
+      "file": "PROOFS.md",
+      "line": 86,
+      "hexPrefix": true
+    }
+  ],
+  "b266fc382a1c89ca4bebdf44d273f5601424e20341a1124305f245f7c3caa12b": [
+    {
+      "file": "PROOFS.md",
+      "line": 87,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 120,
+      "hexPrefix": false
+    }
+  ],
+  "f083d879a1ca4e8aadc7aa72c7ee1c5b60bf18436689e935280bfa439497e191": [
+    {
+      "file": "PROOFS.md",
+      "line": 93,
+      "hexPrefix": true
+    },
+    {
+      "file": "cardano/vectors/tweet.json",
+      "line": 18,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/vectors/tweet-response.json",
+      "line": 15,
+      "hexPrefix": true
+    }
+  ],
+  "563dd83fc686f1b28e1cb7330b0791a2d77a94ae67d839419cdd76b90a421e27": [
+    {
+      "file": "PROOFS.md",
+      "line": 93,
+      "hexPrefix": true
+    }
+  ],
+  "16865f77c9d8ffe0984c30ab94469e52a1ea399af7d141d736f36e038a2128a6": [
+    {
+      "file": "PROOFS.md",
+      "line": 97,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/creator-lock.json",
+      "line": 2,
+      "hexPrefix": false
+    }
+  ],
+  "08796403a39fb51a1d04f35ff6aa857b52ab9eff32dc8667cba1ae32d0c8d161": [
+    {
+      "file": "PROOFS.md",
+      "line": 102,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 132,
+      "hexPrefix": false
+    }
+  ],
+  "7105a4fa3115b739e85b662b4e3e3438e92ab3e47e5b359f1cba4a809e167f8e": [
+    {
+      "file": "PROOFS.md",
+      "line": 112,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-run1.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    }
+  ],
+  "12b89bad3c69bdf1a52424e22aac689f66aa27eb545edda3bf6637876d99e042": [
+    {
+      "file": "PROOFS.md",
+      "line": 113,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-run2.jsonl",
+      "line": 1,
+      "hexPrefix": false
+    }
+  ],
+  "a1c04de9d5637e0d80e70c00300ba8d2ba08f13df37aabc93f6160d70616d944": [
+    {
+      "file": "PROOFS.md",
+      "line": 113,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-run2.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-run2.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-run2.jsonl",
+      "line": 5,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 144,
+      "hexPrefix": false
+    }
+  ],
+  "aca78b2bb163a745a7c1fd22f23f26bf4b177f2850f75b5eb02cb9fb6df2e530": [
+    {
+      "file": "PROOFS.md",
+      "line": 119,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-run3.jsonl",
+      "line": 1,
+      "hexPrefix": false
+    }
+  ],
+  "2af6326b3530712c25312db60478fd02d97037e2d2d04f52d068a36233dc05dd": [
+    {
+      "file": "PROOFS.md",
+      "line": 129,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-policy.json",
+      "line": 2,
+      "hexPrefix": false
+    }
+  ],
+  "51188ed459c7bf8a59160e0f8ede352251bfdc1b57524784c85f6e68cb146ffb": [
+    {
+      "file": "PROOFS.md",
+      "line": 131,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 80,
+      "hexPrefix": false
+    }
+  ],
+  "1678080ab54aee6c3f799775247b624b37da21eb4ec4a3ad6431c78a0f979d84": [
+    {
+      "file": "PROOFS.md",
+      "line": 132,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 84,
+      "hexPrefix": false
+    }
+  ],
+  "caeebff9db9863a69450c55a8a3d69d0c61508a099e69dd20c7ac23ef8efd6d5": [
+    {
+      "file": "PROOFS.md",
+      "line": 138,
+      "hexPrefix": true
+    }
+  ],
+  "d903edc39152b5a07e8492a4536c51adc162a60852fb7a6e330cb88d8cd4b292": [
+    {
+      "file": "PROOFS.md",
+      "line": 148,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-escrow-release.jsonl",
+      "line": 1,
+      "hexPrefix": false
+    }
+  ],
+  "076de3e1fbff36936d46e364bd699442424259b4409691e7948f59aa3e106430": [
+    {
+      "file": "PROOFS.md",
+      "line": 149,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-escrow-release.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-escrow-release.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/keeper-log-escrow-release.jsonl",
+      "line": 5,
+      "hexPrefix": false
+    }
+  ],
+  "78cf5df6b6bd98b5e9a57c6d470eaefd67db578e07a7e6de8e6962a5abbcc849": [
+    {
+      "file": "PROOFS.md",
+      "line": 163,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 64,
+      "hexPrefix": false
+    }
+  ],
+  "1057e1d9deb8981a292da4e13f87a6d4122f1c374283d0c6f589fccdbf6e0d1d": [
+    {
+      "file": "PROOFS.md",
+      "line": 165,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 68,
+      "hexPrefix": false
+    }
+  ],
+  "576696ed1c37990d42e620454dcf8f9e143ee9f1c879fdaef72ac656ee0899ef": [
+    {
+      "file": "PROOFS.md",
+      "line": 177,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-live-test.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    }
+  ],
+  "d4d633697e33a41cc8d287045ed54042f877396fbf42b0a28580eff2752241db": [
+    {
+      "file": "PROOFS.md",
+      "line": 179,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-live-test.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-live-test.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    }
+  ],
+  "4192c420bcbfeb1d6db5e9f80d8130b6be22b2cee935a157fe3200df48ef4232": [
+    {
+      "file": "PROOFS.md",
+      "line": 207,
+      "hexPrefix": true
+    }
+  ],
+  "0b618703f858647ba2dbd50969c8c202109d5de19a92f161cf6f56c6dcb6dc5e": [
+    {
+      "file": "PROOFS.md",
+      "line": 213,
+      "hexPrefix": true
+    }
+  ],
+  "53521b16498c0bd4ce7f7920433a6b9d34e7ad77bce5e974c25d66f7990b725d": [
+    {
+      "file": "PROOFS.md",
+      "line": 227,
+      "hexPrefix": false
+    }
+  ],
+  "5d3488232e4944a7600c69c07558f448e9750fd5468126d80c44ff077b970923": [
+    {
+      "file": "PROOFS.md",
+      "line": 229,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-v2-test.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 40,
+      "hexPrefix": false
+    }
+  ],
+  "aba3ded929b15142c0804a09c449c8027d11a43bf522c33a80d7531e6868bd94": [
+    {
+      "file": "PROOFS.md",
+      "line": 230,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-v2-test.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-v2-test.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 52,
+      "hexPrefix": false
+    }
+  ],
+  "37be6deba117710c04887d7204ed15b02e6306fef46044593c401ceaec947ff3": [
+    {
+      "file": "PROOFS.md",
+      "line": 242,
+      "hexPrefix": false
+    }
+  ],
+  "a3b9da71121c030ec35bea1002c5e8119852fa7164e7d90e7cc06e16099527db": [
+    {
+      "file": "PROOFS.md",
+      "line": 242,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 179,
+      "hexPrefix": false
+    }
+  ],
+  "7d169440d20c5caaedcbd25e461594feb707597c91b3ca6dd56d4abb1fa11bcc": [
+    {
+      "file": "PROOFS.md",
+      "line": 243,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e1-templates.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 163,
+      "hexPrefix": false
+    }
+  ],
+  "f214d830f2d39ed849c441fe478e073b6abc49906704b185d924f2f610417665": [
+    {
+      "file": "PROOFS.md",
+      "line": 243,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e1-templates.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e1-templates.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 167,
+      "hexPrefix": false
+    }
+  ],
+  "847b40e6a388ba462c0ddcd1908fc63908cea9b3fcac071a68296fed801fef55": [
+    {
+      "file": "PROOFS.md",
+      "line": 244,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e1-templates.jsonl",
+      "line": 6,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e1-templates.jsonl",
+      "line": 10,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 171,
+      "hexPrefix": false
+    }
+  ],
+  "d897e036800dbb2f5702d96482297efb6cc7d79825733d67dc7c7df6a7a78b40": [
+    {
+      "file": "PROOFS.md",
+      "line": 244,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e1-templates.jsonl",
+      "line": 10,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e1-templates.jsonl",
+      "line": 11,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 175,
+      "hexPrefix": false
+    }
+  ],
+  "51855b9bfe4516530aaf02c082c6e42011407751a37c49a23eb2883a2d9f481e": [
+    {
+      "file": "PROOFS.md",
+      "line": 248,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 191,
+      "hexPrefix": false
+    }
+  ],
+  "593d05f66bfb1417a95b9a008f53daefb1275ccd70dff44cf464fd429feb5901": [
+    {
+      "file": "PROOFS.md",
+      "line": 248,
+      "hexPrefix": false
+    },
+    {
+      "file": "PROOFS.md",
+      "line": 248,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 195,
+      "hexPrefix": false
+    }
+  ],
+  "346e7c496d59cd0928cf127b7334deba9da2ff1eec5ab90fbff0287c42309003": [
+    {
+      "file": "PROOFS.md",
+      "line": 250,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 255,
+      "hexPrefix": false
+    }
+  ],
+  "0693dbcaa73acf21dacf7cd22323cd50773326609e8532c2a5ae6c6c4a70a8c0": [
+    {
+      "file": "PROOFS.md",
+      "line": 250,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 259,
+      "hexPrefix": false
+    }
+  ],
+  "403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc": [
+    {
+      "file": "PROOFS.md",
+      "line": 250,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/standing-policies.json",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/standing-policies.json",
+      "line": 9,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/JUDGES.md",
+      "line": 9,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/JUDGES.md",
+      "line": 10,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/JUDGES.md",
+      "line": 40,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 263,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 319,
+      "hexPrefix": false
+    }
+  ],
+  "19f87c81c8bbbd0533950d017a12f5bb2b3b856320ed14c4bfb52ec789c18886": [
+    {
+      "file": "PROOFS.md",
+      "line": 269,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 19,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 22,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 24,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 28,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 30,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run1.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run1.jsonl",
+      "line": 19,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run1.jsonl",
+      "line": 22,
+      "hexPrefix": false
+    }
+  ],
+  "b670ff12a08ffbafac0d88d4a824d0c730a8d6c9569744cd0bac58350e9a6a89": [
+    {
+      "file": "PROOFS.md",
+      "line": 269,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 22,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run1.jsonl",
+      "line": 22,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 275,
+      "hexPrefix": false
+    }
+  ],
+  "e94c7b1fccc55b1e1327177acae1b9e197d7989c09bb4b119a67df57a922f16f": [
+    {
+      "file": "PROOFS.md",
+      "line": 270,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 13,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 25,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 32,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 34,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run1.jsonl",
+      "line": 13,
+      "hexPrefix": false
+    }
+  ],
+  "771be277ed1bf93756a20e33c2ecb4eae433fcd1cf141675017c2a76e6682ff2": [
+    {
+      "file": "PROOFS.md",
+      "line": 270,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 32,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 33,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 34,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 279,
+      "hexPrefix": false
+    }
+  ],
+  "a824f2e042a49dafd69e6fe6638ef3e257b617377b7da350235984eb992e7f48": [
+    {
+      "file": "PROOFS.md",
+      "line": 271,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 20,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 26,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 41,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 43,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run1.jsonl",
+      "line": 20,
+      "hexPrefix": false
+    }
+  ],
+  "93d9d6582bcc13d4bdd28471c3aa7e0fae10452d1f5e0bf6bac2fba83c397739": [
+    {
+      "file": "PROOFS.md",
+      "line": 271,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 41,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 42,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-e2-run2.jsonl",
+      "line": 43,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 283,
+      "hexPrefix": false
+    }
+  ],
+  "fe03961fecfc23b57f36576cc4fd260f6422f1d05448943fba48057abbdeda38": [
+    {
+      "file": "PROOFS.md",
+      "line": 291,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-polling.jsonl",
+      "line": 2,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-polling.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 295,
+      "hexPrefix": false
+    }
+  ],
+  "1bf8f170dafdbcfdd8aa4c7d5f386af563ee3132faabd67da19ad45ce1b3c4b6": [
+    {
+      "file": "PROOFS.md",
+      "line": 292,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-polling.jsonl",
+      "line": 5,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-polling.jsonl",
+      "line": 6,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-polling.jsonl",
+      "line": 13,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-polling.jsonl",
+      "line": 24,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 303,
+      "hexPrefix": false
+    }
+  ],
+  "a1aed4509c7484985266e922d1da54e26d2312b7666a8ee8d4427444e7756637": [
+    {
+      "file": "PROOFS.md",
+      "line": 306,
+      "hexPrefix": true
+    }
+  ],
+  "74726450aae189d9c42a7b0444b20f7003a69eb601d3e8b26f1dbf883acd3618": [
+    {
+      "file": "PROOFS.md",
+      "line": 307,
+      "hexPrefix": true
+    }
+  ],
+  "367044fea756787cb53587864f3bb94848ab3a846cc0d08f3d17c0ae322aeff3": [
+    {
+      "file": "PROOFS.md",
+      "line": 308,
+      "hexPrefix": true
+    }
+  ],
+  "8c9ac1de176e74b90c0d43b68c2c972e7c93075166b9f1364997f3a7e4a05427": [
+    {
+      "file": "PROOFS.md",
+      "line": 344,
+      "hexPrefix": false
+    },
+    {
+      "file": "PROOFS.md",
+      "line": 344,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/escrow-ref.json",
+      "line": 2,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 2,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 5,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 7,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 9,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 11,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 13,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 15,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 18,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/scripts/mcp-test.mjs",
+      "line": 65,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 207,
+      "hexPrefix": false
+    }
+  ],
+  "e3d03ef789985374587412cb459b0db441623ff770bd03006583da302ece5e67": [
+    {
+      "file": "PROOFS.md",
+      "line": 349,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-booth.jsonl",
+      "line": 18,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 211,
+      "hexPrefix": false
+    }
+  ],
+  "fb6f91ecb5e9d509042558436c4d0a11901f94a3244fd74141de3dc72ec5a758": [
+    {
+      "file": "PROOFS.md",
+      "line": 386,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 2,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 3,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 9,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 11,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 13,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 223,
+      "hexPrefix": false
+    }
+  ],
+  "db837990a1d03bb78d1f37be7fac5d6ba57bf1a8479a62ca51e068ecdd238e2c": [
+    {
+      "file": "PROOFS.md",
+      "line": 386,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 4,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 5,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 16,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 19,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 231,
+      "hexPrefix": false
+    }
+  ],
+  "bca39a39db625e39fe0ebbe73fb52e1a6ad791825bace33d60633a859a216886": [
+    {
+      "file": "PROOFS.md",
+      "line": 386,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 6,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 7,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 17,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 20,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 235,
+      "hexPrefix": false
+    }
+  ],
+  "3f22b3451cdccfcbea302b61221f06c25e9160f930d436edf421cc2bdf3426a3": [
+    {
+      "file": "PROOFS.md",
+      "line": 389,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 11,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 12,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/out/autorelease-log-tranches.jsonl",
+      "line": 13,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 227,
+      "hexPrefix": false
+    }
+  ],
+  "201484c1032ef4cbba34e25f609da1dec0a5198388497bee3aa636fe2da502d9": [
+    {
+      "file": "PROOFS.md",
+      "line": 392,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 239,
+      "hexPrefix": false
+    }
+  ],
+  "c5f8d5ca488b0bc4754b4ac4f14c55a2d0a88cb6073db1ce1618e872b0f4703d": [
+    {
+      "file": "PROOFS.md",
+      "line": 392,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/web/evidence.json",
+      "line": 243,
+      "hexPrefix": false
+    }
+  ],
+  "180eae9387bb66a72380e61ebe0a00d19f8414a716a37ebe1df124b66acfff66": [
+    {
+      "file": "checks/01-vector.mjs",
+      "line": 21,
+      "hexPrefix": true
+    },
+    {
+      "file": "cardano/vectors/keeper.json",
+      "line": 15,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/vectors/nodary-eth-usd.json",
+      "line": 15,
+      "hexPrefix": false
+    }
+  ],
+  "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141": [
+    {
+      "file": "checks/01-vector.mjs",
+      "line": 28,
+      "hexPrefix": true
+    }
+  ],
+  "247dad3236dd195c728c828c4258ee40ecef9b8dd3e89a1bbe76c6e80fb12476": [
+    {
+      "file": "cardano/out/keeper-log-run1.jsonl",
+      "line": 1,
+      "hexPrefix": false
+    }
+  ],
+  "5b73a265ad5c59d6f54380c05ba134c983b43c7a9c1cd46837e4ac8a7bb6967f": [
+    {
+      "file": "cardano/vectors/src-meme-tweet-likes.json",
+      "line": 18,
+      "hexPrefix": false
+    }
+  ],
+  "d5993025fd99eb4b77c9e066f23067eab7876016b5a17519ca17066a90522560": [
+    {
+      "file": "cardano/vectors/lunar_youtube.json",
+      "line": 18,
+      "hexPrefix": false
+    },
+    {
+      "file": "cardano/vectors/src-yt-views-brian-cohen.json",
+      "line": 18,
+      "hexPrefix": false
+    }
+  ],
+  "02d81eaa8173f00b7fe24612f9283c4cda13bbf7de7ddedc8b8ebbafbdf2e6a7": [
+    {
+      "file": "cardano/vectors/src-creator-eulinkas-08205089.json",
+      "line": 22,
+      "hexPrefix": false
+    }
+  ],
+  "f8502e6f678fd790446ee46e27d6f50df9b8607e9f4d2d5b3004886f457fd883": [
+    {
+      "file": "cardano/vectors/tamper/other-request.json",
+      "line": 3,
+      "hexPrefix": true
+    }
+  ]
+}

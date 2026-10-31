@@ -1,3 +1,4 @@
+import { withMetadata } from "./tx-metadata.js";
 /**
  * Pieces shared by the keeper, the paid service and the judge page: buying a signed response, checking it against a
  * policy before spending fees, building the release transaction, and reading a validator verdict.
@@ -19,6 +20,7 @@ import {
   policyViewOf,
   releaseDataFromResponse,
   script,
+  scriptHash,
   scriptAddress,
   sleep,
   slotsFromData,
@@ -180,8 +182,7 @@ export const evaluationWindow = (policy: PolicyView, signedMs: number, nowMs: nu
 export const releaseTx = (client: Client, utxo: Utxo, policy: PolicyView, response: SignedResponse, window: { from: number; to: number }) => {
   // The validator requires the beneficiary to receive the payout AND everything that was locked in the UTxO.
   const owed = utxo.assets.lovelace > policy.payout ? utxo.assets.lovelace : policy.payout;
-  return client
-    .newTx()
+  return withMetadata(client.newTx(), "Release", scriptHash)
     .collectFrom({ inputs: [utxo], redeemer: releaseDataFromResponse(response) })
     .attachScript({ script })
     // The contract only checks the beneficiary's payment key hash, so an enterprise address (header 0x60) is enough.

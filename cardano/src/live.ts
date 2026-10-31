@@ -1,3 +1,4 @@
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Live Pay-on-Proof run on Cardano preprod: a FRESH signed AirnodeHub response releases a policy that only accepts
  * responses up to 5 minutes old.
@@ -71,7 +72,7 @@ const policy: Policy = {
 
 // 1. Lock
 const lockBuilt = await client.newTx().payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policy)) }).build();
-const lockSubmitted = await lockBuilt.signAndSubmit();
+const lockSubmitted = await submitTracked(lockBuilt, { source: "live.ts" });
 const lockHash = hexOf(lockSubmitted.hash);
 console.log(`1. policy locked: ${lockHash} (5 tADA, accepts a response up to ${MAX_AGE_MS / 1000} s old)`);
 await waitForTx(lockHash);
@@ -96,7 +97,7 @@ const toMs = signedMs + MAX_AGE_MS - 20_000; // and end before the response beco
 await waitForTip(fromMs + 2_000);
 const utxo = (await client.getUtxos(scriptAddress)).find((u) => hexOf(u.transactionId.hash) === lockHash);
 if (!utxo) throw new Error("The locked policy UTxO is not visible yet");
-const released = await (
+const released = await submitTracked((
   await client
     .newTx()
     .collectFrom({ inputs: [utxo], redeemer: releaseDataFromResponse(response) })
@@ -104,7 +105,7 @@ const released = await (
     .payToAddress({ address: Address.fromBech32(sellerAddressBech32()), assets: lovelace(PAYOUT) })
     .setValidity({ from: BigInt(fromMs), to: BigInt(toMs) })
     .build()
-).signAndSubmit();
+), { source: "live.ts" });
 const releaseHash = hexOf(released.hash);
 console.log(`3. released: ${releaseHash} (response was ${Math.round((Date.now() - signedMs) / 1000)} s old when submitted)`);
 await waitForTx(releaseHash);
