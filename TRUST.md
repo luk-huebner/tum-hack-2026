@@ -97,3 +97,20 @@ npx tsx src/attacks.ts --expired <txHash>#<index>      # evaluation only: wrong 
 npx tsx src/attacks.ts --fresh <the saved response file>
 VALIDATOR_BLUEPRINT=../aiken/blueprint/plutus-v1-a9e4420c.json npx tsx src/attacks.ts --fresh <file> --standing standing-policies-v1.json
 ```
+
+## The web layer: CreatorPay website and campaign service (added 31 Oct)
+
+The contract audit above does not cover the website and the campaign service (`webapp/`, `cardano/src/campaigns.ts`, `intake.ts`). What is true of them, and not true:
+
+| Topic | State |
+|---|---|
+| Accounts | **None.** A shared team access code (`CREATORPAY_ACCESS_CODE`) gates creating a campaign; reading needs nothing. It is a shared secret, not identity |
+| A creator's access | An offer opens from its invite link; the id is random (18 hex characters). Anyone holding the link can open that campaign and submit a post for it, once |
+| Who lists what | A brand lists only the campaigns created in its own browser (a random key in `localStorage`, hashed on the server). There is no list of everybody's campaigns; there is no lookup by handle. Not security: a stolen key lists that brand's campaigns |
+| What a submission can spend | Only the campaign's own escrows (5 tADA each, at most 8 per creator) from the brand wallet, and the data looks (0.01 aUSD each). The service allows 8 submissions per run, one at a time, and stops buying data at its cap (2 aUSD) |
+| CORS | Only the site's own address is allowed (`CORS_ORIGIN`); this is a browser rule, not authentication |
+| Network exposure | The demo ran behind a public quick tunnel; the service listens on all interfaces when `DEMO_BUYER` is off |
+| What the page shows | "Paid" is shown when the keeper submits the payout, before the block is seen (see [PROOFS.md](PROOFS.md), "CreatorPay through the website"). The Engine page shows the journal's confirmed state |
+| Failed locks | A payment can fail after a network error; the campaign page offers a retry for exactly the failed escrows. Not automatic |
+| Tested | 91 offline tests (parsing, limits, budget split, keys, ids, access code, retry deadline); real runs through the website for the posting payment and milestone 1. Not tested: concurrent submissions, a real post deletion, browsers other than Chrome, a mobile layout |
+| Not built | Accounts and roles, rate limiting per client, a fee or billing, a signer-key registry, an external audit |

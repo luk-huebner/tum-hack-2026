@@ -1,4 +1,4 @@
-# Pay-on-Proof
+# Pay-on-Proof (CreatorPay)
 
 **Outcome-based payments for agents on Cardano, verified by API3 data.** To our knowledge the first contract on Cardano that checks an API3 AirnodeHub signature itself, so a job (a Masumi agent's, a creator's) can be paid only when a signed fact proves the result. [What we changed because someone challenged us](ITERATIONS.md). [How it becomes a service, and what it costs us today](SERVICE.md).
 
@@ -7,6 +7,31 @@ Money moves on Cardano only when signed real-world data proves a condition agree
 Built at the TUM Blockchain & AI Hackathon 2026 (30 to 31 Oct, Munich). Testnets only: Cardano preprod and Base Sepolia. A prototype, not audited; a signature proves what the data provider said, not that it is true.
 
 **Try it without installing anything:** the [public judge console](https://pay-on-proof-judge.vercel.app) runs a six-step tamper test against the live validator. It sends no transaction and costs nothing. Running the service yourself needs keys and a wallet: start in `cardano/` ([cardano/JUDGES.md](cardano/JUDGES.md)).
+
+## At a glance (for judges)
+
+**What it does.** A brand states a deal for a creator's post: a posting payment and like milestones. After the creator posts and submits the link, the money is locked in a Cardano contract. The contract pays the creator when a signed API3 response proves a milestone, and refunds the brand after the deadline. **Pay-on-Proof** is the contract and the keeper; **CreatorPay** is the website for brands and creators.
+
+| | |
+|---|---|
+| **Live site (CreatorPay)** | https://creatorpay-five.vercel.app. The pages are on Vercel, the service (keys, keeper) runs on our demo laptop, so it works only while that laptop is online. The judge site and the video do not depend on it |
+| **Judge site (API3: send your own responses, tamper test)** | https://pay-on-proof-judge.vercel.app. Always on, holds no wallet key. Six-step bench: one valid, four tampered rejected by the validator, one valid. Paste a signed response and read the validator's own verdict |
+| **Contract** | Aiken, Plutus V3, script hash `58fb7eefb61d968668106385cf7a7dc8e8591004162a81c6b50562ea`, address `addr_test1wpv0klh0kcwedpngzp3ctnm60hywskgsqstz4qwxk5zk96smxaale`, **Cardano preprod** |
+| **A paid job through the website, start to finish** | a real post by `@abelix_app`: posting payment locked [`f81837cc…b7ad`](https://preprod.cardanoscan.io/transaction/f81837cc924a9ae222c049f5b33f0fdd5d39c406a53c06aba341a4cb2644b7ad), paid out [`d31271fe…462c`](https://preprod.cardanoscan.io/transaction/d31271fe203b298d272e6a9075b86350bc6774bd776c34fd6e514a2f221d462c); like milestone locked [`3bd1d0a4…323a`](https://preprod.cardanoscan.io/transaction/3bd1d0a411e73a8fa3fa71229520b382200190b72d13792a673cd1be8b9d323a), paid out [`5f13803b…8a8e`](https://preprod.cardanoscan.io/transaction/5f13803b80d7e4ea716698e301c4a1bbc67e00c516e54062b7c4deeb9eac8a8e). A second run and the details: [PROOFS.md](PROOFS.md#creatorpay-through-the-website-real-campaigns-with-a-real-x-account-31-oct-2026-1251-to-1335-utc) |
+| **Tests** | `cd cardano && npx tsc --noEmit && node test/run-offline.mjs` (91 offline tests: 88 pass, 3 known todo, listed in `cardano/test/README.md`); 78 Aiken tests run in CI |
+| **Security and trust** | [TRUST.md](TRUST.md) (what the contract proves and what it does not, the web layer), [AUDIT.md](AUDIT.md) (threat model, findings, questions for a reviewer), [docs/night/SECRET_SCAN_MORNING_CHECK.md](docs/night/SECRET_SCAN_MORNING_CHECK.md) |
+| **Tracks** | Cardano (agentic commerce), API3, TUM Blockchain Track (audit) |
+
+**Run it yourself.** Node 24, a free Blockfrost preprod key and two test wallets. Keys go only in the git-ignored `cardano/.env` and `.env` (names in `cardano/.env.example`), never in the repository.
+
+```bash
+cd cardano && npm install && npm run creatorpay    # the service, the keeper and live submissions on http://localhost:4022
+cd webapp && npm install && npm run dev            # the website on http://localhost:5173
+```
+
+More: [webapp/README.md](webapp/README.md) (runbook, API, who sees what), [cardano/JUDGES.md](cardano/JUDGES.md) (the tamper bench).
+
+**Honest limits.** Testnets only (Cardano preprod, Base Sepolia); not externally audited. A signature proves what the data provider said, not that likes are real. There are no accounts: a shared team access code gates creating campaigns, and a creator opens an offer from its invite link. The website can show "Paid" when the keeper submits the payout; the chain confirms it a few seconds to a minute later (the Engine page shows the confirmed state). A lock can fail after a network error and be retried (it happened in 2 of the 3 website runs). The first version of the contract had a double-satisfaction flaw, fixed and kept as evidence in [TRUST.md](TRUST.md).
 
 ## What works today
 

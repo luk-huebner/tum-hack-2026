@@ -423,3 +423,21 @@ Run on preprod with the Cardano and API3 meme post, which has **0 likes** at the
 | The seller's keeper found it, fetched one signed response (0.01 aUSD) and released it, nobody told it to | `eb65e57d4dbe250530c41967da07886a25c15bd79041f26ea8b9806ba835cadd`, block 5356908, fee 0.310518 tADA, 5 tADA to the seller key, response age 18 s |
 
 Limits: one post, one run; a real deletion was not tested (the empty record a deleted post returns is documented, not observed); the offline tests cover the parser and the plan validation (`test/escrow.test.ts`, `test/creator-logic.test.ts`). Without `presence` a threshold of 0 is still refused.
+
+## CreatorPay through the website: real campaigns with a real X account (31 Oct 2026, 12:51 to 13:35 UTC)
+
+The team ran the whole flow through the website (the brand form, the creator's invite link, the keeper) with a real post by `@abelix_app` carrying `#ad`, against the service on the demo laptop and the contract on preprod. Each campaign pays a posting payment (a presence escrow: any signed response about the pinned post) and like milestones, 5 tADA each, the creator paid to a preprod address. The likes were added by team members while the keeper watched.
+
+| Run | Post | Posting payment: lock | Posting payment: payout | Milestone 1 (1 like): lock | Milestone 1: payout |
+|---|---|---|---|---|---|
+| 1 (`cp-6a5d9f…`) | [2116513042124914953](https://x.com/abelix_app/status/2116513042124914953) | `f81837cc924a9ae222c049f5b33f0fdd5d39c406a53c06aba341a4cb2644b7ad` (block 5357127) | `d31271fe203b298d272e6a9075b86350bc6774bd776c34fd6e514a2f221d462c` (5357130) | `3bd1d0a411e73a8fa3fa71229520b382200190b72d13792a673cd1be8b9d323a` (5357128) | `5f13803b80d7e4ea716698e301c4a1bbc67e00c516e54062b7c4deeb9eac8a8e` (5357133) |
+| 2 (`cp-1fb816…`) | [2116520179051970562](https://x.com/abelix_app/status/2116520179051970562) | `d438c984135254e830492effa1caf48d885189fc643cb9fb51ec2c57258e5de0` (5357194) | `6db19996243e99fd9d2cbe342d27ae763814c294dbf7d57bde270dbd75c6d82b` (5357196) | `e3247b359a6fc8af1bdf44934527509bd6b99f5d4090edb5a9ba72184b6238ff` (5357196) | `3bb2442ecb302bd1c6db983d607ec17b7749d42ed9c20e5eb25970f43c1ee2e9` (5357200) |
+
+All eight were looked up on Cardano preprod after the run: each exists in the block shown; a lock costs about 0.183 tADA in fees and a payout about 0.311 tADA. The payouts were made by the seller's keeper with no command, from signed TwitterAPI.io responses (0.01 aUSD each).
+
+What the runs also showed, not hidden:
+
+- **A lock failed after a network error** in run 1 (milestone 2: "the service refused the payment (HTTP 402) and no escrow was found at the contract"; the keeper log shows `fetch failed` at the same time) and in a third run (milestone 1). The failed payment was checked: not on chain, its validity window expired, so nothing could land later. A retry (`POST /api/cp/campaigns/:id/retry`, a button on the campaign page) was added and locked run 1's milestone 2 again in 34 seconds.
+- **"Paid" appears before the chain confirms it.** The keeper reports a release to the page right after it submits the payout, before it waits for the block (`cardano/src/autorelease.ts`, the `onJob` call before `waitForTx`). In these runs the confirmation followed within seconds to about a minute (journal: `confirmed`, with the block numbers above).
+- Milestones that needed more likes than the team clicked stayed locked until their deadline, when the brand's key can take them back.
+- The service ran with a public Cloudflare quick tunnel and a shared team access code for creating campaigns; there are no accounts.
