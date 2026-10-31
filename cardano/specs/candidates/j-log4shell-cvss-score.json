@@ -1,0 +1,22 @@
+{
+  "id": "j-log4shell-cvss-score",
+  "label": "NVD first CVSS v3.1 base score for CVE-2021-44228",
+  "slug": "nvd",
+  "request": {
+    "operation": "getCve",
+    "parameters": {
+      "cveId": "CVE-2021-44228"
+    },
+    "responseProjection": {
+      "cve": "/vulnerabilities/0/cve/id",
+      "scoreSource": "/vulnerabilities/0/cve/metrics/cvssMetricV31/0/source",
+      "value": "/vulnerabilities/0/cve/metrics/cvssMetricV31/0/cvssData/baseScore"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 1
+}

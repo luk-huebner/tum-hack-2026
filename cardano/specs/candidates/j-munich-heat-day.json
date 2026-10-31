@@ -1,0 +1,25 @@
+{
+  "id": "j-munich-heat-day",
+  "label": "Munich maximum temperature on 23 Oct 2026 in Celsius",
+  "slug": "visualcrossing",
+  "request": {
+    "operation": "getTimelinePeriod",
+    "parameters": {
+      "location": "48.137,11.575",
+      "date1": "2026-10-23",
+      "unitGroup": "metric",
+      "include": "days",
+      "elements": "datetime,tempmax"
+    },
+    "responseProjection": {
+      "day": "/days/0/datetime",
+      "value": "/days/0/tempmax"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 1
+}

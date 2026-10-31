@@ -1,0 +1,21 @@
+{
+  "id": "j-crossref-work-citations",
+  "label": "Crossref citation count for DOI 10.1038/s41586-020-2649-2",
+  "slug": "crossref",
+  "request": {
+    "operation": "getWork",
+    "parameters": {
+      "doi": "10.1038/s41586-020-2649-2"
+    },
+    "responseProjection": {
+      "doi": "/message/DOI",
+      "value": "/message/is-referenced-by-count"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "counter",
+  "scale": 0
+}

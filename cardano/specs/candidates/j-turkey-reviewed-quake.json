@@ -1,0 +1,33 @@
+{
+  "id": "j-turkey-reviewed-quake",
+  "label": "Largest reviewed earthquake magnitude in the fixed Turkey window",
+  "slug": "usgs",
+  "request": {
+    "operation": "queryEvents",
+    "parameters": {
+      "format": "geojson",
+      "starttime": "2023-02-06T00:00:00",
+      "endtime": "2023-02-07T00:00:00",
+      "minlatitude": 35,
+      "maxlatitude": 40,
+      "minlongitude": 35,
+      "maxlongitude": 40,
+      "minmagnitude": 6,
+      "reviewstatus": "reviewed",
+      "eventtype": "earthquake",
+      "orderby": "magnitude",
+      "limit": 1
+    },
+    "responseProjection": {
+      "eventId": "/features/0/id",
+      "reviewStatus": "/features/0/properties/status",
+      "value": "/features/0/properties/mag"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 2
+}

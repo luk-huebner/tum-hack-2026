@@ -1,0 +1,21 @@
+{
+  "id": "j-baxter-drug-recall-monitor",
+  "label": "FDA Baxter drug-enforcement records reported during 2025",
+  "slug": "openfda",
+  "request": {
+    "operation": "searchDrugRecalls",
+    "parameters": {
+      "search": "recalling_firm:\"Baxter\" AND report_date:[20250101 TO 20251231]",
+      "limit": 1
+    },
+    "responseProjection": {
+      "value": "/meta/results/total"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "static",
+  "scale": 0
+}

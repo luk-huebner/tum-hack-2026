@@ -1,0 +1,26 @@
+{
+  "id": "j-north-sea-wave-height",
+  "label": "Current North Sea modelled wave height in metres",
+  "slug": "open-meteo",
+  "request": {
+    "operation": "marine",
+    "parameters": {
+      "latitude": "54.0",
+      "longitude": "7.0",
+      "current": "wave_height",
+      "timeformat": "unixtime",
+      "timezone": "GMT",
+      "length_unit": "metric"
+    },
+    "responseProjection": {
+      "observedAt": "/current/time",
+      "value": "/current/wave_height"
+    }
+  },
+  "use": [
+    "value"
+  ],
+  "cmp": "AtLeast",
+  "kind": "feed",
+  "scale": 2
+}
