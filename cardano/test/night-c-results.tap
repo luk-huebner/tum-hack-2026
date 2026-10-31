@@ -1,0 +1,530 @@
+TAP version 13
+# Subtest: copied campaign validation stays textually aligned with production at this base
+ok 1 - copied campaign validation stays textually aligned with production at this base
+  ---
+  duration_ms: 13.1796
+  ...
+# Subtest: plan refuses absent tranches and every escrow-count boundary
+ok 2 - plan refuses absent tranches and every escrow-count boundary
+  ---
+  duration_ms: 3.6151
+  ...
+# Subtest: plan refuses invalid thresholds, measurement starts and windows
+ok 3 - plan refuses invalid thresholds, measurement starts and windows
+  ---
+  duration_ms: 2.1334
+  ...
+# Subtest: post-lifetime equality is accepted, a window one instant beyond is refused
+ok 4 - post-lifetime equality is accepted, a window one instant beyond is refused
+  ---
+  duration_ms: 0.4262
+  ...
+# Subtest: total cap is eight escrows and displayed shares round independently
+ok 5 - total cap is eight escrows and displayed shares round independently
+  ---
+  duration_ms: 3.7468
+  ...
+# Subtest: shortcut checks each numeric input for finiteness and prevents overlapping retention
+ok 6 - shortcut checks each numeric input for finiteness and prevents overlapping retention
+  ---
+  duration_ms: 1.2701
+  ...
+# Subtest: BUG C1: plan lifetime NaN must be refused rather than disabling the lifetime check
+not ok 7 - BUG C1: plan lifetime NaN must be refused rather than disabling the lifetime check
+  ---
+  duration_ms: 3.3056
+  location: '<clone>\\cardano\\test\\creator-logic.test.ts:1:5185'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\creator-logic.test.ts:84:10)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: BUG C2: a negative campaign share must not silently drop the campaign tranche
+not ok 8 - BUG C2: a negative campaign share must not silently drop the campaign tranche
+  ---
+  duration_ms: 4.6982
+  location: '<clone>\\cardano\\test\\creator-logic.test.ts:1:5343'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\creator-logic.test.ts:87:10)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: copied intake parser matches the production expression at this base
+ok 9 - copied intake parser matches the production expression at this base
+  ---
+  duration_ms: 15.1681
+  ...
+# Subtest: intake accepts status/statuses links with query strings, fragments and digit handles
+ok 10 - intake accepts status/statuses links with query strings, fragments and digit handles
+  ---
+  duration_ms: 0.9067
+  ...
+# Subtest: intake refuses empty, unicode digits, nonsense and overlong or nonnumeric ids
+ok 11 - intake refuses empty, unicode digits, nonsense and overlong or nonnumeric ids
+  ---
+  duration_ms: 0.3789
+  ...
+# Subtest: BUG I1: an unrelated host or path fragment must not be accepted as a post link
+not ok 12 - BUG I1: an unrelated host or path fragment must not be accepted as a post link
+  ---
+  duration_ms: 0.9737
+  location: '<clone>\\cardano\\test\\creator-logic.test.ts:1:6803'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+
+    '123' !== undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual: '123'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\creator-logic.test.ts:112:94)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: default ETH offer accepts synthetic key refund and deterministic numeric strings
+ok 13 - default ETH offer accepts synthetic key refund and deterministic numeric strings
+  ---
+  duration_ms: 8.5766
+  ...
+# Subtest: null, undefined and non-object requests refuse without a valid refund
+ok 14 - null, undefined and non-object requests refuse without a valid refund
+  ---
+  duration_ms: 4.2408
+  ...
+# Subtest: every template and registry refusal is reported
+ok 15 - every template and registry refusal is reported
+  ---
+  duration_ms: 19.4128
+  ...
+# Subtest: refund refuses script, mainnet, stake, malformed and empty addresses
+ok 16 - refund refuses script, mainnet, stake, malformed and empty addresses
+  ---
+  duration_ms: 4.8251
+  ...
+# Subtest: payee uses the same key-controlled test address validation and trims whitespace
+ok 17 - payee uses the same key-controlled test address validation and trims whitespace
+  ---
+  duration_ms: 6.0321
+  ...
+# Subtest: eth-usd: threshold refuses zero, negative, non-finite, empty, missing and above max
+ok 18 - eth-usd: threshold refuses zero, negative, non-finite, empty, missing and above max
+  ---
+  duration_ms: 5.5161
+  ...
+# Subtest: eth-usd: accepts minimum unit, maximum and correct instance
+ok 19 - eth-usd: accepts minimum unit, maximum and correct instance
+  ---
+  duration_ms: 1.0743
+  ...
+# Subtest: rain-below: threshold refuses zero, negative, non-finite, empty, missing and above max
+ok 20 - rain-below: threshold refuses zero, negative, non-finite, empty, missing and above max
+  ---
+  duration_ms: 3.5843
+  ...
+# Subtest: rain-below: accepts minimum unit, maximum and correct instance
+ok 21 - rain-below: accepts minimum unit, maximum and correct instance
+  ---
+  duration_ms: 1.0857
+  ...
+# Subtest: rain-below: excess decimal places are refused
+ok 22 - rain-below: excess decimal places are refused
+  ---
+  duration_ms: 1.0618
+  ...
+# Subtest: tweet-likes: threshold refuses zero, negative, non-finite, empty, missing and above max
+ok 23 - tweet-likes: threshold refuses zero, negative, non-finite, empty, missing and above max
+  ---
+  duration_ms: 37.5634
+  ...
+# Subtest: tweet-likes: accepts minimum unit, maximum and correct instance
+ok 24 - tweet-likes: accepts minimum unit, maximum and correct instance
+  ---
+  duration_ms: 3.5514
+  ...
+# Subtest: tweet-likes: excess decimal places are refused
+ok 25 - tweet-likes: excess decimal places are refused
+  ---
+  duration_ms: 1.6774
+  ...
+# Subtest: source: threshold refuses zero, negative, non-finite, empty, missing and above max
+ok 26 - source: threshold refuses zero, negative, non-finite, empty, missing and above max
+  ---
+  duration_ms: 26.7552
+  ...
+# Subtest: source: accepts minimum unit, maximum and correct instance
+ok 27 - source: accepts minimum unit, maximum and correct instance
+  ---
+  duration_ms: 3.6759
+  ...
+# Subtest: source: excess decimal places are refused
+ok 28 - source: excess decimal places are refused
+  ---
+  duration_ms: 2.4924
+  ...
+# Subtest: deadline accepts exact five-minute and eight-day bounds; refuses outside and unsafe values
+ok 29 - deadline accepts exact five-minute and eight-day bounds; refuses outside and unsafe values
+  ---
+  duration_ms: 3.7548
+  ...
+# Subtest: measurement permits exact one-minute past grace and ten-minute remaining window
+ok 30 - measurement permits exact one-minute past grace and ten-minute remaining window
+  ---
+  duration_ms: 9.3717
+  ...
+# Subtest: describeOffer covers every template and optional measurement/payee text
+ok 31 - describeOffer covers every template and optional measurement/payee text
+  ---
+  duration_ms: 112.516
+  ...
+# Subtest: BUG E1: boolean thresholds should not silently become a numeric payment rule
+not ok 32 - BUG E1: boolean thresholds should not silently become a numeric payment rule
+  ---
+  duration_ms: 2.7068
+  location: '<clone>\\cardano\\test\\escrow.test.ts:1:4886'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\escrow.test.ts:96:10)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: BUG E2: a non-finite reference clock must not disable deadline limits
+not ok 33 - BUG E2: a non-finite reference clock must not disable deadline limits
+  ---
+  duration_ms: 1.0357
+  location: '<clone>\\cardano\\test\\escrow.test.ts:1:5028'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\escrow.test.ts:99:10)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: inputHash/resultHash preserve UTF-8, nonce ordering, canonical policy projection and empty values
+ok 34 - inputHash/resultHash preserve UTF-8, nonce ordering, canonical policy projection and empty values
+  ---
+  duration_ms: 2.6404
+  ...
+# Subtest: makeMps uses injected fetch only, normalizes URL, serializes body and rejects bad answers
+ok 35 - makeMps uses injected fetch only, normalizes URL, serializes body and rejects bad answers
+  ---
+  duration_ms: 7.4855
+  ...
+# Subtest: availability and input_schema expose configuration without starting a job
+ok 36 - availability and input_schema expose configuration without starting a job
+  ---
+  duration_ms: 3.7887
+  ...
+# Subtest: missing MPS or registration refuses valid jobs with 503 and reports unavailable
+ok 37 - missing MPS or registration refuses valid jobs with 503 and reports unavailable
+  ---
+  duration_ms: 3.18
+  ...
+# Subtest: start_job refuses every nonce boundary and malformed input without asking for payment
+ok 38 - start_job refuses every nonce boundary and malformed input without asking for payment
+  ---
+  duration_ms: 1.4553
+  ...
+# Subtest: policy refusal, thrown check and short deadline never request payment
+ok 39 - policy refusal, thrown check and short deadline never request payment
+  ---
+  duration_ms: 2.2092
+  ...
+# Subtest: accepted nonce/ref boundaries, camelCase alias, deadline cap and payment fields
+ok 40 - accepted nonce/ref boundaries, camelCase alias, deadline cap and payment fields
+  ---
+  duration_ms: 4.2899
+  ...
+# Subtest: sequential nonce retries are idempotent and conflicting input is 409
+ok 41 - sequential nonce retries are idempotent and conflicting input is 409
+  ---
+  duration_ms: 0.8466
+  ...
+# Subtest: uncertain payment failure is not retried for the same nonce
+ok 42 - uncertain payment failure is not retried for the same nonce
+  ---
+  duration_ms: 1.1951
+  ...
+# Subtest: status rejects invalid/unknown ids and omits results until completion
+ok 43 - status rejects invalid/unknown ids and omits results until completion
+  ---
+  duration_ms: 1.1057
+  ...
+# Subtest: job lifecycle: confirmed funds -> released -> confirmed result hash
+ok 44 - job lifecycle: confirmed funds -> released -> confirmed result hash
+  ---
+  duration_ms: 79.942
+  ...
+# Subtest: job lifecycle: confirmed funds -> gone -> confirmed result hash
+ok 45 - job lifecycle: confirmed funds -> gone -> confirmed result hash
+  ---
+  duration_ms: 100.1743
+  ...
+# Subtest: job lifecycle: confirmed funds -> open -> confirmed result hash
+ok 46 - job lifecycle: confirmed funds -> open -> confirmed result hash
+  ---
+  duration_ms: 86.5181
+  ...
+# Subtest: unpaid and late-paid jobs fail with distinct reasons
+ok 47 - unpaid and late-paid jobs fail with distinct reasons
+  ---
+  duration_ms: 39.11
+  ...
+# Subtest: BUG M1: rejected duplicate must not release the original inflight nonce lock
+not ok 48 - BUG M1: rejected duplicate must not release the original inflight nonce lock
+  ---
+  duration_ms: 14.9568
+  location: '<clone>\\cardano\\test\\masumi.test.ts:1:10489'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+
+      {
+    +   checks: 2,
+    +   payments: 2,
+    -   checks: 1,
+    -   payments: 1,
+        statuses: [
+          200,
+          409,
+    +     200
+    -     409
+        ]
+      }
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    statuses:
+      0: 200
+      1: 409
+      2: 409
+    checks: 1
+    payments: 1
+  actual:
+    statuses:
+      0: 200
+      1: 409
+      2: 200
+    checks: 2
+    payments: 2
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\masumi.test.ts:209:10)
+    async Test.run (node:internal/test_runner/test:980:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: offline preload denies dotenv reads before opening any file
+ok 49 - offline preload denies dotenv reads before opening any file
+  ---
+  duration_ms: 3.4069
+  ...
+# Subtest: offline preload denies fetch, HTTPS and direct sockets before connection
+ok 50 - offline preload denies fetch, HTTPS and direct sockets before connection
+  ---
+  duration_ms: 0.7415
+  ...
+# Subtest: holds uses inclusive AtLeast and strict Below, including zero and negatives
+ok 51 - holds uses inclusive AtLeast and strict Below, including zero and negatives
+  ---
+  duration_ms: 2.2282
+  ...
+# Subtest: expired and exact stopping instant precede even a satisfied rule
+ok 52 - expired and exact stopping instant precede even a satisfied rule
+  ---
+  duration_ms: 0.9547
+  ...
+# Subtest: static source gets one paid look; satisfied static rule releases
+ok 53 - static source gets one paid look; satisfied static rule releases
+  ---
+  duration_ms: 0.2976
+  ...
+# Subtest: budget gate, initial look, free feed, and booth ordering
+ok 54 - budget gate, initial look, free feed, and booth ordering
+  ---
+  duration_ms: 0.3023
+  ...
+# Subtest: counter without a usable trend starts at two minutes
+ok 55 - counter without a usable trend starts at two minutes
+  ---
+  duration_ms: 0.4005
+  ...
+# Subtest: counter moving toward AtLeast checks halfway to crossing with floor and ceiling
+ok 56 - counter moving toward AtLeast checks halfway to crossing with floor and ceiling
+  ---
+  duration_ms: 0.4714
+  ...
+# Subtest: Below trend points downward and equality is still waiting
+ok 57 - Below trend points downward and equality is still waiting
+  ---
+  duration_ms: 0.2836
+  ...
+# Subtest: flat and receding counters back off geometrically with five minute cap
+ok 58 - flat and receding counters back off geometrically with five minute cap
+  ---
+  duration_ms: 0.2477
+  ...
+# Subtest: budget pacing overrides trend ceiling; no final check violates its floor
+ok 59 - budget pacing overrides trend ceiling; no final check violates its floor
+  ---
+  duration_ms: 0.5929
+  ...
+# Subtest: last check is brought forward one minute before stopping
+ok 60 - last check is brought forward one minute before stopping
+  ---
+  duration_ms: 0.5875
+  ...
+# Subtest: BUG P1: non-finite budget must not schedule a paid check
+not ok 61 - BUG P1: non-finite budget must not schedule a paid check
+  ---
+  duration_ms: 3.7523
+  location: '<clone>\\cardano\\test\\polling.test.ts:1:3271'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+
+    120000 !== null
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual: 120000
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\polling.test.ts:72:10)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: BUG P2: non-finite deadline must not schedule a check
+not ok 62 - BUG P2: non-finite deadline must not schedule a check
+  ---
+  duration_ms: 0.6734
+  location: '<clone>\\cardano\\test\\polling.test.ts:1:3389'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+
+    120000 !== null
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual: 120000
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\polling.test.ts:75:10)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: BUG P3: a final check must fit before the keeper stops
+not ok 63 - BUG P3: a final check must fit before the keeper stops
+  ---
+  duration_ms: 0.5173
+  location: '<clone>\\cardano\\test\\polling.test.ts:1:3500'
+  failureType: 'testCodeFailure'
+  error: 'delay 120000 is outside remaining 60001'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (<clone>\cardano\test\polling.test.ts:80:10)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:979:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:677:18)
+    Test.postRun (node:internal/test_runner/test:1090:19)
+    Test.run (node:internal/test_runner/test:1018:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)
+  ...
+# Subtest: built-in specs retain units, slot ranges, costs and observation-time semantics
+ok 64 - built-in specs retain units, slot ranges, costs and observation-time semantics
+  ---
+  duration_ms: 2.7811
+  ...
+# Subtest: registeredSources reads committed fixtures afresh without mutating them
+ok 65 - registeredSources reads committed fixtures afresh without mutating them
+  ---
+  duration_ms: 22.8711
+  ...
+# Subtest: every registered source maps its metadata and numeric conversion
+ok 66 - every registered source maps its metadata and numeric conversion
+  ---
+  duration_ms: 30.1422
+  ...
+# Subtest: every registered tweet maps only likes and rounds thresholds
+ok 67 - every registered tweet maps only likes and rounds thresholds
+  ---
+  duration_ms: 8.8934
+  ...
+# Subtest: missing and hostile registry ids are refused, including prototype names
+ok 68 - missing and hostile registry ids are refused, including prototype names
+  ---
+  duration_ms: 99.5191
+  ...
+# Subtest: allSpecs enumerates every offered instance exactly once with valid fixture slots
+ok 69 - allSpecs enumerates every offered instance exactly once with valid fixture slots
+  ---
+  duration_ms: 27.9991
+  ...
+1..69
+# tests 69
+# suites 0
+# pass 60
+# fail 9
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11810.4879
