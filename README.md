@@ -10,7 +10,7 @@ Built at the TUM Blockchain & AI Hackathon 2026 (30 to 31 Oct, Munich). Testnets
 
 **Try it without installing anything:** the [public judge console](https://pay-on-proof-judge.vercel.app) runs a six-step tamper test against the live validator. It sends no transaction and costs nothing. Running the service yourself needs keys and a wallet: start in `cardano/` ([cardano/JUDGES.md](cardano/JUDGES.md)).
 
-## At a glance (for judges)
+## At a glance
 
 **What it does.** A brand states a deal for a creator's post: a posting payment and like milestones. After the creator posts and submits the link, the money is locked in a Cardano contract. The contract pays the creator when a signed API3 response proves a milestone, and refunds the brand after the deadline. **Pay-on-Proof** is the contract and the keeper; **CreatorPay** is the website for brands and creators.
 
