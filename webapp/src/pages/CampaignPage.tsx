@@ -11,7 +11,7 @@ const ACTIVE: Campaign["status"][] = ["checking", "locking", "live"];
 
 const Offer = ({ c, escrowTada }: { c: Campaign; escrowTada: number }) => (
   <div className="card p-6">
-    <SectionTitle eyebrow="The offer" title={`${c.milestones.length * escrowTada} tADA for one post`} />
+    <SectionTitle eyebrow="The offer" title={`${c.budgetTada ?? c.milestones.length * escrowTada} tADA for one post`} />
     {c.brief && <p className="mb-5 whitespace-pre-line rounded-xl bg-white/5 p-4 text-sm leading-relaxed text-ink-soft">{c.brief}</p>}
     <h4 className="mb-2 text-sm font-bold">The post must</h4>
     <ul className="mb-5 space-y-1.5 text-sm text-ink-soft">
@@ -27,6 +27,16 @@ const Offer = ({ c, escrowTada }: { c: Campaign; escrowTada: number }) => (
     </ul>
     <h4 className="mb-2 text-sm font-bold">You are paid per milestone</h4>
     <div className="space-y-2">
+      {c.posting && (
+        <div className="flex items-center justify-between rounded-xl border border-white/10 px-4 py-2.5 text-sm">
+          <span>
+            <CheckCircle2 size={14} className="mr-2 inline text-brand-400" />
+            <span className="mr-2 font-semibold">{c.posting.label || "Post goes live"}</span>
+            <span className="text-ink-mute">paid as soon as your post is seen live, no like needed</span>
+          </span>
+          <span className="font-bold">{c.posting.units * escrowTada} tADA</span>
+        </div>
+      )}
       {c.milestones.map((m, i) => (
         <div key={i} className="flex items-center justify-between rounded-xl border border-white/10 px-4 py-2.5 text-sm">
           <span>
@@ -36,7 +46,7 @@ const Offer = ({ c, escrowTada }: { c: Campaign; escrowTada: number }) => (
               {c.likesMode === "increase" ? `+${m.likes} new` : `${m.likes} total`} like{m.likes > 1 ? "s" : ""}
             </span>
           </span>
-          <span className="font-bold">{escrowTada} tADA</span>
+          <span className="font-bold">{(m.units ?? 1) * escrowTada} tADA</span>
         </div>
       ))}
     </div>
@@ -95,6 +105,18 @@ const SubmitForm = ({ c, onDone }: { c: Campaign; onDone: (c: Campaign) => void 
   );
 };
 
+/** The escrows of one milestone (or of the posting payment) form one row: a milestone paid with 2 units has 2 escrows. */
+const groupEscrows = (escrows: Escrow[]) => {
+  const map = new Map<string, { key: string; items: { e: Escrow; i: number }[] }>();
+  escrows.forEach((e, i) => {
+    const key = `${e.kind ?? "likes"}:${e.milestone}`;
+    const g = map.get(key) ?? { key, items: [] };
+    g.items.push({ e, i });
+    map.set(key, g);
+  });
+  return [...map.values()];
+};
+
 const escrowState = (e: Escrow, keeper?: string) => {
   if (e.state === "released") return <Badge tone="green"><CheckCircle2 size={12} /> Paid</Badge>;
   if (e.state === "locking") return <Badge tone="blue"><Loader2 size={12} className="animate-spin" /> Locking</Badge>;
@@ -144,34 +166,57 @@ const Tracker = ({ c, escrowTada }: { c: Campaign; escrowTada: number }) => {
           </div>
         </div>
         <div className="min-w-0 space-y-4">
-          {c.escrows.map((e, i) => {
-            const pct = Math.min(100, (likes / e.threshold) * 100);
-            const m = c.milestones[e.milestone];
+          {groupEscrows(c.escrows).map((g) => {
+            const first = g.items[0].e;
+            const n = g.items.length;
+            const paidUnits = g.items.filter(({ e }) => e.state === "released").length;
+            const isPosting = first.kind === "posting";
+            const deadlinePassed = c.submission?.deadline ? Date.now() > Date.parse(c.submission.deadline) : false;
+            const missed = paidUnits < n && deadlinePassed;
+            const open = g.items.find(({ e }) => e.state !== "released") ?? g.items[0];
+            const pct = paidUnits === n ? 100 : isPosting ? 8 : Math.min(100, (likes / Math.max(first.threshold, 1)) * 100);
             return (
-              <div key={i}>
+              <div key={g.key}>
                 <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span>
-                    <span className="mr-2 font-bold text-brand-400">{e.milestone + 1}</span>
-                    <span className="font-semibold">{m?.label || `Milestone ${e.milestone + 1}`}</span>
-                    <span className="ml-2 text-ink-mute">at {e.threshold.toLocaleString()} like{e.threshold === 1 ? "" : "s"} · {escrowTada} tADA</span>
+                  <span className="inline-flex flex-wrap items-center gap-x-2">
+                    {paidUnits === n ? <CheckCircle2 size={18} className="text-proof" aria-label="Reached" /> : missed ? <XCircle size={18} className="text-red-300" aria-label="Not reached" /> : <Clock size={18} className="text-ink-mute" aria-label="Not yet" />}
+                    <span className="font-semibold">{first.label || (isPosting ? "Post goes live" : `Milestone ${first.milestone + 1}`)}</span>
+                    <span className="text-ink-mute">
+                      {isPosting
+                        ? "paid as soon as the post is seen live"
+                        : `${Math.min(likes, first.threshold).toLocaleString()} of ${first.threshold.toLocaleString()} like${first.threshold === 1 ? "" : "s"}`}{" "}
+                      · {n * escrowTada} tADA
+                    </span>
                   </span>
-                  {escrowState(e, c.live.escrows[i]?.keeper)}
+                  {paidUnits === n ? (
+                    <Badge tone="green"><CheckCircle2 size={12} /> Paid</Badge>
+                  ) : paidUnits > 0 ? (
+                    <Badge tone="green">{paidUnits} of {n} paid</Badge>
+                  ) : missed ? (
+                    <Badge tone="red"><XCircle size={12} /> Not reached · refundable</Badge>
+                  ) : (
+                    escrowState(open.e, c.live.escrows[open.i]?.keeper)
+                  )}
                 </div>
                 <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                  <div className={`h-full rounded-full transition-all duration-700 ${e.state === "released" ? "bg-proof-600" : "bg-grad"}`} style={{ width: `${e.state === "released" ? 100 : pct}%` }} />
+                  <div className={`h-full rounded-full transition-all duration-700 ${paidUnits === n ? "bg-proof-600" : missed ? "bg-red-400/60" : "bg-grad"}`} style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-4 text-xs">
-                  {e.payTx && (
-                    <a className="inline-flex items-center gap-1 text-brand-400 hover:underline" href={scanTx(e.payTx)} target="_blank" rel="noreferrer">
-                      lock tx <ExternalLink size={11} />
-                    </a>
-                  )}
-                  {e.releaseTx && (
-                    <a className="inline-flex items-center gap-1 font-semibold text-proof hover:underline" href={scanTx(e.releaseTx)} target="_blank" rel="noreferrer">
-                      payout tx <ExternalLink size={11} />
-                    </a>
-                  )}
-                  {e.error && <span className="text-red-400">{e.error}</span>}
+                  {g.items.map(({ e }, k) => (
+                    <span key={k} className="inline-flex flex-wrap gap-x-3">
+                      {e.payTx && (
+                        <a className="inline-flex items-center gap-1 text-brand-400 hover:underline" href={scanTx(e.payTx)} target="_blank" rel="noreferrer">
+                          lock tx{n > 1 ? ` ${k + 1}` : ""} <ExternalLink size={11} />
+                        </a>
+                      )}
+                      {e.releaseTx && (
+                        <a className="inline-flex items-center gap-1 font-semibold text-proof hover:underline" href={scanTx(e.releaseTx)} target="_blank" rel="noreferrer">
+                          payout tx{n > 1 ? ` ${k + 1}` : ""} <ExternalLink size={11} />
+                        </a>
+                      )}
+                      {e.error && <span className="text-red-400">{e.error}</span>}
+                    </span>
+                  ))}
                 </div>
               </div>
             );
@@ -255,8 +300,8 @@ const Proof = ({ c, validatorHash, validatorAddress }: { c: Campaign; validatorH
             <tbody className="divide-y divide-white/10">
               {c.escrows.map((e, i) => (
                 <tr key={i}>
-                  <td className="py-2.5 pr-4 font-semibold">{e.milestone + 1}</td>
-                  <td className="py-2.5 pr-4 text-ink-soft">likes ≥ {e.threshold}</td>
+                  <td className="py-2.5 pr-4 font-semibold">{e.kind === "posting" ? "Post" : e.milestone + 1}</td>
+                  <td className="py-2.5 pr-4 text-ink-soft">{e.kind === "posting" ? "the post is live" : `likes ≥ ${e.threshold}`}</td>
                   <td className="py-2.5 pr-4">{e.ref ? <Hash value={txOf(e.ref)!} href={scanTx(txOf(e.ref)!)} head={8} tail={4} /> : "—"}</td>
                   <td className="py-2.5">{e.releaseTx ? <Hash value={e.releaseTx} href={scanTx(e.releaseTx)} head={8} tail={4} /> : <span className="text-ink-mute">not yet</span>}</td>
                 </tr>
@@ -354,7 +399,7 @@ export default function CampaignPage() {
             </span>
             <span>·</span>
             <span>
-              Budget <span className="font-semibold text-ink">{c.milestones.length * escrowTada} tADA</span>
+              Budget <span className="font-semibold text-ink">{c.budgetTada ?? c.milestones.length * escrowTada} tADA</span>
             </span>
             <span>·</span>
             <span className="inline-flex items-center gap-1">
