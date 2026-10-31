@@ -1,5 +1,7 @@
 # Pay-on-Proof (CreatorPay)
 
+![CreatorPay: pay only when signed data proves the work is done](brand/creatorpay-cover-1200x630.png)
+
 **Outcome-based payments for agents on Cardano, verified by API3 data.** To our knowledge the first contract on Cardano that checks an API3 AirnodeHub signature itself, so a job (a Masumi agent's, a creator's) can be paid only when a signed fact proves the result. [What we changed because someone challenged us](ITERATIONS.md). [How it becomes a service, and what it costs us today](SERVICE.md).
 
 Money moves on Cardano only when signed real-world data proves a condition agreed in advance. One Aiken validator checks an [AirnodeHub](https://airnodehub.api3.org) (API3) response itself: who signed it, which request it answers, how old it is, and whether it satisfies a rule. Then it pays, or after a deadline refunds.
