@@ -34,7 +34,7 @@ Every row names where it was shown. "Evaluation" means the node provider ran the
 The honest answer is about which trust assumptions disappear and which remain.
 
 **Disappear**
-- Neither the buyer nor the seller, nor the marketplace operator, can redirect locked funds. The only exits are payment to the named beneficiary on a valid proof and refund to the named refund party after the deadline, and the contract enforces both.
+- Neither the buyer nor the seller, nor the marketplace operator, can redirect locked funds. The only exits are payment to the named beneficiary on a valid proof and, after the deadline, a refund that only the named refund party can authorize (the contract does not constrain where a refund is sent: it is the refund party's money), and the contract enforces both.
 - The settlement rule is public and checkable by anyone before paying. Nobody has to trust that a backend applies the rule it advertises.
 - No account, API key or card is needed on either side: an agent pays with x402 and the money is in the contract.
 
