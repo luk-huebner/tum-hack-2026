@@ -10,3 +10,4 @@ cardano/out/autorelease-log.jsonl
 deploy/
 .vercel/
 cardano/out/masumi-jobs.json
+cardano/out/transactions.jsonl
