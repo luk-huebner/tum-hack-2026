@@ -169,6 +169,7 @@ if (values.dry) {
     // Any transport failure may follow broadcast, not only the injected fault.
     console.log(`The connection dropped after the payment was sent (${(error as Error).name}). The buyer does not know whether it settled; looking for the escrow at the validator by its datum.`);
     const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 240_000);
+    if (found) await reconcile(hexOf(found.transactionId.hash)); // the journal learns that it landed
     if (found) console.log(`The escrow IS at the validator: ${hexOf(found.transactionId.hash)}#${Number(found.index)}. Nothing was lost; the seller's keeper will release it, or the buyer can refund it after the deadline.`);
     else console.log("No unspent escrow was found within 4 minutes. Payment status is UNKNOWN; it may already be spent or the provider unavailable. Inspect the journal before paying again.");
     process.exit(0);
@@ -181,6 +182,7 @@ if (values.dry) {
     // transaction lands anyway (seen on 30 Oct: HTTP 402 after 61 s, escrow on chain). Look before saying so.
     console.log(`\nThe service answered HTTP ${response.status}. That does not prove the payment failed; looking for the escrow at the validator by its datum.`);
     const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 150_000);
+    if (found) await reconcile(hexOf(found.transactionId.hash)); // the journal learns that it landed
     if (found) console.log(`The payment DID settle: the escrow is at the validator as ${hexOf(found.transactionId.hash)}#${Number(found.index)}.`);
     else console.log("No unspent escrow found. Payment status is UNKNOWN; do not pay again before reconciling the recorded hash.");
     process.exitCode = found ? 0 : 1;

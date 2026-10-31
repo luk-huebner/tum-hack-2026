@@ -1,4 +1,4 @@
-import { trackExternal } from "./tx-tracking.js";
+import { reconcile, trackExternal } from "./tx-tracking.js";
 import { Transaction } from "@evolution-sdk/evolution";
 import { submitTracked } from "./tx-tracking.js";
 /**
@@ -163,6 +163,7 @@ const execute = async (params: DemoParams, deps: DemoDeps, run: Run, add: (kind:
     }
     if (!utxo) throw new Error("The payment settled but its output is not visible at the contract yet.");
   }
+  await reconcile(payTx); // the escrow is on chain: let the journal say so (the signer only knows "signed for the facilitator", and a payment answered with HTTP 402 would never be confirmed)
   const ref = `${payTx}#${Number(utxo.index)}`;
   run.ref = ref;
   const policy = policyViewOf(utxo);
