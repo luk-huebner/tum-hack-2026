@@ -23,7 +23,7 @@ cd cardano && npm install && npm run creatorpay      # http://localhost:4022
 cd webapp && npm install && npm run dev              # http://localhost:5173 (proxies /api to the service)
 ```
 
-On Windows `npm run creatorpay` fails (the script uses a POSIX `VAR=1 command` prefix): run it from Git Bash, or set the variables first and use `npm run service`. `npm run creatorpay` sets `CREATORPAY_LIVE=1 AUTO_RELEASE=1 AUTO_RELEASE_PAID=1 AUTO_RELEASE_FAST=1 AUTO_RELEASE_INTERVAL_S=5` and an aUSD cap of 2 (`AUTO_RELEASE_AUSD_CAP` overrides it). Booth mode pays 0.01 aUSD per check, about 0.12 aUSD a minute while an escrow is open. On Windows, set those variables yourself and run `npm run service`.
+`npm run creatorpay` is a small Node launcher (`cardano/scripts/creatorpay.mjs`), so it works on Windows and on a Mac. It sets `CREATORPAY_LIVE=1 AUTO_RELEASE=1 AUTO_RELEASE_PAID=1 AUTO_RELEASE_FAST=1 AUTO_RELEASE_INTERVAL_S=5` and an aUSD cap of 2 (`AUTO_RELEASE_AUSD_CAP` overrides it). Booth mode pays 0.01 aUSD per check, about 0.12 aUSD a minute while an escrow is open. On Windows, set those variables yourself and run `npm run service`.
 
 Without `CREATORPAY_LIVE=1` the server is read-only: campaigns can be created and viewed, the bench works, and a submission is refused with the reason shown on the page.
 

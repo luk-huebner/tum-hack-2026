@@ -21,7 +21,7 @@
     "judge": "tsx src/judge.ts",
     "keeper": "tsx src/keeper.ts",
     "judge-site:bundle": "node scripts/bundle-judge-site.mjs",
-    "creatorpay": "CREATORPAY_LIVE=1 AUTO_RELEASE=1 AUTO_RELEASE_PAID=1 AUTO_RELEASE_FAST=1 AUTO_RELEASE_INTERVAL_S=5 AUTO_RELEASE_AUSD_CAP=${AUTO_RELEASE_AUSD_CAP:-2} tsx src/service.ts"
+    "creatorpay": "node scripts/creatorpay.mjs"
   },
   "dependencies": {
     "@evolution-sdk/evolution": "0.5.14",
