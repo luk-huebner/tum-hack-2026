@@ -97,7 +97,7 @@ const tools: Tool[] = [
   },
   {
     name: "list_escrows",
-    description: "List what is locked at the Pay-on-Proof contract right now (preprod): each escrow's rule in words, amount, deadline, time left and whether it can be refunded. Read-only, no key needed.",
+    description: "List what is locked at the Pay-on-Proof contract right now (preprod): each escrow's rule in words, amount, deadline, time left and whether it can be refunded. Read-only: it needs a Blockfrost preprod key to read the chain (BLOCKFROST_PROJECT_ID) but no wallet key.",
     inputSchema: { type: "object", properties: {} },
     handler: async () => text(await boardRows(readOnly())),
   },
