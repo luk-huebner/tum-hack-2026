@@ -1,0 +1,60 @@
+{
+  "classification": "Illustrative EUR scenarios, not observed fees, demand or forecasts",
+  "three_equal_tranches_principal_eur": "500",
+  "base_monitoring_fee_eur": "9",
+  "maximum_success_fee_eur": "10",
+  "all_job_cost_before_release_eur": "10.16",
+  "assumed_release_fee_per_tranche_eur": ".30",
+  "assumed_buyer_funding_fee_per_tranche_eur": ".20",
+  "assumed_refund_fee_per_unreleased_tranche_eur": ".30",
+  "collection_percent": ".02",
+  "collection_fixed_per_job_invoice_eur": ".20",
+  "masumi_network_fee_percent": ".05",
+  "fee_source": "https://www.masumi.network/dev/masumi/core-concepts/transaction-fees",
+  "fee_checked_date": "2026-10-31",
+  "fee_scope": "Official page states5% of selling price, separate ADA fees. Exact payer/incidence/refund semantics not verified by a payment receipt. Alternatives below are hypothetical commercial allocations.",
+  "distribution_values": {
+    "all_or_none": [
+      ".4",
+      "0",
+      "0",
+      ".6"
+    ],
+    "partial_mix": [
+      ".4",
+      ".2",
+      ".2",
+      ".2"
+    ],
+    "weak_retention": [
+      ".1",
+      ".6",
+      ".2",
+      ".1"
+    ],
+    "strong_retention": [
+      ".1",
+      ".1",
+      ".2",
+      ".6"
+    ]
+  },
+  "outcome_definition": "Probability mass at0,1,2,3 tranches released. Each remaining tranche refunded; no simulation of disputes, chain failure or actual invoice collection.",
+  "success_fee_definitions": {
+    "any_tranche": "Full10EUR if at least one tranche released",
+    "proportional": "10EUR times released fraction",
+    "all_tranches": "Full10EUR only if all three release"
+  },
+  "channels": {
+    "direct": "No external platform fee assumed",
+    "masumi_absorbed": "Service bears5% of its service selling price",
+    "masumi_buyer_surcharge": "Agency reimburses5% of service selling price outside our revenue; confirm actual platform terms before quoting"
+  },
+  "limitations": [
+    "Variable500EUR principal is a hypothetical deal, not supported by current fixed5tADA public offer.",
+    "Do not charge Masumi fees on creator principal merely because keeper service uses Masumi.",
+    "10.16EUR includes setup/data/labor/hosting/treasury/retry assumptions inherited from first base case, before expected successful releases.",
+    "Funding/refund fees are agency costs outside service contribution. Release fees are absorbed by service once, not also passed through.",
+    "No taxes, principal collection/payment fee, FX conversion, customer acquisition forecast, refunds of platform fees or independent audit costs quoted."
+  ]
+}
