@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildEscrows, escrowName, escrowUnits, parseTerms, type Campaign } from '../src/campaigns.js';
+import { buildEscrows, escrowName, escrowUnits, isWorkspaceKey, newId, ownerHashOf, parseTerms, type Campaign } from '../src/campaigns.js';
 
 // Pure rules only: the terms a brand states and the escrows they become. Nothing is paid, no service is started.
 const terms = (patch: Record<string, unknown> = {}) => ({ brand: 'Acme', title: 'Launch', creator: '@someone', milestones: [{ likes: 1 }, { likes: 2 }, { likes: 3 }], ...patch });
@@ -51,4 +51,22 @@ test('refusals: units, the limit of 8 escrows, an empty campaign, duplicate or b
   assert.throws(() => parseTerms(terms({ milestones: [{ likes: 2 }, { likes: 2 }] })), /same number of likes/);
   assert.throws(() => parseTerms(terms({ milestones: [{ likes: 0 }] })), /at least 1/);
   assert.throws(() => parseTerms(terms({ creator: 'not a handle!' })), /X handle/);
+});
+
+test('workspace keys: only long random-looking keys count, and only a hash is kept', () => {
+  const key = 'a1'.repeat(24);
+  assert.equal(isWorkspaceKey(key), true);
+  for (const bad of ['', 'short', 'x'.repeat(31), 'x'.repeat(129), 'has space ' + 'a'.repeat(30), 'semi;colon' + 'a'.repeat(30), undefined, null, 42]) assert.equal(isWorkspaceKey(bad), false);
+  const hash = ownerHashOf(key);
+  assert.match(hash, /^[0-9a-f]{64}$/);
+  assert.notEqual(hash, key);
+  assert.equal(ownerHashOf(key), hash);
+  assert.notEqual(ownerHashOf('b2'.repeat(24)), hash);
+});
+
+test('campaign and group ids are random, not a clock', () => {
+  const ids = new Set(Array.from({ length: 200 }, () => newId('cp')));
+  assert.equal(ids.size, 200);
+  for (const id of ids) assert.match(id, /^cp-[0-9a-f]{18}$/);
+  assert.match(newId('grp'), /^grp-[0-9a-f]{18}$/);
 });

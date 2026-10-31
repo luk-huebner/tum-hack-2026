@@ -154,6 +154,8 @@ export interface EngineTx {
 
 export interface Engine {
   generatedAt: string;
+  /** "workspace": campaign activity and signed data of this browser's campaigns are included; "public": chain data only. */
+  scope: "public" | "workspace";
   network: string;
   contract: { validatorHash: string; validatorAddress: string };
   keeper:
@@ -182,11 +184,42 @@ export interface BulkResult {
   skipped: { row: number; handle: string; reason: string }[];
 }
 
+const WORKSPACE = "creatorpay.workspace";
+
+/** A random key that stays in this browser. The campaigns created here are listed only to a browser that holds it (the server keeps a hash). */
+export const workspaceKey = (): string => {
+  try {
+    let key = localStorage.getItem(WORKSPACE);
+    if (!key || !/^[A-Za-z0-9_-]{32,128}$/.test(key)) {
+      key = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, "0")).join("");
+      localStorage.setItem(WORKSPACE, key);
+    }
+    return key;
+  } catch {
+    return ""; // storage blocked: no own list, invite links still work
+  }
+};
+
+/** The service did not answer: offline, not deployed, or a proxy error page. Not the same as "no campaigns". */
+export class ServiceUnreachable extends Error {}
+export const OFFLINE_TEXT = "CreatorPay can't be reached right now. Check your connection and try again in a moment.";
+export const describeError = (e: unknown) => (e instanceof ServiceUnreachable ? OFFLINE_TEXT : e instanceof Error ? e.message : String(e));
+
 const call = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const res = await fetch(`${BASE}${path}`, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok && !(body && typeof body === "object" && "verdict" in body)) throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
-  return body as T;
+  const key = workspaceKey();
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...init, headers: { "content-type": "application/json", ...(key ? { "x-workspace-key": key } : {}), ...(init?.headers ?? {}) } });
+  } catch {
+    throw new ServiceUnreachable(OFFLINE_TEXT);
+  }
+  const body = await res.json().catch(() => undefined);
+  const error = body && typeof body === "object" ? (body as { error?: string }).error : undefined;
+  if (!res.ok && !(body && typeof body === "object" && "verdict" in body)) {
+    if (typeof error !== "string") throw new ServiceUnreachable(OFFLINE_TEXT); // an error page, not an answer of the service
+    throw new Error(error);
+  }
+  return (body ?? {}) as T;
 };
 
 export const api = {
@@ -198,8 +231,8 @@ export const api = {
   /** Many influencers, one set of terms: `creators` is a list of X handles (or { handle }). */
   createCampaigns: (body: unknown) => call<BulkResult>("/api/cp/campaigns/bulk", { method: "POST", body: JSON.stringify(body) }),
   group: (id: string) => call<{ groupId: string; campaigns: Campaign[] }>(`/api/cp/groups/${encodeURIComponent(id)}`),
-  /** The creator's own view, by payout wallet or handle, optionally narrowed to one post (link or id). */
-  creator: (q: { wallet?: string; handle?: string; post?: string }) => call<Campaign[]>(`/api/cp/creator?${new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString()}`),
+  /** The creator's own view: by payout wallet, or by one post (link or id). */
+  creator: (q: { wallet?: string; post?: string }) => call<Campaign[]>(`/api/cp/creator?${new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]).toString()}`),
   engine: () => call<Engine>("/api/cp/engine"),
   cases: () => call<BenchCase[]>("/api/cases"),
   judge: (ref: string, response: unknown) => call<Verdict>("/api/judge", { method: "POST", body: JSON.stringify({ ref, response }) }),

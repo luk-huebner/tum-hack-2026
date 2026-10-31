@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Activity, CheckCircle2, Clock, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
-import { api, scanAddress, scanTx, type Engine, type EngineTx } from "../api";
+import { api, describeError, scanAddress, scanTx, type Engine, type EngineTx } from "../api";
 import { Badge, ErrorNote, Hash, SectionTitle, dateTimeOf, timeOf } from "../components/ui";
 
 const REFRESH_MS = 5000;
@@ -60,7 +60,7 @@ export default function EnginePage() {
         setData(d);
         setError(undefined);
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e: unknown) => setError(describeError(e)));
   }, []);
 
   useEffect(() => {
@@ -88,6 +88,11 @@ export default function EnginePage() {
 
       {data && (
         <div className="space-y-6">
+          {data.scope === "public" && (
+            <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-ink-mute">
+              You see the public chain data. The activity and signed data of a campaign appear in the browser that created it.
+            </p>
+          )}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Tile label="Campaigns" value={data.counts.campaigns} sub={Object.entries(data.counts.campaignStates).map(([s, n]) => `${n} ${s}`).join(" · ") || "none yet"} />
             <Tile label="Locked at the contract" value={`${data.counts.tadaLocked} tADA`} sub={`${data.counts.escrowStates.locked ?? 0} escrows`} />

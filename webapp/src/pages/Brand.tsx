@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { ArrowRight, Info, Plus, Trash2, X } from "lucide-react";
 import { useConfig } from "../App";
-import { api, scanAddress, type Campaign } from "../api";
+import { api, describeError, scanAddress, type Campaign } from "../api";
 import { Badge, CopyButton, ErrorNote, Hash, SectionTitle, dateTimeOf } from "../components/ui";
 
 export const statusBadge = (c: Campaign) => {
@@ -79,7 +79,7 @@ export default function Brand() {
     { likes: 3, label: "Takes off" },
   ]);
 
-  const load = () => api.campaigns().then(setCampaigns).catch((e: Error) => setError(e.message));
+  const load = () => api.campaigns().then(setCampaigns).catch((e: unknown) => setError(describeError(e)));
   useEffect(() => {
     void load();
     const t = setInterval(load, 5000);
@@ -114,7 +114,7 @@ export default function Brand() {
       await load();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setError((err as Error).message);
+      setError(describeError(err));
     } finally {
       setBusy(false);
     }
@@ -253,7 +253,9 @@ export default function Brand() {
         </form>
 
         <div className="min-w-0">
-          <SectionTitle eyebrow="Your campaigns" title={campaigns.length ? `${campaigns.length} campaign${campaigns.length > 1 ? "s" : ""}` : "No campaigns yet"} />
+          <SectionTitle eyebrow="Your campaigns" title={campaigns.length ? `${campaigns.length} campaign${campaigns.length > 1 ? "s" : ""}` : "No campaigns yet"}>
+            Only the campaigns created in this browser are listed. Creators open theirs from the invite link.
+          </SectionTitle>
           {created && (
             <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-proof/30 bg-proof/10 px-4 py-3 text-sm text-proof">
               <span>Campaign created. Send the invite link to the creator, or open it to follow along.</span>
