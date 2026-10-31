@@ -24,7 +24,8 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactCardanoScheme } from "@x402/cardano/exact/server";
 import { type SignedResponse, hexOf, loadVector, makeClient, paymentKeyHashHex, scriptAddress, scriptHash, sellerAddressBech32, waitForTip } from "./engine.js";
-import { startAutoRelease, type WatchStatus } from "./autorelease.js";
+import { startAutoRelease } from "./autorelease.js";
+import { campaignRoutes, onKeeperJob } from "./campaigns.js";
 import { type DemoParams, getRun, refusal, startDemoRun } from "./demo-run.js";
 import { ESCROW_LOVELACE, describeOffer, offerExtra, parseOffer, validatorAddressBech32 } from "./escrow.js";
 import { judgeRoutes, policySummary } from "./judge-routes.js";
@@ -71,6 +72,7 @@ const recordJob = (entry: Record<string, unknown>) => {
   const row = { at: new Date().toISOString(), ...entry };
   jobs.unshift(row);
   jobs.length = Math.min(jobs.length, 20);
+  onKeeperJob(row);
   try {
     mkdirSync(outDir, { recursive: true });
     appendFileSync(jobsFile, `${JSON.stringify(row)}\n`);
@@ -88,6 +90,16 @@ resourceServer.register(NETWORK, new ExactCardanoScheme());
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "64kb" }));
+// The web app (webapp/) may be served from another origin, for example a Vercel deployment: CORS_ORIGIN names it.
+if (process.env.CORS_ORIGIN) {
+  app.use((req, res, next) => {
+    res.setHeader("access-control-allow-origin", process.env.CORS_ORIGIN as string);
+    res.setHeader("access-control-allow-headers", "content-type");
+    res.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
+    if (req.method === "OPTIONS") return void res.sendStatus(204);
+    next();
+  });
+}
 
 app.use(
   paymentMiddleware(
@@ -311,10 +323,13 @@ app.get("/api/demo/run/:id", (req: Request, res: Response) => {
 });
 
 app.get("/api/watch", (_req, res) => void res.json(watcher?.status() ?? { enabled: false }));
+
+// Creator Pay campaigns for the web app (campaigns.ts): the brand's terms, the creator's post, one escrow per milestone
+app.use(campaignRoutes({ serviceUrl: demoDeps().serviceUrl, watcher: () => watcher }));
 app.get("/health", (_req, res) => void res.json({ ok: true }));
 app.use(express.static(webDir));
 
-let watcher: { status: () => WatchStatus } | undefined;
+let watcher: ReturnType<typeof startAutoRelease> | undefined;
 const port = Number(process.env.SERVICE_PORT ?? 4022);
 // Live demo runs spend the demo buyer's test funds, so with DEMO_BUYER=1 the service answers this computer only.
 const listenArgs: [number, string?] = process.env.DEMO_BUYER === "1" ? [port, "127.0.0.1"] : [port];

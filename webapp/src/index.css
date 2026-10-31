@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; color-scheme: dark; }
+  body {
+    @apply bg-night text-ink font-sans;
+    /* the deck's blurred swirl: an amber/orange glow, a rose band and a violet glow on near-black wine */
+    background-image:
+      radial-gradient(60rem 36rem at 105% -10%, rgba(117, 61, 222, 0.28), transparent 60%),
+      radial-gradient(50rem 30rem at -10% 15%, rgba(253, 99, 45, 0.18), transparent 60%),
+      radial-gradient(70rem 40rem at 50% 120%, rgba(211, 61, 106, 0.22), transparent 60%),
+      linear-gradient(180deg, #170b11 0%, #0f070b 50%, #12080d 100%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .card { @apply rounded-2xl border border-white/10 bg-white/[0.055] shadow-card backdrop-blur-md; }
+  .bg-grad { background-image: linear-gradient(90deg, #ffbc15 0%, #fd632d 30%, #eb4048 52%, #d33d6a 70%, #753dde 100%); }
+  .text-grad { @apply bg-clip-text text-transparent; background-image: linear-gradient(90deg, #ffbc15 0%, #fd632d 30%, #eb4048 52%, #d33d6a 70%, #753dde 100%); }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50; }
+  /* buttons start at orange, not amber, so white labels stay readable */
+  .bg-grad-btn { background-image: linear-gradient(90deg, #f05a2c 0%, #e03a4c 38%, #c4367a 66%, #6d3bd4 100%); }
+  .btn-primary { @apply btn bg-grad-btn text-white shadow-[0_8px_24px_rgba(211,61,106,.35)] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400; }
+  .btn-ghost { @apply btn border border-white/15 bg-white/5 text-ink hover:border-white/25 hover:bg-white/10; }
+  .label { @apply mb-1.5 block text-sm font-semibold text-ink-soft; }
+  .input { @apply w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-ink placeholder:text-white/35 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/25; }
+  .hint { @apply mt-1 text-xs text-ink-mute; }
+  .mono { @apply font-mono text-[0.8rem]; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[0.14em] text-ink-mute; }
+}
+
+@keyframes pulse-ring { 0% { transform: scale(.8); opacity: .7 } 80%, 100% { transform: scale(2.2); opacity: 0 } }
+.pulse-dot { position: relative; }
+.pulse-dot::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: currentColor; animation: pulse-ring 1.6s cubic-bezier(.2,.6,.4,1) infinite; }
+@keyframes pop { 0% { transform: scale(1) } 40% { transform: scale(1.12) } 100% { transform: scale(1) } }
+.pop { animation: pop .5s ease-out; }
