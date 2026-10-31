@@ -1,0 +1,14 @@
+Transaction eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee: https://preprod.cardanoscan.io/transaction/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+✔ timeout persists unknown and suppresses retry (4.346146ms)
+✔ late confirmation cannot be downgraded by outage (4.522362ms)
+✔ 404 needs chain tip past TTL to become expired (2.439534ms)
+✔ optional metadata has valid CIP-20 shape (0.28536ms)
+✔ hash journaled before submit despite lost reply (2.448587ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1331.524329

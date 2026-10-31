@@ -1,3 +1,4 @@
+import { trackExternal, recordTransaction, reconcile } from "./tx-tracking.js";
 /**
  * Client for the escrow route: pay by x402 and have the payment locked straight into the Pay-on-Proof validator.
  *
@@ -119,8 +120,11 @@ const baseSigner = toClientCardanoSigner({
 const TTL_MARGIN_SECONDS = 120;
 const signer = {
   ...baseSigner,
-  buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
-    baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) }),
+  buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
+    { const built = await baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) });
+      trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "escrow-client.ts", !values["build-only"]);
+      return built;
+    },
 };
 
 if (values.dry) {
@@ -162,11 +166,12 @@ if (values.dry) {
   try {
     response = await wrapFetchWithPayment(lossyFetch, client)(url, request);
   } catch (error) {
-    if (!values["drop-response"]) throw error;
+    // Any transport failure may follow broadcast, not only the injected fault.
     console.log(`The connection dropped after the payment was sent (${(error as Error).name}). The buyer does not know whether it settled; looking for the escrow at the validator by its datum.`);
     const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 240_000);
+    if (found) await reconcile(hexOf(found.transactionId.hash)); // the journal learns that it landed
     if (found) console.log(`The escrow IS at the validator: ${hexOf(found.transactionId.hash)}#${Number(found.index)}. Nothing was lost; the seller's keeper will release it, or the buyer can refund it after the deadline.`);
-    else console.log("No escrow appeared at the validator within 4 minutes: the payment did not settle, so nothing was charged.");
+    else console.log("No unspent escrow was found within 4 minutes. Payment status is UNKNOWN; it may already be spent or the provider unavailable. Inspect the journal before paying again.");
     process.exit(0);
   }
   console.log(`HTTP ${response.status} after ${((Date.now() - started) / 1000).toFixed(1)} s`);
@@ -177,13 +182,18 @@ if (values.dry) {
     // transaction lands anyway (seen on 30 Oct: HTTP 402 after 61 s, escrow on chain). Look before saying so.
     console.log(`\nThe service answered HTTP ${response.status}. That does not prove the payment failed; looking for the escrow at the validator by its datum.`);
     const found = await findByDatum(makeClient("MNEMONIC"), String(requirement.extra?.datum), 150_000);
+    if (found) await reconcile(hexOf(found.transactionId.hash)); // the journal learns that it landed
     if (found) console.log(`The payment DID settle: the escrow is at the validator as ${hexOf(found.transactionId.hash)}#${Number(found.index)}.`);
-    else console.log("No escrow appeared: nothing was charged.");
+    else console.log("No unspent escrow found. Payment status is UNKNOWN; do not pay again before reconciling the recorded hash.");
     process.exitCode = found ? 0 : 1;
   } else {
     const receipt = new x402HTTPClient(client).getPaymentSettleResponse((name) => response.headers.get(name));
     const txHash = receipt?.transaction;
-    console.log(`\nPayment (settled by the facilitator): https://preprod.cardanoscan.io/transaction/${txHash}`);
+    if (txHash && /^[a-f0-9]{64}$/.test(txHash)) {
+      recordTransaction(txHash, { state: "submitted", operation: "lock", source: "escrow-client.ts" });
+      await reconcile(txHash);
+      console.log(`\nPayment: https://preprod.cardanoscan.io/transaction/${txHash}`);
+    } else console.log("No valid transaction hash in receipt; inspect the write-ahead journal.");
     // The payment output at the validator is the policy UTxO. Look for it by the payment's transaction hash.
     const wallet = makeClient("MNEMONIC");
     for (let attempt = 0; attempt < 24 && txHash; attempt++) {

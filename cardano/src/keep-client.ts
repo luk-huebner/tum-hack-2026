@@ -1,3 +1,5 @@
+import { trackExternal } from "./tx-tracking.js";
+import { Transaction } from "@evolution-sdk/evolution";
 /**
  * Client for the paid keeper job: an agent that hires the Pay-on-Proof keeper and pays per request with x402 on preprod.
  *
@@ -70,8 +72,7 @@ async function hire() {
   const TTL_MARGIN_SECONDS = 120;
   const signer = {
     ...baseSigner,
-    buildAndSignPaymentTransaction: (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) =>
-      baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) }),
+    buildAndSignPaymentTransaction: async (input: Parameters<typeof baseSigner.buildAndSignPaymentTransaction>[0]) => { const built = await baseSigner.buildAndSignPaymentTransaction({ ...input, maxTimeoutSeconds: Math.max(60, input.maxTimeoutSeconds - TTL_MARGIN_SECONDS) }); trackExternal(Transaction.fromCBORBytes(Buffer.from(built.transaction, "base64")), "keep-client.ts", true); return built; },
   };
   client.register("cardano:*", new ExactCardanoScheme(signer));
 

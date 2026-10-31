@@ -1,3 +1,4 @@
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Creator Pay shape on Cardano preprod, with a REAL signed AirnodeHub response about a tweet.
  *
@@ -88,7 +89,7 @@ if (step === "lock") {
   for (const threshold of [300_000, 400_000]) {
     builder = builder.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(policyFor(threshold, nowMs))) });
   }
-  const submitted = await (await builder.build()).signAndSubmit();
+  const submitted = await submitTracked((await builder.build()), { source: "creator-demo.ts" });
   const hash = hexOf(submitted.hash);
   console.log(`lock submitted: ${hash}`);
   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet");
@@ -122,7 +123,7 @@ if (step === "lock") {
   const lock = readLock();
   const from = Math.max(signedMs + 2_000, Date.now() - 60_000);
   await waitForTip(from + 2_000);
-  const submitted = await (await tx(await found(lock.txHash, lock.indexes[0]), response, from, from + 10 * 60_000)).signAndSubmit();
+  const submitted = await submitTracked((await tx(await found(lock.txHash, lock.indexes[0]), response, from, from + 10 * 60_000)), { source: "creator-demo.ts" });
   const hash = hexOf(submitted.hash);
   console.log(`release submitted: ${hash}`);
   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet");

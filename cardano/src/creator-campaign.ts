@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 /**
  * Pay a creator in tranches. The shape of the split is yours: a ladder of milestones, a payment for delivery plus a bonus, or
  * a part after the campaign and a part only if the post is still there later.
@@ -184,6 +185,8 @@ if (!values.lock) {
 }
 
 console.log(`\nlocking ${escrows.length} escrows (${total} tADA), one x402 payment after the other (about a minute each)...`);
+const campaign = process.env.CREATORPAY_CAMPAIGN ?? createHash("sha256").update(JSON.stringify({ source, payee, t0, escrows })).digest("hex");
+console.log(`campaign: ${campaign}`);
 const refs: string[] = [];
 for (const [i, e] of escrows.entries()) {
   const now = Date.now();
@@ -196,7 +199,7 @@ for (const [i, e] of escrows.entries()) {
     "--payee", payee,
   ];
   try {
-    const { stdout } = await run(process.execPath, args, { cwd: cardanoDir, timeout: 420_000, maxBuffer: 16 * 1024 * 1024 });
+    const { stdout } = await run(process.execPath, args, { cwd: cardanoDir, env: { ...process.env, CREATORPAY_CAMPAIGN: campaign }, timeout: 420_000, maxBuffer: 16 * 1024 * 1024 });
     const ref = /Policy UTxO at the validator: (\S+)/.exec(stdout)?.[1];
     if (!ref) throw new Error(stdout.split("\n").slice(-4).join(" | "));
     refs.push(ref);

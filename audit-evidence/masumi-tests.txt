@@ -1,0 +1,25 @@
+PASS  availability
+PASS  input_schema has one string field
+PASS  a short identifier is refused
+PASS  an input with another key is refused
+PASS  a bad escrow reference is refused
+PASS  an escrow the keeper does not serve is refused, and no payment was requested  The keeper does not serve this escrow
+PASS  an escrow too close to its deadline is refused
+PASS  start_job answers with the payment fields
+PASS  the payment request asks for tUSDM and carries the input hash
+PASS  the submit time is the escrow's deadline minus 5 minutes, ahead of payByTime
+PASS  the same identifier and input returns the same answer, no second payment
+PASS  the same identifier with another input is refused
+PASS  status: awaiting_payment
+PASS  status: running once the funds are locked
+PASS  still running while the escrow is open
+PASS  status: completed with a result
+PASS  the result names the release transaction
+PASS  the hash that was submitted is sha256(nonce;result)
+PASS  the agent called only the three payment-service routes
+PASS  an unpaid job fails after the pay-by time
+PASS  status refuses a bad id and an unknown id
+PASS  without a payment service start_job answers 503
+PASS  and availability says unavailable
+
+all checks passed

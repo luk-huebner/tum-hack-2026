@@ -1,0 +1,847 @@
+    Compiling tum/airnode_spike 0.0.0 (.)
+    Resolving tum/airnode_spike
+   Downloaded 1 package in 12.50s from network
+    Compiling aiken-lang/stdlib v4.0.0 (./build/packages/aiken-lang-stdlib)
+   Collecting all tests scenarios across all modules
+      Testing ...
+{
+  "seed": 2573122736,
+  "summary": {
+    "total": 78,
+    "passed": 78,
+    "failed": 0,
+    "kind": {
+      "unit": 78,
+      "property": 0
+    }
+  },
+  "modules": [
+    {
+      "name": "airnode",
+      "summary": {
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "kind": {
+          "unit": 8,
+          "property": 0
+        }
+      },
+      "tests": [
+        {
+          "title": "message_hash_matches_node",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 2743,
+            "cpu": 7719150
+          }
+        },
+        {
+          "title": "document_vector_verifies",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 2852,
+            "cpu": 50759638
+          }
+        },
+        {
+          "title": "tamper_edited_value_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 3453,
+            "cpu": 50931687
+          }
+        },
+        {
+          "title": "tamper_other_request_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 3453,
+            "cpu": 50931687
+          }
+        },
+        {
+          "title": "tamper_wrong_signer_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 3453,
+            "cpu": 50931687
+          }
+        },
+        {
+          "title": "tamper_moved_timestamp_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 3453,
+            "cpu": 50931687
+          }
+        },
+        {
+          "title": "device_signature_verifies",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 710,
+            "cpu": 53523210
+          }
+        },
+        {
+          "title": "device_tampered_reading_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1311,
+            "cpu": 53695259
+          }
+        }
+      ]
+    },
+    {
+      "name": "creator_post.test",
+      "summary": {
+        "total": 5,
+        "passed": 5,
+        "failed": 0,
+        "kind": {
+          "unit": 5,
+          "property": 0
+        }
+      },
+      "tests": [
+        {
+          "title": "real_post_with_pinned_author_and_text_releases",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 154564,
+            "cpu": 104921827
+          }
+        },
+        {
+          "title": "one_like_required_but_the_post_has_none_is_refused",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 167489,
+            "cpu": 109379207
+          }
+        },
+        {
+          "title": "a_changed_author_or_text_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 105780,
+            "cpu": 88679445
+          }
+        },
+        {
+          "title": "a_response_signed_before_the_measurement_time_does_not_count",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 73927,
+            "cpu": 24958149
+          }
+        },
+        {
+          "title": "a_response_signed_after_the_measurement_time_counts",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 168084,
+            "cpu": 109620333
+          }
+        }
+      ]
+    },
+    {
+      "name": "engine.test",
+      "summary": {
+        "total": 33,
+        "passed": 33,
+        "failed": 0,
+        "kind": {
+          "unit": 33,
+          "property": 0
+        }
+      },
+      "tests": [
+        {
+          "title": "real_rain_window_below_30mm_releases",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 907843,
+            "cpu": 313560915
+          }
+        },
+        {
+          "title": "rule_not_met_when_threshold_is_20mm",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 920768,
+            "cpu": 318018295
+          }
+        },
+        {
+          "title": "at_least_rule_holds_for_20mm",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 919635,
+            "cpu": 317681643
+          }
+        },
+        {
+          "title": "one_day_sum_d11_is_10mm",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 342053,
+            "cpu": 157708424
+          }
+        },
+        {
+          "title": "one_day_sum_d00_is_below_10mm",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 274057,
+            "cpu": 138814715
+          }
+        },
+        {
+          "title": "tamper_edited_value_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 193133,
+            "cpu": 112322612
+          }
+        },
+        {
+          "title": "tamper_stale_response_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 101644,
+            "cpu": 34428516
+          }
+        },
+        {
+          "title": "tamper_different_request_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 189487,
+            "cpu": 111666544
+          }
+        },
+        {
+          "title": "tamper_wrong_signer_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 188291,
+            "cpu": 111253369
+          }
+        },
+        {
+          "title": "attestation_from_the_future_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 96428,
+            "cpu": 32204992
+          }
+        },
+        {
+          "title": "window_not_yet_settled_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 109247,
+            "cpu": 36715449
+          }
+        },
+        {
+          "title": "release_after_deadline_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 120942,
+            "cpu": 41484850
+          }
+        },
+        {
+          "title": "missing_slot_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 120737,
+            "cpu": 37163727
+          }
+        },
+        {
+          "title": "parse_two_decimals",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 47285,
+            "cpu": 12589579
+          }
+        },
+        {
+          "title": "parse_pads_missing_decimals",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 40266,
+            "cpu": 10598879
+          }
+        },
+        {
+          "title": "parse_integer",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 36859,
+            "cpu": 9818528
+          }
+        },
+        {
+          "title": "parse_zero",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 47285,
+            "cpu": 12589579
+          }
+        },
+        {
+          "title": "parse_too_many_decimals_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 40471,
+            "cpu": 12275550
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "more decimals than the scale"
+          ]
+        },
+        {
+          "title": "parse_two_dots_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 20200,
+            "cpu": 6317056
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "two dots"
+          ]
+        },
+        {
+          "title": "parse_letters_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 144,
+            "cpu": 569303
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "not a decimal"
+          ]
+        },
+        {
+          "title": "parse_empty_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 136,
+            "cpu": 316362
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "no digits"
+          ]
+        },
+        {
+          "title": "parse_lone_dot_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 147,
+            "cpu": 763552
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "no digits"
+          ]
+        },
+        {
+          "title": "parse_negative_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 143,
+            "cpu": 525466
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "not a decimal"
+          ]
+        },
+        {
+          "title": "real_price_with_a_fresh_observation_releases",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 340741,
+            "cpu": 155620095
+          }
+        },
+        {
+          "title": "the_same_price_releases_without_an_observation_check",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 217413,
+            "cpu": 120455984
+          }
+        },
+        {
+          "title": "observation_slot_beyond_the_signed_slots_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 69689,
+            "cpu": 23254749
+          }
+        },
+        {
+          "title": "observation_slot_that_is_not_an_integer_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 169559,
+            "cpu": 107641513
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "more decimals than the scale"
+          ]
+        },
+        {
+          "title": "observation_exactly_at_the_age_limit_is_fresh",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1001,
+            "cpu": 220149
+          }
+        },
+        {
+          "title": "observation_one_millisecond_too_old_is_stale",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1802,
+            "cpu": 424198
+          }
+        },
+        {
+          "title": "an_hour_old_observation_signed_just_now_is_stale",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1802,
+            "cpu": 424198
+          }
+        },
+        {
+          "title": "observation_within_the_signing_second_is_fresh",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1001,
+            "cpu": 220149
+          }
+        },
+        {
+          "title": "observation_from_the_future_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1802,
+            "cpu": 424198
+          }
+        },
+        {
+          "title": "tampered_observation_time_breaks_the_signature",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 84559,
+            "cpu": 78940415
+          }
+        }
+      ]
+    },
+    {
+      "name": "lunar_youtube.test",
+      "summary": {
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "kind": {
+          "unit": 8,
+          "property": 0
+        }
+      },
+      "tests": [
+        {
+          "title": "real_youtube_views_at_least_one_million_releases",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 207218,
+            "cpu": 116618166
+          }
+        },
+        {
+          "title": "views_exactly_at_the_threshold_release",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 219542,
+            "cpu": 120903497
+          }
+        },
+        {
+          "title": "one_view_short_of_the_threshold_is_refused",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 220143,
+            "cpu": 121075546
+          }
+        },
+        {
+          "title": "the_likes_slot_alone_can_be_the_rule",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 197796,
+            "cpu": 114764031
+          }
+        },
+        {
+          "title": "edited_view_count_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 93074,
+            "cpu": 81704427
+          }
+        },
+        {
+          "title": "a_response_for_another_video_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 95830,
+            "cpu": 82684358
+          }
+        },
+        {
+          "title": "wrong_signer_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 94634,
+            "cpu": 82271183
+          }
+        },
+        {
+          "title": "stale_response_is_rejected",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 62792,
+            "cpu": 21495486
+          }
+        }
+      ]
+    },
+    {
+      "name": "pay_on_proof",
+      "summary": {
+        "total": 23,
+        "passed": 23,
+        "failed": 0,
+        "kind": {
+          "unit": 23,
+          "property": 0
+        }
+      },
+      "tests": [
+        {
+          "title": "release_with_payment_passes",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1058001,
+            "cpu": 367609817
+          }
+        },
+        {
+          "title": "release_without_payment_fails",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1030452,
+            "cpu": 358404842
+          }
+        },
+        {
+          "title": "release_that_underpays_fails",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1060166,
+            "cpu": 368236523
+          }
+        },
+        {
+          "title": "release_paying_someone_else_fails",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1045913,
+            "cpu": 364138955
+          }
+        },
+        {
+          "title": "two_policies_in_one_transaction_with_one_payment_fails",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 136243,
+            "cpu": 48184051
+          }
+        },
+        {
+          "title": "two_policies_in_one_transaction_fail_even_when_both_are_paid",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 146053,
+            "cpu": 50760572
+          }
+        },
+        {
+          "title": "a_release_with_only_wallet_inputs_besides_its_own_passes",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1076845,
+            "cpu": 374926271
+          }
+        },
+        {
+          "title": "value_locked_above_the_payout_cannot_be_kept_by_the_submitter",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1060166,
+            "cpu": 368236523
+          }
+        },
+        {
+          "title": "paying_the_whole_locked_amount_passes",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1058001,
+            "cpu": 367609817
+          }
+        },
+        {
+          "title": "a_release_that_does_not_spend_its_own_input_halts",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 65526,
+            "cpu": 23615827
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "expect Some(own_input) = transaction.find_input(self.inputs, own_ref)"
+          ]
+        },
+        {
+          "title": "refund_after_deadline_with_signature_passes",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 69238,
+            "cpu": 22910978
+          }
+        },
+        {
+          "title": "refund_before_deadline_fails",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 58781,
+            "cpu": 18799516
+          }
+        },
+        {
+          "title": "refund_without_the_refund_signature_fails",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 71403,
+            "cpu": 23537684
+          }
+        },
+        {
+          "title": "a_payment_to_a_script_credential_with_the_beneficiarys_hash_does_not_count",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1045913,
+            "cpu": 364138955
+          }
+        },
+        {
+          "title": "a_payment_with_another_stake_credential_still_counts",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1061785,
+            "cpu": 368853961
+          }
+        },
+        {
+          "title": "the_policys_own_input_may_come_after_wallet_inputs",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1061895,
+            "cpu": 370187294
+          }
+        },
+        {
+          "title": "a_release_may_spend_an_input_of_another_script_too",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1076977,
+            "cpu": 374953454
+          }
+        },
+        {
+          "title": "a_refund_may_send_the_money_anywhere",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 80267,
+            "cpu": 26403642
+          }
+        },
+        {
+          "title": "at_exactly_the_deadline_instant_a_release_is_still_valid",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 1090295,
+            "cpu": 378219424
+          }
+        },
+        {
+          "title": "at_exactly_the_deadline_instant_a_refund_is_also_valid",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 101932,
+            "cpu": 33584585
+          }
+        },
+        {
+          "title": "one_millisecond_after_the_deadline_only_the_refund_is_valid",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 309457,
+            "cpu": 108355538
+          }
+        },
+        {
+          "title": "a_missing_datum_makes_a_release_halt",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 43438,
+            "cpu": 13136727
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "expect Some(policy) = datum"
+          ]
+        },
+        {
+          "title": "a_missing_datum_makes_a_refund_halt",
+          "status": "pass",
+          "on_failure": "succeed_eventually",
+          "execution_units": {
+            "mem": 21512,
+            "cpu": 6553218
+          },
+          "traces": [
+            "the validator crashed / exited prematurely",
+            "expect Some(policy) = datum"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "smoke",
+      "summary": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "kind": {
+          "unit": 1,
+          "property": 0
+        }
+      },
+      "tests": [
+        {
+          "title": "smoke",
+          "status": "pass",
+          "on_failure": "fail_immediately",
+          "execution_units": {
+            "mem": 200,
+            "cpu": 16100
+          }
+        }
+      ]
+    }
+  ]
+}
+      Summary 78 checks, 0 errors, 0 warnings

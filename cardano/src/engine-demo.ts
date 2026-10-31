@@ -1,3 +1,4 @@
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Pay-on-Proof on Cardano preprod, end to end, with a REAL signed AirnodeHub response.
  *
@@ -163,7 +164,7 @@ if (step === "lock") {
   let tx = client.newTx();
   for (const c of list) tx = tx.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(c.policy)) });
   const built = await tx.build();
-  const submitted = await built.signAndSubmit();
+  const submitted = await submitTracked(built, { source: "engine-demo.ts" });
   const hash = hexOf(submitted.hash);
   console.log(`lock transaction submitted: ${hash}`);
   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
@@ -182,7 +183,7 @@ if (step === "lock") {
   ];
   let tx = client.newTx();
   for (const c of benchCases) tx = tx.payToAddress({ address: scriptAddress, assets: lovelace(5_000_000n), datum: inlineDatum(policyData(c.policy)) });
-  const submitted = await (await tx.build()).signAndSubmit();
+  const submitted = await submitTracked((await tx.build()), { source: "engine-demo.ts" });
   const hash = hexOf(submitted.hash);
   console.log(`bench lock submitted: ${hash}`);
   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
@@ -222,7 +223,7 @@ if (step === "lock") {
   const utxo = await findUtxo(lock.txHash, c.index);
   const now = Date.now();
   const built = await releaseTx(utxo, { fromMs: now - 60_000, toMs: now + 15 * 60_000 });
-  const submitted = await built.signAndSubmit();
+  const submitted = await submitTracked(built, { source: "engine-demo.ts" });
   const hash = hexOf(submitted.hash);
   console.log(`release submitted: ${hash}`);
   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");
@@ -244,7 +245,7 @@ if (step === "lock") {
     // Slots are whole seconds and round down, so start one second after the deadline to satisfy lower >= deadline.
     .setValidity({ from: BigInt(fromMs), to: BigInt(now + 15 * 60_000) })
     .build();
-  const submitted = await built.signAndSubmit();
+  const submitted = await submitTracked(built, { source: "engine-demo.ts" });
   const hash = hexOf(submitted.hash);
   console.log(`refund submitted: ${hash}`);
   console.log((await waitForTx(hash)) ? "confirmed in a block" : "not confirmed yet (check the explorer)");

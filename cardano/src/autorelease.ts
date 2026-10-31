@@ -1,3 +1,4 @@
+import { submitTracked, pendingFor, reconcile } from "./tx-tracking.js";
 /**
  * The seller's keeper: watches the validator for policies that pay this service and releases them when the data proves the
  * rule. Nobody starts a cycle and nobody names a policy: it finds them.
@@ -169,7 +170,8 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
     }
     for (const [ref, s] of submitted) {
       if (!onChain.has(ref)) {
-        log({ event: "spent-on-chain", ref, tx: s.tx, note: "the release is no longer at the validator, so it landed" });
+        log({ event: "spent-on-chain", ref, tx: s.tx, note: "escrow absent from this scan; this alone does not identify its spending transaction" });
+        await reconcile(s.tx);
         submitted.delete(ref);
         firstSeen.delete(ref);
         attempts.delete(ref);
@@ -181,7 +183,9 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
 
     const ruleOf = (m: (typeof mine)[number]) => m.known.describe(m.policy.threshold / 10 ** m.policy.scale);
     const gaveUp = (ref: string) => (attempts.get(ref) ?? 0) >= MAX_RELEASE_ATTEMPTS;
-    const open = mine.filter((m) => m.policy.deadlineMs - now >= MIN_TIME_LEFT_MS && !submitted.has(m.ref) && !gaveUp(m.ref) && !stopChecking.has(m.ref));
+    const pendingRefs = new Set<string>();
+    for (const m of mine) if (await pendingFor(m.ref)) pendingRefs.add(m.ref);
+    const open = mine.filter((m) => m.policy.deadlineMs - now >= MIN_TIME_LEFT_MS && !submitted.has(m.ref) && !pendingRefs.has(m.ref) && !gaveUp(m.ref) && !stopChecking.has(m.ref));
     status.lastCycleAt = new Date(now).toISOString();
     status.faultsLeft = faultsLeft();
     status.candidates = mine
@@ -190,7 +194,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
         ref: m.ref,
         rule: ruleOf(m),
         deadline: new Date(m.policy.deadlineMs).toISOString(),
-        state: submitted.has(m.ref) ? "released" : gaveUp(m.ref) ? "gave-up" : stopChecking.has(m.ref) ? "settled-not-met" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : m.policy.settleAfterMs > now ? "waiting-for-window" : "watching",
+        state: submitted.has(m.ref) || pendingRefs.has(m.ref) ? "releasing" : gaveUp(m.ref) ? "gave-up" : stopChecking.has(m.ref) ? "settled-not-met" : m.policy.deadlineMs <= now ? "expired" : m.policy.deadlineMs - now < MIN_TIME_LEFT_MS ? "deadline-close" : m.policy.settleAfterMs > now ? "waiting-for-window" : "watching",
       }));
     if (open.length === 0) return;
     // The node's script evaluation can be blind to outputs that are seconds old, including this wallet's change from the release
@@ -287,7 +291,7 @@ export const startAutoRelease = (options: AutoReleaseOptions) => {
       }
       fault("evaluate", "Script evaluation failed: injected fault (a blind evaluator looks just like this)");
       const tx = await bounded(
-        (async () => hexOf((await (await releaseTx(client, m.utxo, m.policy, response, window)).signAndSubmit()).hash))(),
+        (async () => hexOf((await submitTracked((await releaseTx(client, m.utxo, m.policy, response, window)), { source: "autorelease.ts" })).hash))(),
         90_000,
         "building and sending the release",
       );

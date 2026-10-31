@@ -1,3 +1,4 @@
+import { submitTracked } from "./tx-tracking.js";
 /**
  * Pay-on-Proof service on Cardano preprod: one process, two jobs.
  *
@@ -150,7 +151,7 @@ app.post("/api/keep", async (req: Request, res: Response) => {
     }
     const window = submitWindow(policy, check.signedMs);
     await waitForTip(window.from + 2_000, 120_000);
-    const submitted = await (await releaseTx(client, utxo, policy, response, window)).signAndSubmit();
+    const submitted = await submitTracked((await releaseTx(client, utxo, policy, response, window)), { source: "service.ts" });
     const tx = hexOf(submitted.hash);
     recordJob({ ref, source: source.spec, outcome: "released", tx, value: check.value, seconds: Math.round((Date.now() - started) / 1000) });
     return void res.json({
