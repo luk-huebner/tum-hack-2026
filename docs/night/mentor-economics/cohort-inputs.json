@@ -1,0 +1,80 @@
+{
+  "classification": "Synthetic cohort/admission and support sensitivity; no observed load, forecast or SLA",
+  "checked_date": "2026-10-31",
+  "application_base": "82d88dc63341e8498b4728e3bd2f3996aa560a5e",
+  "main_observed": "1cb0272d9d31f74ee55cd307e52824c65d9432eb",
+  "main_change": "TRUST.md refund-authorization wording only; relevant application source unchanged",
+  "source_rules": {
+    "one_selected_release": "cardano/src/autorelease.ts:270-276",
+    "confirmation_wait_then_45s_cooldown": "cardano/src/autorelease.ts:299-301",
+    "normal_loop_20s_sleep": "cardano/src/autorelease.ts:97,317-330",
+    "paid_minimum_fetch_gap_60s": "cardano/src/autorelease.ts:226",
+    "fresh_results_local_to_cycle": "cardano/src/autorelease.ts:203-206,228-250",
+    "one_validator_input_per_release": "aiken/airnode_spike/validators/pay_on_proof.ak:38-49,77"
+  },
+  "cohort_posts": [
+    1,
+    10,
+    25,
+    100
+  ],
+  "tranches_due_together": [
+    1,
+    2,
+    3
+  ],
+  "usable_release_window_minutes": [
+    10,
+    60,
+    180
+  ],
+  "submission_spacing_seconds": [
+    60,
+    90
+  ],
+  "spacing_meaning": {
+    "60": "Idealized zero-latency20s ticks with45s cooldown:ceil(45/20)*20=60. This is a scenario, not a universal lower bound; real RPC work changes tick phase.",
+    "90": "Illustrative30s confirmation plus60s tick/cooldown pacing. Not a measured production latency."
+  },
+  "source_and_order_assumptions": [
+    "Every post has a distinct paid source; all conditions already hold at start.",
+    "All due policies have the same deadline and stable source order; first source finishes its due tranches before next. Actual equal-deadline ordering not guaranteed.",
+    "No static-source stop, outages, failed submissions, fresh-policy delay, stale proof or new arrivals.",
+    "Each cycle checks every remaining due source once, then releases one policy. No persistent proof reuse is modeled.",
+    "Spacing>=60s lets each paid source pass the minimum fetch gap. Real cycles can be slower.",
+    "Window is usable time before keeper stop, which itself is3min before contractual deadline. First submission at t=0 is optimistic.",
+    "Global budgets compare30 looks (0.3aUSD default magnitude) and60 looks per admitted post. Neither is an implemented per-tenant allocation.",
+    "Token costs remain aUSD test magnitudes, not USD or EUR."
+  ],
+  "support_assumptions": {
+    "service_hours_month": 100,
+    "fixed_overhead_eur": 3000,
+    "loaded_eur_hour": 35,
+    "nonlabor_eur_job": "1.95",
+    "success_probability": ".6",
+    "collection_percent": ".02",
+    "masumi_share_options": [
+      "0",
+      ".05"
+    ],
+    "labor_minutes_job": [
+      5,
+      10,
+      15,
+      30
+    ],
+    "jobs_month": [
+      50,
+      100,
+      200,
+      350,
+      400,
+      600
+    ],
+    "pricing": [
+      "9EUR+10EUR_success",
+      "199EUR_10posts_full_use"
+    ],
+    "notes": "All-or-none three-tranche base case held fixed. Labor includes allocated onboarding+support; nonlabor includes expected release/data/retry/hosting/treasury. This is not jointly calibrated to queue outcomes."
+  }
+}
