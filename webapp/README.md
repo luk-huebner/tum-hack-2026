@@ -57,6 +57,15 @@ An escrow now has `kind` (`"posting"` pays as soon as the post is live, threshol
 
 The budget is counted in 5 tADA units (the escrow route's fixed amount): for one creator, a posting payment plus likes 1, 2 and 3 is 4 units, 20 tADA. Percentages other than multiples of one unit are not possible yet.
 
+## Who sees what (no accounts yet)
+
+- A campaign opens from its **link** (`/c/<id>`): the id is random, so the link is the secret the brand sends to the creator.
+- A brand lists **only the campaigns created in its own browser**. The browser keeps a random workspace key (`localStorage`, sent as the `x-workspace-key` header); the server stores only a hash of it. Another browser, or no key, gets an empty list. The Brand page says so. Clear the browser data and the list is gone (the invite links still work).
+- A creator has no list of everybody's campaigns. They open their invite link, or find their campaigns by the **payout wallet** they submitted or the **link to their post** (`GET /api/cp/creator?wallet=` or `?post=`). There is no lookup by handle: without a login it would show offers to anyone who types the handle.
+- `GET /api/cp/engine` shows transactions and the keeper to everyone (public chain data); the campaign activity and signed data only to the workspace that created the campaigns.
+- When the service cannot be reached (offline, or a proxy error page), the pages say "CreatorPay can't be reached right now" with a retry, not "HTTP 404", and not "no campaigns".
+- This is a demo-grade separation, not security: anyone who has an invite link can open that campaign, and a stolen workspace key lists that brand's campaigns. Real accounts are future work.
+
 ## Limits
 
 - One 5 tADA escrow per milestone (the escrow route's fixed amount), each a separate x402 payment, locked one after the other.

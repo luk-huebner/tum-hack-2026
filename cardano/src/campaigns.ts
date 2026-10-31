@@ -16,6 +16,7 @@ import { explorer, latestTransactions, reconcile, trackExternal } from "./tx-tra
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { execFile } from "node:child_process";
+import { createHash, randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Router, type Request, type Response } from "express";
@@ -82,6 +83,8 @@ export interface Campaign {
   posting?: { units: number; label?: string };
   /** Set when the brand imported many creators at once: every campaign of the import shares it. */
   groupId?: string;
+  /** sha256 of the workspace key of the browser that created the campaign. Never sent to a client. */
+  ownerHash?: string;
   likesMode: "increase" | "absolute";
   durationMinutes: number;
   measureLastMinutes?: number;
@@ -201,6 +204,18 @@ export const buildEscrows = (c: Pick<Campaign, "milestones" | "posting" | "likes
 export const escrowName = (e: Escrow) => {
   const base = e.kind === "posting" ? (e.label ?? "The posting payment") : `Milestone ${e.milestone + 1}`;
   return (e.units ?? 1) > 1 ? `${base} (${(e.unit ?? 0) + 1} of ${e.units})` : base;
+};
+
+// ---------------------------------------------------------------------------
+// Who may list what. A campaign opens by its link (a random id is the secret). A brand lists only the campaigns created from its own
+// browser: that browser holds a random workspace key, and the server keeps only a hash of it. There are no accounts yet.
+
+export const isWorkspaceKey = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{32,128}$/.test(v);
+export const ownerHashOf = (key: string) => createHash("sha256").update(`creatorpay-workspace:${key}`).digest("hex");
+export const newId = (prefix: string) => `${prefix}-${randomBytes(9).toString("hex")}`;
+const workspaceOf = (req: Request): string | undefined => {
+  const key = req.header("x-workspace-key");
+  return isWorkspaceKey(key) ? ownerHashOf(key) : undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -394,6 +409,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     const likes = sourceKey && status?.lastValues[sourceKey] !== undefined ? status.lastValues[sourceKey] : c.submission?.baseline;
     return {
       ...c,
+      ownerHash: undefined,
       budgetTada: escrowUnits(c) * (Number(ESCROW_LOVELACE) / 1_000_000),
       submission: c.submission && { ...c.submission, look: { ...c.submission.look, data: c.submission.look.data.slice(0, 4000) } },
       live: {
@@ -427,7 +443,11 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     });
   });
 
-  router.get("/api/cp/campaigns", (_req, res) => void res.json(campaigns.map(view).reverse()));
+  // Only the campaigns created from the browser that sends its workspace key; without a key the list is empty.
+  router.get("/api/cp/campaigns", (req, res) => {
+    const owner = workspaceOf(req);
+    res.json(owner ? campaigns.filter((c) => c.ownerHash === owner).map(view).reverse() : []);
+  });
 
   router.get("/api/cp/campaigns/:id", (req, res) => {
     const c = byId(String(req.params.id));
@@ -443,7 +463,8 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     } catch (error) {
       return void res.status(400).json({ error: (error as Error).message });
     }
-    const campaign: Campaign = { id: `cp-${Date.now().toString(36)}`, createdAt: new Date().toISOString(), status: "open", steps: [], escrows: [], ...terms };
+    const owner = workspaceOf(req);
+    const campaign: Campaign = { id: newId("cp"), createdAt: new Date().toISOString(), status: "open", steps: [], escrows: [], ...(owner ? { ownerHash: owner } : {}), ...terms };
     campaigns.push(campaign);
     save();
     res.json(view(campaign));
@@ -486,7 +507,8 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     const rows = Array.isArray(b.creators) ? b.creators : [];
     if (rows.length === 0) return void res.status(400).json({ error: "creators must be a list of X handles (or { handle } objects)" });
     if (rows.length > MAX_BULK) return void res.status(400).json({ error: `at most ${MAX_BULK} creators per import` });
-    const groupId = `grp-${Date.now().toString(36)}`;
+    const groupId = newId("grp");
+    const owner = workspaceOf(req);
     const made: Campaign[] = [];
     const skipped: { row: number; handle: string; reason: string }[] = [];
     const seen = new Set<string>();
@@ -497,7 +519,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
       if (campaigns.length + made.length >= MAX_CAMPAIGNS) return void skipped.push({ row: i + 1, handle, reason: "too many campaigns on this server" });
       try {
         const terms = parseTerms({ ...b, creator: handle });
-        made.push({ id: `cp-${(Date.now() + i).toString(36)}`, createdAt: new Date().toISOString(), status: "open", steps: [], escrows: [], groupId, ...terms });
+        made.push({ id: newId("cp"), createdAt: new Date().toISOString(), status: "open", steps: [], escrows: [], groupId, ...(owner ? { ownerHash: owner } : {}), ...terms });
       } catch (error) {
         skipped.push({ row: i + 1, handle, reason: (error as Error).message });
       }
@@ -509,21 +531,21 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
   });
 
   router.get("/api/cp/groups/:id", (req, res) => {
-    const list = campaigns.filter((c) => c.groupId === String(req.params.id));
+    const owner = workspaceOf(req);
+    const list = owner ? campaigns.filter((c) => c.groupId === String(req.params.id) && c.ownerHash === owner) : [];
     if (list.length === 0) return void res.status(404).json({ error: "No such group" });
     res.json({ groupId: String(req.params.id), campaigns: list.map(view).reverse() });
   });
 
-  /** The creator's own view: by payout wallet or by X handle (who), optionally narrowed to one post (a link or an id). */
+  /** The creator's own view: the campaigns where this payout wallet was submitted, optionally narrowed to one post (a link or an id), or the campaign of one post. An offer that has not been answered yet opens from its invite link; there is no lookup by handle. */
   router.get("/api/cp/creator", (req, res) => {
     const wallet = text(req.query.wallet, 120);
-    const handle = text(req.query.handle, 40).replace(/^@/, "").toLowerCase();
     const post = text(req.query.post, 300);
     const postId = post ? (tweetIdOf(post) ?? (/^\d{1,20}$/.test(post) ? post : undefined)) : undefined;
-    if (!wallet && !handle && !post) return void res.status(400).json({ error: "give a wallet, a handle or a post link" });
+    if (!wallet && !post) return void res.status(400).json({ error: "give your payout wallet or a post link. An offer you have not answered yet opens from its invite link." });
     if (post && !postId) return void res.status(400).json({ error: "the post must be a link https://x.com/<handle>/status/<ID> or its id" });
     const list = campaigns.filter((c) => {
-      const who = wallet || handle ? (wallet !== "" && c.submission?.payee === wallet) || (handle !== "" && c.creator.toLowerCase() === handle) : true;
+      const who = wallet ? c.submission?.payee === wallet : true;
       const which = postId ? c.submission?.postUrl !== undefined && tweetIdOf(c.submission.postUrl) === postId : true;
       return who && which;
     });
@@ -531,8 +553,11 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
   });
 
   /** What happens behind the screens: the keeper, every transaction the service made, the activity and the signed data it acted on. */
-  router.get("/api/cp/engine", (_req, res) => {
+  router.get("/api/cp/engine", (req, res) => {
     const w = deps.watcher()?.status();
+    const owner = workspaceOf(req);
+    // Transactions and the keeper are public chain data. Campaign activity and signed data show brand and creator names: owner only.
+    const visible = owner ? campaigns.filter((c) => c.ownerHash === owner) : [];
     let journal: ReturnType<typeof latestTransactions> = [];
     try {
       journal = latestTransactions();
@@ -543,11 +568,11 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
       .sort((a, c) => (c.confirmationTimestamp ?? c.submissionTimestamp ?? c.updatedAt).localeCompare(a.confirmationTimestamp ?? a.submissionTimestamp ?? a.updatedAt))
       .slice(0, 80)
       .map((t) => ({ txHash: t.txHash, operation: t.operation, state: t.state, blockNumber: t.blockNumber, submittedAt: t.submissionTimestamp, confirmedAt: t.confirmationTimestamp, updatedAt: t.updatedAt, source: t.source, escrowRefs: t.escrowRefs, explorerUrl: t.explorerUrl || explorer(t.txHash), note: t.note ?? null }));
-    const activity = campaigns
+    const activity = visible
       .flatMap((c) => c.steps.map((s) => ({ ...s, campaignId: c.id, title: c.title, brand: c.brand, creator: c.creator })))
       .sort((a, c) => c.at.localeCompare(a.at))
       .slice(0, 80);
-    const signed = campaigns
+    const signed = visible
       .filter((c) => c.submission)
       .slice(-20)
       .reverse()
@@ -564,6 +589,7 @@ export const campaignRoutes = (deps: CampaignDeps): Router => {
     }
     res.json({
       generatedAt: new Date().toISOString(),
+      scope: owner ? "workspace" : "public",
       network: "Cardano preprod",
       contract: { validatorHash: scriptHash, validatorAddress: validatorAddressBech32 },
       keeper: w
