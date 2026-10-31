@@ -31,3 +31,7 @@ At 00:17:43–00:18:36 UTC, direct GETs to `/api/info`, `/api/cases`, `/api/poli
 Keyboard spot check: Tab from the signed-response field moved focus to the Real response example button. Full keyboard-only workflow remains not verified. Endpoint and browser reservations together total at most 23 recorded/reserved site requests, including the omitted field-name POST; unobserved browser requests remain a limitation. No 429 was observed.
 
 End of site testing: 2026-10-31 01:19 Europe/Berlin. Elapsed approximately 35 minutes from the recorded start, including the interruption. The report is partial; no CI, local tests, or deployment were run. The public site was not altered.
+
+## Continuation, 31 October 2026
+
+Started 01:47:57 Berlin; ended approximately 01:48 Berlin. Static source review only; no additional live requests. The source declares visible-focus outlines for buttons, selects, textareas and links, selected states for the tab controls, arrow-key handling in the tab list, and a polite live region for results. These declarations do not prove complete keyboard usability, contrast, or screen-reader behavior. Nonexistent-policy, double-click and slow-network tests remain not verified. The earlier request-count uncertainty remains; no new request was made. The account's included usage was exhausted and the shared credit balance was approximately 182.25 at the continuation checkpoint; work stopped at this partial checkpoint.
