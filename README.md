@@ -1,5 +1,9 @@
 # Pay-on-Proof (CreatorPay)
 
+> 🏆 **1st place, API3 Track — TUM Blockchain & AI Hackathon 2026**
+>
+> We won the API3 track, “Any API in your contract,” with CreatorPay. [See the official results](https://hackathon.tum-blockchain.com/).
+
 ![CreatorPay: pay only when signed data proves the work is done](brand/creatorpay-cover-1200x630.png)
 
 **Outcome-based payments for agents on Cardano, verified by API3 data.** To our knowledge the first contract on Cardano that checks an API3 AirnodeHub signature itself, so a job (a Masumi agent's, a creator's) can be paid only when a signed fact proves the result. [What we changed because someone challenged us](ITERATIONS.md). [How it becomes a service, and what it costs us today](SERVICE.md).
