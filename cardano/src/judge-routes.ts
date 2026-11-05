@@ -15,6 +15,8 @@ interface Standing {
   name: string;
   ref: string;
   note: string;
+  deadline?: string;
+  maxAgeSeconds?: number;
 }
 const standing: Standing[] = JSON.parse(readFileSync(new URL("../standing-policies.json", import.meta.url), "utf8"));
 const standingRef = (name: string) => standing.find((s) => s.name === name)?.ref;
@@ -104,7 +106,7 @@ export const judgeRoutes = (getClient: () => Client): Router => {
     for (const s of standing) {
       try {
         const utxo = await findPolicyUtxo(client, s.ref);
-        rows.push(utxo ? { ...s, status: "open", ...policySummary(utxo) } : { ...s, status: "spent" });
+        rows.push(utxo ? { ...s, status: policyViewOf(utxo).deadlineMs <= Date.now() ? "expired" : "open", ...policySummary(utxo) } : { ...s, status: "spent" });
       } catch (error) {
         rows.push({ ...s, status: "unavailable", error: String((error as Error).message).slice(0, 80) });
       }
@@ -116,7 +118,7 @@ export const judgeRoutes = (getClient: () => Client): Router => {
   const CASES = [
     { id: "control-first", label: "Real response (control)", file: "valid.json", policy: "bench-48h", expect: "ACCEPTED" },
     { id: "edited", label: "One value edited after signing", file: "edited.json", policy: "bench-48h", expect: "REJECTED" },
-    { id: "stale", label: "Real response, but the policy allows only 5 minutes", file: "valid.json", policy: "bench-5min", expect: "REJECTED" },
+    { id: "stale", label: "Real response, but the policy allows only 5 minutes", file: "stale.json", policy: "bench-5min", expect: "REJECTED" },
     { id: "other-request", label: "A real response to a different request", file: "other-request.json", policy: "bench-48h", expect: "REJECTED" },
     { id: "foreign-signer", label: "Same data, signed by a key that is not the Airnode", file: "foreign-signer.json", policy: "bench-48h", expect: "REJECTED" },
     { id: "control-last", label: "Real response (control again)", file: "valid.json", policy: "bench-48h", expect: "ACCEPTED" },
@@ -124,11 +126,17 @@ export const judgeRoutes = (getClient: () => Client): Router => {
 
   router.get("/api/cases", (_req, res) => {
     res.json(
-      CASES.map((c) => ({
-        ...c,
-        ref: standingRef(c.policy),
-        response: JSON.parse(readFileSync(new URL(c.file, vectorDir), "utf8")),
-      })),
+      CASES.map((c) => {
+        const fixture = standing.find((s) => s.name === c.policy);
+        const response = JSON.parse(readFileSync(new URL(c.file, vectorDir), "utf8"));
+        return {
+          ...c, ref: standingRef(c.policy), response,
+          fixtureDeadline: fixture?.deadline,
+          evidenceFreshUntil: Number.isFinite(fixture?.maxAgeSeconds)
+            ? new Date(Number(response.timestamp) * 1000 + fixture!.maxAgeSeconds! * 1000).toISOString()
+            : undefined,
+        };
+      }),
     );
   });
 

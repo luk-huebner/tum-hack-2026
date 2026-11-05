@@ -119,10 +119,12 @@ export interface BenchCase {
   expect: "ACCEPTED" | "REJECTED";
   ref: string;
   response: Record<string, string>;
+  fixtureDeadline?: string;
+  evidenceFreshUntil?: string;
 }
 
 export interface Verdict {
-  verdict: "ACCEPTED" | "REJECTED" | "ERROR";
+  verdict: "ACCEPTED" | "REJECTED" | "EXPIRED" | "ERROR";
   detail?: string;
   error?: string;
   hints?: { sameRequest: boolean; ageSeconds: number; maxAgeSeconds: number; tooOld: boolean; sum: number; threshold: number; ruleHolds: boolean };

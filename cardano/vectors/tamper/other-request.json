@@ -1,7 +1,7 @@
 {
-  "airnode": "0xA868C4C235cA1108dB494FB573C0ffaA0b16A739",
-  "requestHash": "0xf8502e6f678fd790446ee46e27d6f50df9b8607e9f4d2d5b3004886f457fd883",
-  "timestamp": "1793355714",
-  "data": "{\"type\":\"youtube-video\",\"id\":\"-CP1gxzpGhY\",\"title\":\"Trump dealt FINAL BLOW over “Lake America” | Another Day\",\"description\":\"BREAKING #news: Trump ramps up feud with Canada by renaming Lake Ontario\\n\\nOrder Brian's new book, THE DAY AFTER: https://www.harpercollins.com/pages/thedayafter\\n\\nFollow/subscribe to BTC's platforms here: https://linktr.ee/briantylercohen\",\"extraText\":\"Trump, Republicans, Democrats, brian cohen, politics, news\",\"metrics\":{\"views\":1090232,\"likes\":25750,\"comments\":6376},\"image\":null,\"video\":null,\"images\":null,\"creator_id\":\"youtube::UCQANb2YPwAtK-IQJrLaaUFw\",\"creator_name\":\"briantylercohen\",\"creator_display_name\":\"Brian Tyler Cohen\",\"creator_avatar\":\"https://yt3.ggpht.com/P49fez73t1RPPGWT9ZWx_LSho_O8i49XrcpVwxRk3GQfzEQBTUs3gH0ZLUHdzuNxQpRYuLAfSQ=s88-c-k-c0x00ffffff-no-rj\"}",
-  "signature": "0xd0c253eb56f1c19b4f3d4ed02001c613ad176685fc009f2b690d3e42497493743acba2ddcceb34262788d9471d15c4373ec28e915722c978cf0e873e4570e02e1b"
+  "airnode": "0xee510FFb986299529fE987bfD163D6c89067D767",
+  "requestHash": "0x8e7446e58e150925dca135335ce3893ab26dd0ff6ead00c5838a8af6d8c284e2",
+  "timestamp": "1793898905",
+  "data": "{\"d00\":7.00,\"d01\":0.00,\"d02\":0.00,\"d03\":2.40,\"d04\":1.60,\"d05\":0.00,\"d06\":0.00,\"d07\":1.40,\"d08\":1.70,\"d09\":0.00,\"d10\":0.00,\"d11\":7.20,\"d12\":1.30,\"d13\":0.10}",
+  "signature": "0x53998f3cd175914a17594c9ac37d358962fde13a53b85dc130296544e483f22e696727e6160649e947a97f42ee201711d3714debf53887a6a5f6da7f72bbf7991c"
 }
