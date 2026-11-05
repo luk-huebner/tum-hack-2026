@@ -41,6 +41,7 @@ export default function Verify() {
 
   const done = cases.filter((c) => results[c.id]?.verdict);
   const passed = done.filter((c) => results[c.id]?.verdict?.verdict === c.expect).length;
+  const control = cases.find((c) => c.expect === "ACCEPTED");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -50,6 +51,12 @@ export default function Verify() {
         The Aiken validator on Cardano preprod checks an API3 Airnode signature itself: who signed, which request, how old, and whether the rule holds. Below, real and tampered signed responses are sent to two
         policies locked at the contract. Each verdict is the node's own script evaluation of an unsigned release; nothing is ever submitted.
       </p>
+      {control?.evidenceFreshUntil && (
+        <p className={`mt-3 text-sm ${Date.parse(control.evidenceFreshUntil) <= Date.now() ? "text-amber-300" : "text-ink-mute"}`}>
+          Signed control evidence valid until {dateTimeOf(control.evidenceFreshUntil)}. Renew the signed evidence before this time.
+          {control.fixtureDeadline && <> Test contracts expire {dateTimeOf(control.fixtureDeadline)}.</>}
+        </p>
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="card p-6">
@@ -74,7 +81,7 @@ export default function Verify() {
                       policy {c.policy} · expected <span className={c.expect === "ACCEPTED" ? "text-proof" : "text-red-400"}>{c.expect}</span>
                       {r?.verdict?.tookMs ? ` · ${(r.verdict.tookMs / 1000).toFixed(1)} s` : ""}
                     </div>
-                    {(r?.error || (v === "ERROR" && r?.verdict?.detail)) && <div className="mt-0.5 text-xs text-amber-300">{r?.error ?? r?.verdict?.detail}</div>}
+                    {(r?.error || ((v === "ERROR" || v === "EXPIRED") && r?.verdict?.detail)) && <div className="mt-0.5 text-xs text-amber-300">{r?.error ?? r?.verdict?.detail}</div>}
                   </div>
                   <div className="w-32 text-right">
                     {r?.running && <Loader2 size={18} className="ml-auto animate-spin text-brand-400" />}
@@ -84,7 +91,7 @@ export default function Verify() {
                         {v}
                       </span>
                     )}
-                    {v && v !== "ERROR" && <div className={`text-[0.7rem] font-semibold ${ok ? "text-proof" : "text-red-400"}`}>{ok ? "as expected" : "UNEXPECTED"}</div>}
+                    {v && v !== "ERROR" && <div className={`text-[0.7rem] font-semibold ${v === "EXPIRED" ? "text-amber-400" : ok ? "text-proof" : "text-red-400"}`}>{v === "EXPIRED" ? "fixture expired; not evaluated" : ok ? "as expected" : "UNEXPECTED"}</div>}
                   </div>
                 </div>
               );
@@ -94,6 +101,9 @@ export default function Verify() {
             <div className={`mt-4 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold ${passed === cases.length ? "bg-proof/10 text-proof" : "bg-red-500/10 text-red-300"}`}>
               {passed === cases.length ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />} {passed}/{cases.length} verdicts as expected
             </div>
+          )}
+          {done.some((c) => results[c.id]?.verdict?.verdict === "EXPIRED") && (
+            <p className="mt-3 text-sm text-amber-300">The test fixtures have expired. These cases did not reach validator evaluation. Renew the fixtures and signed evidence before using this bench to verify the contract.</p>
           )}
         </div>
 

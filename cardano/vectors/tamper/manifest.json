@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "preparedAt": "2026-11-05T17:17:02.247Z",
+  "controlSignedAt": "2026-11-05T17:14:33.000Z",
+  "controlFreshUntil": "2026-11-07T17:14:33.000Z",
+  "requestHash": "0x11e0e1b67c51d6c7ecc06f18d0ce6d2b2b1802243733bf63cc69df10599b86c5",
+  "sum": 26.2,
+  "staleUsesSeparateOldSignature": true,
+  "differentRequestUsesSameAirnode": true
+}

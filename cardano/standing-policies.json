@@ -1,12 +1,16 @@
 [
   {
     "name": "bench-48h",
-    "ref": "403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc#0",
-    "note": "Open-Meteo rainfall, Munich, 14 days: pays 5 tADA to the buyer key (not the seller, so the seller's keeper never releases it) if the sum is below 30 mm. Accepts a response up to 48 hours old."
+    "ref": "32bec362059be23a69f13345f78ee66853965adf261a62e7a60fd9edc555da8d#0",
+    "note": "Open-Meteo rainfall below 30 mm; max age 172800s; buyer beneficiary/refund key; deadline 2026-12-05T17:18:33.552Z",
+    "deadline": "2026-12-05T17:18:33.552Z",
+    "maxAgeSeconds": 172800
   },
   {
     "name": "bench-5min",
-    "ref": "403517841e2a925bffa38a50069a03449193b88402511b82088a77fdb6ff15bc#1",
-    "note": "The same rule and request. Accepts only a response less than 5 minutes old."
+    "ref": "32bec362059be23a69f13345f78ee66853965adf261a62e7a60fd9edc555da8d#1",
+    "note": "Open-Meteo rainfall below 30 mm; max age 300s; buyer beneficiary/refund key; deadline 2026-12-05T17:18:33.552Z",
+    "deadline": "2026-12-05T17:18:33.552Z",
+    "maxAgeSeconds": 300
   }
 ]
